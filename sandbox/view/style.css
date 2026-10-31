@@ -1,17 +1,25 @@
-main {
-	display: grid;
-	place-items: center;
-}
-
-div#player {
-	position: relative;
-	display: grid;
-	block-size: 100%;
-	max-inline-size: 100%;
+div#frame {
+	position: absolute;
+	inset: 0;
+	margin: auto;
+	max-block-size: 100%;
 	aspect-ratio: 1;
 }
 
-canvas#display {
+div#player {
+	inline-size: 100%;
+	block-size: 100%;
+	border-radius: calc(var(--size-gap) + var(--size-gap));
+}
+
+div#display {
+	position: relative;
+	inline-size: 100%;
+	block-size: 100%;
+	overflow: hidden;
+}
+
+canvas#board {
 	inline-size: 100%;
 	block-size: 100%;
 	image-rendering: pixelated;
@@ -19,9 +27,11 @@ canvas#display {
 
 div#toolkit {
 	position: absolute;
-	inset: auto var(--size-gap) var(--size-gap);
+	inset-block-end: 0;
+	inline-size: 100%;
 	display: grid;
 	grid-template-columns: repeat(2, max-content) 1fr;
+	color: white;
 	opacity: 0.5;
 	transition: opacity var(--time-duration);
 
@@ -33,12 +43,16 @@ div#toolkit {
 		--url: url(../../assets/icons/play.svg);
 	}
 
-	& input#toggle-play:checked + label span.icon {
-		--url: url(../../assets/icons/pause.svg);
+	& input#toggle-play:checked + label {
+		background-color: unset;
+
+		& span.icon {
+			--url: url(../../assets/icons/pause.svg);
+		}
 	}
 
 	& button#reload-board span.icon {
-		--url: url(../../assets/icons/rotate-left.svg);
+		--url: url(../../assets/icons/rotate-right.svg);
 	}
 
 	& button#capture-canvas {
@@ -50,7 +64,15 @@ div#toolkit {
 	}
 }
 
-output#tick-counter {
+aside {
 	position: absolute;
-	inset: var(--size-gap) var(--size-gap) auto auto;
+	inset: 0 0 0 auto;
+	align-items: flex-end;
+}
+
+output#tick-counter {
+	--color-indicator: var(--color-main);
+	border-start-end-radius: 0 !important;
+	border-style: solid;
+	border-color: var(--color-indicator);
 }

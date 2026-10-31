@@ -16,6 +16,7 @@ export default defineConfig(async (env) => {
 	const rootEntries: URL[] = [
 	];
 	const pathEntries: URL[] = [
+		new URL("./sandbox/controllers/simulation-worker.ts", root),
 	];
 	const output: URL = new URL("./dist/client", root);
 	const plugins: VitePlugin[] = [new CloudflareVitePlugin()];

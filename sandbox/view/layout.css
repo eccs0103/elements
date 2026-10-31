@@ -8,7 +8,7 @@ nav {
 	border-start-start-radius: 0 !important;
 
 	& a.icon-sandbox span.icon {
-		--url: url(../../assets/icons/table-cells.svg);
+		--url: url(../../assets/icons/table-cells-large.svg);
 	}
 
 	& a.icon-settings span.icon {
@@ -22,12 +22,20 @@ nav {
 
 main {
 	position: relative;
-	overflow: auto;
+	inline-size: 100%;
+	block-size: 100%;
+	overflow: hidden auto;
+}
+
+div.panel {
+	inline-size: 100vmin;
+	block-size: fit-content;
 }
 
 @media (orientation: portrait) {
 	body {
 		grid-template-rows: max-content 1fr;
+		align-items: center;
 	}
 
 	nav {
@@ -39,6 +47,7 @@ main {
 @media (orientation: landscape) {
 	body {
 		grid-template-columns: max-content 1fr;
+		justify-items: center;
 	}
 
 	nav {

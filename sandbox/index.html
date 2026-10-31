@@ -14,8 +14,8 @@
 	<meta name="language" content="English">
 	<meta name="revisit-after" content="0 days">
 	<title>Sandbox - Elements</title>
-	<link rel="shortcut icon" href="../assets/icons/table-cells.svg" media="(prefers-color-scheme: light)">
-	<link rel="shortcut icon" href="../assets/icons/table-cells-inverted.svg" media="(prefers-color-scheme: dark)">
+	<link rel="shortcut icon" href="../assets/icons/table-cells-large.svg" media="(prefers-color-scheme: light)">
+	<link rel="shortcut icon" href="../assets/icons/table-cells-large-inverted.svg" media="(prefers-color-scheme: dark)">
 	<link rel="stylesheet" href="../styles/global.css">
 	<link rel="stylesheet" href="../styles/themes/material.css">
 	<link rel="stylesheet" href="../sandbox/view/layout.css">
@@ -25,7 +25,7 @@
 </head>
 
 <body>
-	<nav class="layer rounded with-gap with-padding flex">
+	<nav class="layer rounded with-gap with-padding flex center">
 		<a href="../sandbox/" role="combobox" aria-checked="true" title="Sandbox" class="icon-sandbox flex rounded with-padding">
 			<span class="icon">Sandbox</span>
 		</a>
@@ -36,23 +36,29 @@
 			<span class="icon">Information</span>
 		</a>
 	</nav>
-	<main class="with-padding large-padding">
-		<div id="player" class="layer rounded with-padding">
-			<canvas id="display" class="depth rounded"></canvas>
-			<div id="toolkit" class="translucent rounded with-padding flex with-gap">
-				<input id="toggle-play" type="checkbox" hidden>
-				<label for="toggle-play" role="checkbox" title="Launch" class="flex rounded with-padding">
-					<span class="icon">Launch</span>
-				</label>
-				<button id="reload-board" type="button" title="Reload" class="flex rounded with-padding">
-					<span class="icon">Reload</span>
-				</button>
-				<button id="capture-canvas" type="button" title="Capture" class="flex rounded with-padding">
-					<span class="icon">Capture</span>
-				</button>
+	<main class="flex">
+		<div id="frame" class="with-padding large-padding flex">
+			<div id="player" class="layer rounded with-padding flex">
+				<div id="display" class="flex">
+					<canvas id="board" class="depth rounded"></canvas>
+					<div id="toolkit" class="translucent rounded with-padding">
+						<input id="toggle-play" type="checkbox" hidden>
+						<label for="toggle-play" role="checkbox" title="Launch" class="flex with-padding">
+							<span class="icon">Launch</span>
+						</label>
+						<button id="reload-board" type="button" title="Reload" class="flex with-padding">
+							<span class="icon">Reload</span>
+						</button>
+						<button id="capture-canvas" type="button" title="Capture canvas" class="flex with-padding">
+							<span class="icon">Capture canvas</span>
+						</button>
+					</div>
+				</div>
 			</div>
 		</div>
-		<output id="tick-counter" class="layer rounded with-padding" hidden>-</output>
+		<aside class="flex column">
+			<output id="tick-counter" class="layer rounded with-padding flex center" hidden>-</output>
+		</aside>
 	</main>
 </body>
 

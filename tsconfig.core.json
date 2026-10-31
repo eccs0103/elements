@@ -6,6 +6,7 @@
 	},
 	"include": [
 		"environment/models/**/*.ts",
-		"sandbox/models/elements.ts"
+		"sandbox/models/elements.ts",
+		"sandbox/services/board.ts"
 	]
 }

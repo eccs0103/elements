@@ -25,7 +25,7 @@
 </head>
 
 <body>
-	<nav class="layer rounded with-gap with-padding flex">
+	<nav class="layer rounded with-gap with-padding flex center">
 		<a href="../sandbox/" role="combobox" title="Sandbox" class="icon-sandbox flex rounded with-padding">
 			<span class="icon">Sandbox</span>
 		</a>
@@ -36,55 +36,54 @@
 			<span class="icon">Information</span>
 		</a>
 	</nav>
-	<main class="with-padding large-padding">
-		<div class="layer rounded with-padding large-padding flex column">
-			<h3>General</h3>
-			<section class="option">
-				<h4 class="title">Color scheme</h4>
-				<span class="definition description">External design of the page: color scheme, background and foreground.</span>
-				<select id="scheme" class="value depth rounded with-padding" required>
-					<option value="system">System</option>
-					<option value="light">Light</option>
-					<option value="dark">Dark</option>
-				</select>
-			</section>
-			<h3>Game</h3>
-			<section class="option">
-				<h4 class="title">Show tick counter</h4>
-				<span class="definition description">Show or hide the counter of simulation ticks per second.</span>
-				<input id="counter" type="checkbox" hidden>
-				<label for="counter" role="checkbox" class="value toggle depth">
-					<span class="knob layer"></span>
-				</label>
-			</section>
-			<section class="option">
-				<h4 class="title">Speed</h4>
-				<span class="definition description">Simulation ticks per second: how fast the elements interact.</span>
-				<input id="speed" type="number" inputmode="numeric" required class="value depth rounded with-padding">
-			</section>
-			<h3>Board</h3>
-			<section class="option">
-				<h4 class="title">Board size</h4>
-				<span class="definition description">Cells per side of the generated board. Changing it generates the board anew.</span>
-				<input id="size" type="number" inputmode="numeric" required class="value depth rounded with-padding">
-			</section>
-			<section class="option">
-				<h4 class="title">On cycle end</h4>
-				<span class="definition description">What happens when the elements have no more moves.</span>
-				<select id="cycle" class="value depth rounded with-padding" required>
-					<option value="terminate">Terminate</option>
-					<option value="ask">Ask</option>
-					<option value="repeat">Repeat</option>
-				</select>
-			</section>
-			<section class="option">
-				<h4 class="title">Reset settings</h4>
-				<span class="definition description">Reverting all configurations to their default states.</span>
-				<button id="reset" type="button" class="value rounded depth alert with-padding flex alt-center with-gap" title="Reset settings">
-					<span class="icon in-line">Reset</span>
-					<span>Reset</span>
-				</button>
-			</section>
+	<main class="flex main-center">
+		<div class="panel flex column with-padding large-padding">
+			<div class="layer rounded flex column with-padding large-padding">
+				<h3>General</h3>
+				<section class="option">
+					<p class="title">Color scheme</p>
+					<select id="scheme" class="value depth rounded with-padding flex" required>
+						<option value="system">System</option>
+						<option value="light">Light</option>
+						<option value="dark">Dark</option>
+					</select>
+					<dfn class="definition">External design of the page: color scheme, background and foreground, font.</dfn>
+				</section>
+				<hr class="depth">
+				<h3>Game</h3>
+				<section class="option">
+					<p class="title">Show TPS</p>
+					<input id="counter" type="checkbox" hidden>
+					<label for="counter" role="checkbox" class="value depth toggle">
+						<span class="layer knob"></span>
+					</label>
+					<dfn class="definition">Show or hide the ticks per second counter with load indicator.</dfn>
+				</section>
+				<section class="option">
+					<p class="title">Speed</p>
+					<input id="speed" type="number" inputmode="numeric" required class="value depth rounded with-padding flex">
+					<dfn class="definition">Ticks per second: the speed of interaction of elements. It does not depend on the frame rate of the screen.</dfn>
+				</section>
+				<hr class="depth">
+				<h3>Board</h3>
+				<section class="option">
+					<p class="title">Board size</p>
+					<input id="size" type="number" inputmode="numeric" required class="value depth rounded with-padding flex">
+					<dfn class="definition">Board generated size. Resizing the board will generate it anew with the given coefficients.</dfn>
+				</section>
+				<section class="option">
+					<p class="title">On cycle end</p>
+					<select id="cycle" class="value depth rounded with-padding flex" required>
+						<option value="terminate">Terminate</option>
+						<option value="ask">Ask</option>
+						<option value="repeat">Repeat</option>
+					</select>
+					<dfn class="definition">Actions after the end of the game cycle.</dfn>
+				</section>
+				<section class="option">
+					<button id="reset" type="button" class="layer warn-background rounded with-padding grid-line">Reset settings</button>
+				</section>
+			</div>
 		</div>
 	</main>
 </body>

@@ -1,0 +1,12 @@
+{
+	"extends": "./tsconfig.base.json",
+	"compilerOptions": {
+		"lib": [ "WebWorker", "ES2025", "ESNext.Array" ],
+		"skipLibCheck": true
+	},
+	"include": [
+		"sandbox/controllers/simulation-worker.ts",
+		"sandbox/models/commands.ts",
+		"sandbox/services/painter.ts"
+	]
+}

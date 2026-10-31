@@ -25,7 +25,7 @@
 </head>
 
 <body>
-	<nav class="layer rounded with-gap with-padding flex">
+	<nav class="layer rounded with-gap with-padding flex center">
 		<a href="../sandbox/" role="combobox" title="Sandbox" class="icon-sandbox flex rounded with-padding">
 			<span class="icon">Sandbox</span>
 		</a>
@@ -36,22 +36,27 @@
 			<span class="icon">Information</span>
 		</a>
 	</nav>
-	<main class="with-padding large-padding">
-		<div id="elements" class="layer rounded with-padding large-padding flex column with-gap large-gap"></div>
+	<main class="flex main-center">
+		<div class="panel flex column with-padding large-padding">
+			<div id="elements" class="layer rounded flex column with-gap large-gap with-padding large-padding"></div>
+		</div>
 		<template id="element">
-			<article class="flex column with-gap">
-				<header class="flex alt-center with-gap">
-					<span class="swatch depth rounded"></span>
-					<h2 class="name"></h2>
-				</header>
-				<p>Probability: <b class="chance"></b></p>
+			<article class="element">
+				<svg viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg" class="avatar depth rounded">
+					<rect x="50" y="50" width="50" height="50"></rect>
+				</svg>
+				<h2 class="name"></h2>
+				<dl class="probability inline">
+					<dt>Probability:</dt>
+					<dd class="chance"></dd>
+				</dl>
 				<dl class="abilities"></dl>
 			</article>
 		</template>
 		<template id="ability">
 			<dt class="name"></dt>
 			<dd class="preparation"></dd>
-			<dd class="description"></dd>
+			<dd class="summary"></dd>
 		</template>
 	</main>
 </body>

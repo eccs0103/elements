@@ -17,15 +17,16 @@ class InformationController extends Controller {
 		SettingsService.instance.content.apply();
 		const divElements = this.#divElements;
 		for (const element of Catalog.elements) {
+			if (divElements.childElementCount > 0) divElements.appendChild(this.#separate());
 			divElements.appendChild(this.#render(element));
 		}
 	}
 
 	#render(element: Element): DocumentFragment {
 		const fragment = document.importNode(this.#templateElement.content, true);
-		fragment.getElement(HTMLSpanElement, "span.swatch").style.setProperty("--color", element.color.toString());
+		fragment.getElement(SVGRectElement, "svg.avatar rect").setAttribute("fill", element.color.toString());
 		fragment.getElement(HTMLHeadingElement, "h2.name").textContent = element.name;
-		fragment.getElement(HTMLElement, "b.chance").textContent = `${(Catalog.chance(element) * 100).toFixed(2)}%`;
+		fragment.getElement(HTMLElement, "dd.chance").textContent = `${(Catalog.chance(element) * 100).toFixed(2)}%`;
 		const dlAbilities = fragment.getElement(HTMLElement, "dl.abilities");
 		for (const ability of element.abilities) {
 			dlAbilities.appendChild(this.#describe(ability));
@@ -33,11 +34,17 @@ class InformationController extends Controller {
 		return fragment;
 	}
 
+	#separate(): HTMLHRElement {
+		const hrSeparator = document.createElement("hr");
+		hrSeparator.classList.add("depth");
+		return hrSeparator;
+	}
+
 	#describe(ability: Ability): DocumentFragment {
 		const fragment = document.importNode(this.#templateAbility.content, true);
 		fragment.getElement(HTMLElement, "dt.name").textContent = ability.name;
 		fragment.getElement(HTMLElement, "dd.preparation").textContent = `Preparation: ${ability.preparation} tick(s)`;
-		fragment.getElement(HTMLElement, "dd.description").textContent = ability.description;
+		fragment.getElement(HTMLElement, "dd.summary").textContent = ability.description;
 		return fragment;
 	}
 
