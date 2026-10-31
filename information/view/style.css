@@ -1,0 +1,22 @@
+main > div {
+	max-inline-size: calc(var(--size-standart) * 24);
+	margin-inline: auto;
+}
+
+span.swatch {
+	display: inline-block;
+	aspect-ratio: 1;
+	block-size: var(--size-large-standart);
+	background-color: var(--color);
+}
+
+dl.abilities {
+	& dt {
+		font-weight: 600;
+		padding-block-start: var(--size-gap);
+	}
+
+	& dd.preparation {
+		opacity: 0.75;
+	}
+}

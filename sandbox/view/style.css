@@ -1,0 +1,56 @@
+main {
+	display: grid;
+	place-items: center;
+}
+
+div#player {
+	position: relative;
+	display: grid;
+	block-size: 100%;
+	max-inline-size: 100%;
+	aspect-ratio: 1;
+}
+
+canvas#display {
+	inline-size: 100%;
+	block-size: 100%;
+	image-rendering: pixelated;
+}
+
+div#toolkit {
+	position: absolute;
+	inset: auto var(--size-gap) var(--size-gap);
+	display: grid;
+	grid-template-columns: repeat(2, max-content) 1fr;
+	opacity: 0.5;
+	transition: opacity var(--time-duration);
+
+	&:hover {
+		opacity: 1;
+	}
+
+	& label[for="toggle-play"] span.icon {
+		--url: url(../../assets/icons/play.svg);
+	}
+
+	& input#toggle-play:checked + label span.icon {
+		--url: url(../../assets/icons/pause.svg);
+	}
+
+	& button#reload-board span.icon {
+		--url: url(../../assets/icons/rotate-left.svg);
+	}
+
+	& button#capture-canvas {
+		justify-self: end;
+
+		& span.icon {
+			--url: url(../../assets/icons/camera.svg);
+		}
+	}
+}
+
+output#tick-counter {
+	position: absolute;
+	inset: var(--size-gap) var(--size-gap) auto auto;
+}

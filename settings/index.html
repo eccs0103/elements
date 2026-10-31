@@ -1,101 +1,92 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="material">
 
 <head>
 	<meta charset="UTF-8">
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta name="generator" content="2.8.0">
+	<meta name="generator" content="2.9.3">
 	<meta name="title" content="Elements">
 	<meta name="author" content="eccs0103">
 	<meta name="color-scheme" content="system">
-	<meta name="description" content="A sandbox-style game">
-	<meta name="keywords" content="html,css,javascript,jsdoc,typescript,web,generation,sandbox,custom-script,user-script,game">
+	<meta name="description" content="Settings of the sandbox">
+	<meta name="keywords" content="game, sandbox, elements, simulation, cellular automaton">
 	<meta name="robots" content="index, follow">
 	<meta name="language" content="English">
 	<meta name="revisit-after" content="0 days">
 	<title>Settings - Elements</title>
-	<link rel="shortcut icon" href="../resources/icons/settings.png" media="(prefers-color-scheme: light)">
-	<link rel="shortcut icon" href="../resources/icons/settings-inverted.png" media="(prefers-color-scheme: dark)">
-	<link rel="preload" as="image" href="../resources/loading.gif">
+	<link rel="shortcut icon" href="../assets/icons/gear.svg" media="(prefers-color-scheme: light)">
+	<link rel="shortcut icon" href="../assets/icons/gear-inverted.svg" media="(prefers-color-scheme: dark)">
 	<link rel="stylesheet" href="../styles/global.css">
 	<link rel="stylesheet" href="../styles/themes/material.css">
-	<link rel="stylesheet" href="./style.css">
-	<script type="module" src="./script.js"></script>
+	<link rel="stylesheet" href="../sandbox/view/layout.css">
+	<link rel="stylesheet" href="./view/style.css">
+	<script type="module" src="../environment/services/analytics-service.ts"></script>
+	<script type="module" src="./controllers/settings-controller.ts"></script>
 </head>
 
 <body>
-	<nav class="layer rounded with-gap with-padding flex centered">
-		<a href="../sandbox" role="combobox" title="Sandbox" class="flex rounded with-padding">
-			<img src="../resources/icons/grid.png" class="icon" alt="Sandbox">
+	<nav class="layer rounded with-gap with-padding flex">
+		<a href="../sandbox/" role="combobox" title="Sandbox" class="icon-sandbox flex rounded with-padding">
+			<span class="icon">Sandbox</span>
 		</a>
-		<a href="../settings" role="combobox" aria-checked="true" title="Settings" class="flex rounded with-padding">
-			<img src="../resources/icons/settings.png" class="icon" alt="Settings">
+		<a href="../settings/" role="combobox" aria-checked="true" title="Settings" class="icon-settings flex rounded with-padding">
+			<span class="icon">Settings</span>
 		</a>
-		<a href="../information" role="combobox" title="Information" class="flex rounded with-padding">
-			<img src="../resources/icons/information.png" class="icon" alt="Information">
+		<a href="../information/" role="combobox" title="Information" class="icon-information flex rounded with-padding">
+			<span class="icon">Information</span>
 		</a>
 	</nav>
-	<main class="flex primary-centered">
-		<div class="--panel-frame flex column with-padding large-padding">
-			<div class="layer rounded flex column with-padding large-padding">
-				<h3>General</h3>
-				<section class="option">
-					<p class="title">Color scheme</p>
-					<select id="color-scheme" class="value depth rounded with-padding flex" required></select>
-					<dfn class="definition">External design of the page: color scheme, background and foreground, font.</dfn>
-				</section>
-				<hr class="depth">
-				<h3>Game</h3>
-				<section class="option">
-					<p class="title">Show FPS</p>
-					<input id="toggle-fps" type="checkbox" hidden>
-					<label for="toggle-fps" role="checkbox" class="value depth toggle">
-						<span class="layer knob"></span>
-					</label>
-					<dfn class="definition">Show or hide FPS counter with load indicator.</dfn>
-				</section>
-				<section class="option">
-					<p class="title">FPS limit</p>
-					<input id="fps-limit" type="number" inputmode="numeric" min="1" max="240" placeholder="[1 - 240]" required class="value depth rounded with-padding flex">
-					<dfn class="definition"> Frames per second limit, which is calculated for the speed of interaction of elements, as well as for calculating the number of frames per second.</dfn>
-				</section>
-				<section class="option" hidden>
-					<p class="title warn">Elements counter <small class="alert">Unstable with new design.</small></p>
-					<input id="toggle-counter" type="checkbox" hidden>
-					<label for="toggle-counter" role="checkbox" class="value depth toggle">
-						<span class="layer knob"></span>
-					</label>
-					<dfn class="definition">Show or hide the elements counter, which displays the icons of the elements, their names and quantities.</dfn>
-					<section class="option">
-						<p class="title">Hide nullables</p>
-						<input id="toggle-nullables" type="checkbox" hidden>
-						<label for="toggle-nullables" role="checkbox" class="value depth toggle">
-							<span class="layer knob"></span>
-						</label>
-						<dfn class="definition">Show or hide elements with zero count.</dfn>
-					</section>
-				</section>
-				<hr class="depth">
-				<h3>Board</h3>
-				<section class="option">
-					<p class="title">Board size</p>
-					<input id="board-size" type="number" inputmode="numeric" min="10" max="200" placeholder="[20 - 200]" required class="value depth rounded with-padding flex">
-					<dfn class="definition">Board generated size. The size can be from 20 to 200 inclusive. Resizing the board will generate it anew with the given coefficients.</dfn>
-				</section>
-				<section class="option">
-					<p class="title">On cycle end</p>
-					<select id="cycle-type" class="value depth rounded with-padding flex" required></select>
-					<dfn class="definition">Actions after the end of the game cycle.</dfn>
-				</section>
-				<section class="option">
-					<button id="reset-settings" class="layer warn-background rounded with-padding grid-line in-center">Reset settings</button>
-				</section>
-			</div>
+	<main class="with-padding large-padding">
+		<div class="layer rounded with-padding large-padding flex column">
+			<h3>General</h3>
+			<section class="option">
+				<h4 class="title">Color scheme</h4>
+				<span class="definition description">External design of the page: color scheme, background and foreground.</span>
+				<select id="scheme" class="value depth rounded with-padding" required>
+					<option value="system">System</option>
+					<option value="light">Light</option>
+					<option value="dark">Dark</option>
+				</select>
+			</section>
+			<h3>Game</h3>
+			<section class="option">
+				<h4 class="title">Show tick counter</h4>
+				<span class="definition description">Show or hide the counter of simulation ticks per second.</span>
+				<input id="counter" type="checkbox" hidden>
+				<label for="counter" role="checkbox" class="value toggle depth">
+					<span class="knob layer"></span>
+				</label>
+			</section>
+			<section class="option">
+				<h4 class="title">Speed</h4>
+				<span class="definition description">Simulation ticks per second: how fast the elements interact.</span>
+				<input id="speed" type="number" inputmode="numeric" required class="value depth rounded with-padding">
+			</section>
+			<h3>Board</h3>
+			<section class="option">
+				<h4 class="title">Board size</h4>
+				<span class="definition description">Cells per side of the generated board. Changing it generates the board anew.</span>
+				<input id="size" type="number" inputmode="numeric" required class="value depth rounded with-padding">
+			</section>
+			<section class="option">
+				<h4 class="title">On cycle end</h4>
+				<span class="definition description">What happens when the elements have no more moves.</span>
+				<select id="cycle" class="value depth rounded with-padding" required>
+					<option value="terminate">Terminate</option>
+					<option value="ask">Ask</option>
+					<option value="repeat">Repeat</option>
+				</select>
+			</section>
+			<section class="option">
+				<h4 class="title">Reset settings</h4>
+				<span class="definition description">Reverting all configurations to their default states.</span>
+				<button id="reset" type="button" class="value rounded depth alert with-padding flex alt-center with-gap" title="Reset settings">
+					<span class="icon in-line">Reset</span>
+					<span>Reset</span>
+				</button>
+			</section>
 		</div>
 	</main>
-	<script src="../scripts/templates/loader.js"></script>
-	<script src="../scripts/templates/popup.js"></script>
 </body>
 
 </html>

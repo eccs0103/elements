@@ -1,0 +1,8 @@
+main > div {
+	max-inline-size: calc(var(--size-standart) * 24);
+	margin-inline: auto;
+}
+
+button#reset span.icon {
+	--url: url(../../assets/icons/rotate-left.svg);
+}
