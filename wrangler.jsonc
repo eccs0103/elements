@@ -1,0 +1,19 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "elements",
+	"compatibility_date": "2026-07-16",
+	"main": "environment/workers/site-worker.ts",
+	"assets": {
+		"binding": "ASSETS",
+		"run_worker_first": ["/*", "!/assets/*", "!/*.*"]
+	},
+	"routes": [
+		{ "pattern": "elements.eccs.dev", "custom_domain": true }
+	],
+	"observability": {
+		"enabled": true,
+		"traces": {
+			"enabled": true
+		}
+	}
+}

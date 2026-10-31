@@ -1,0 +1,50 @@
+"use strict";
+
+import "adaptive-extender/web";
+import { PageLeave } from "../models/page-leave.js";
+import { AnalyticsService } from "../services/analytics-service.js";
+import { Controller } from "adaptive-extender/web";
+
+const { round, min } = Math;
+const analytics = AnalyticsService.instance;
+
+//#region Engagement collector
+export class EngagementCollector extends Controller {
+	#maxScrollPercent = 0;
+	#totalVisibleMilliseconds = 0;
+	#sinceVisible: number | null = null;
+
+	async run(): Promise<void> {
+		if (document.visibilityState === "visible") this.#sinceVisible = Date.now();
+		window.addEventListener("scroll", this.#onScroll.bind(this), { passive: true });
+		document.addEventListener("visibilitychange", this.#onVisibility.bind(this));
+	}
+
+	#onScroll(event: Event): void {
+		const { scrollY, innerHeight } = window;
+		const { scrollHeight } = document.documentElement;
+		if (scrollHeight <= innerHeight) return;
+		const percent = min(round((scrollY + innerHeight) / scrollHeight * 100), 100);
+		if (percent > this.#maxScrollPercent) this.#maxScrollPercent = percent;
+	}
+
+	#onVisibility(event: Event): void {
+		if (document.visibilityState !== "hidden") {
+			this.#sinceVisible = Date.now();
+			return;
+		}
+		const sinceVisible = this.#sinceVisible;
+		if (sinceVisible !== null) {
+			this.#totalVisibleMilliseconds += Date.now() - sinceVisible;
+			this.#sinceVisible = null;
+		}
+		const visibleMilliseconds = this.#totalVisibleMilliseconds;
+		const maxScrollPercent = this.#maxScrollPercent;
+		analytics.dispatch("page_leave", new PageLeave(visibleMilliseconds, maxScrollPercent));
+	}
+
+	async catch(error: Error): Promise<void> {
+		console.error(`Engagement collection failed:\n${error}`);
+	}
+}
+//#endregion
