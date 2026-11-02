@@ -2,8 +2,8 @@
 
 import "adaptive-extender/core";
 import { Random } from "adaptive-extender/core";
-import { Rules } from "../../sandbox/models/rules.js";
-import { Human } from "../../sandbox/services/players.js";
+import { Rules } from "../../playground/models/rules.js";
+import { Human } from "../../playground/services/players.js";
 import { Ticket, Verdict, Standing, type Report } from "../models/protocol.js";
 
 const random = Random.global;

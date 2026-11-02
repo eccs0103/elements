@@ -9,14 +9,14 @@ import { type VitePlugin } from "./environment/plugins/vite-plugin.js";
 export default defineConfig(async (env) => {
 	const root: URL = new URL(import.meta.url);
 	const inputs: URL[] = [
-		new URL("./sandbox/index.html", root),
+		new URL("./playground/index.html", root),
 		new URL("./settings/index.html", root),
 		new URL("./information/index.html", root),
 	];
 	const rootEntries: URL[] = [
 	];
 	const pathEntries: URL[] = [
-		new URL("./sandbox/controllers/simulation-worker.ts", root),
+		new URL("./playground/controllers/simulation-worker.ts", root),
 		new URL("./arena/controllers/server-worker.ts", root),
 	];
 	const output: URL = new URL("./dist/client", root);

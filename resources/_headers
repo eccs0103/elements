@@ -1,6 +1,6 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
-/sandbox/controllers/*
+/playground/controllers/*
   Cache-Control: public, max-age=0, must-revalidate
 /*.html
   Cache-Control: public, max-age=0, must-revalidate

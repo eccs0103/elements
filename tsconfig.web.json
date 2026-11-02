@@ -6,9 +6,9 @@
 	"include": [
 		"environment/controllers/**/*.ts",
 		"environment/services/**/*.ts",
-		"sandbox/controllers/sandbox-controller.ts",
-		"sandbox/services/simulation.ts",
-		"sandbox/view/tray.ts",
+		"playground/controllers/playground-controller.ts",
+		"playground/services/simulation.ts",
+		"playground/view/tray.ts",
 		"arena/services/relay.ts",
 		"arena/services/client.ts",
 		"settings/**/*.ts",

@@ -14,7 +14,7 @@ nav {
 		color: var(--color-highlight);
 	}
 
-	& a.icon-sandbox span.icon {
+	& a.icon-playground span.icon {
 		--url: url(../../assets/icons/cubes.svg);
 	}
 

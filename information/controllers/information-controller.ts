@@ -2,7 +2,7 @@
 
 import "adaptive-extender/web";
 import { Controller } from "adaptive-extender/web";
-import { Catalog, type Element, type Reaction } from "../../sandbox/models/elements.js";
+import { Catalog, type Element, type Reaction } from "../../playground/models/elements.js";
 import { SettingsService } from "../../settings/services/settings-service.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
 

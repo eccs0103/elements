@@ -6,13 +6,13 @@
 	},
 	"include": [
 		"environment/models/**/*.ts",
-		"sandbox/models/elements.ts",
-		"sandbox/models/rules.ts",
-		"sandbox/models/move.ts",
-		"sandbox/services/board.ts",
-		"sandbox/services/hand.ts",
-		"sandbox/services/match.ts",
-		"sandbox/services/players.ts",
+		"playground/models/elements.ts",
+		"playground/models/rules.ts",
+		"playground/models/move.ts",
+		"playground/services/board.ts",
+		"playground/services/hand.ts",
+		"playground/services/match.ts",
+		"playground/services/players.ts",
 		"arena/models/protocol.ts",
 		"arena/services/arena.ts"
 	]

@@ -2,10 +2,10 @@
 
 import "adaptive-extender/core";
 import { Model, Field, Nullable } from "adaptive-extender/core";
-import { Rules } from "../../sandbox/models/rules.js";
-import { Move } from "../../sandbox/models/move.js";
-import { Match } from "../../sandbox/services/match.js";
-import { Bot, type Player } from "../../sandbox/services/players.js";
+import { Rules } from "../../playground/models/rules.js";
+import { Move } from "../../playground/models/move.js";
+import { Match } from "../../playground/services/match.js";
+import { Bot, type Player } from "../../playground/services/players.js";
 
 //#region Ticket
 export interface TicketScheme {

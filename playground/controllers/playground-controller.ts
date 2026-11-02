@@ -11,8 +11,8 @@ import { AnalyticsController } from "../../environment/controllers/analytics-con
 
 const { baseURI } = document;
 
-//#region Sandbox controller
-class SandboxController extends Controller {
+//#region Playground controller
+class PlaygroundController extends Controller {
 	#canvasBoard: HTMLCanvasElement = document.getElement(HTMLCanvasElement, "canvas#board");
 	#inputTogglePlay: HTMLInputElement = document.getElement(HTMLInputElement, "input#toggle-play");
 	#buttonReloadBoard: HTMLButtonElement = document.getElement(HTMLButtonElement, "button#reload-board");
@@ -87,4 +87,4 @@ class SandboxController extends Controller {
 }
 //#endregion
 
-await SandboxController.launch();
+await PlaygroundController.launch();
