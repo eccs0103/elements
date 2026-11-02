@@ -4,7 +4,7 @@ import "adaptive-extender/core";
 import { Random } from "adaptive-extender/core";
 import { Rules } from "../../playground/models/rules.js";
 import { Human } from "../../playground/services/players.js";
-import { Ticket, Verdict, Standing, type Report } from "../models/protocol.js";
+import { Ticket, Verdict, Standing, type Entry, type Report } from "../models/protocol.js";
 
 const random = Random.global;
 
@@ -25,10 +25,11 @@ export class Arena {
 		this.#ledger = ledger;
 	}
 
-	async open(): Promise<Ticket> {
+	async open(entry: Entry): Promise<Ticket> {
 		const seeds = Arena.#seeds;
 		const id = `${random.integer(seeds).toString(36)}${random.integer(seeds).toString(36)}`;
-		const ticket = new Ticket(id, random.integer(seeds), new Rules(), Arena.#human);
+		const ticket = new Ticket(id, random.integer(seeds), new Rules(), Arena.#human, entry.deck);
+		ticket.match();
 		await this.#ledger.save(ticket);
 		return ticket;
 	}

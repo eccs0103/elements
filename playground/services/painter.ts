@@ -1,6 +1,7 @@
 "use strict";
 
 import "adaptive-extender/worker";
+import { Color } from "adaptive-extender/worker";
 import { Catalog } from "../models/elements.js";
 import { type Board } from "./board.js";
 
@@ -10,8 +11,8 @@ const { round, max } = Math;
 export class Painter {
 	static #stride: number = Catalog.elements.reduce((stride, element) => max(stride, element.budget + 1), 1);
 	static #palette: Uint32Array = Painter.#tabulate();
-	static #lines: readonly string[] = ["white", "black"];
-	static #shade: string = "rgba(0, 0, 0, 0.5)";
+	static #lines: readonly string[] = [Color.newWhite.toString(), Color.newBlack.toString()];
+	static #shade: string = Color.fromRGB(0, 0, 0, 0.5).toString();
 	#context: OffscreenCanvasRenderingContext2D;
 	#cells: OffscreenCanvasRenderingContext2D;
 	#image: ImageData;
@@ -96,27 +97,34 @@ export class Painter {
 		const context = this.#context;
 		const { size, owners } = board;
 		const scale = context.canvas.width / size;
-		context.lineWidth = max(1, scale / 4);
+		const width = max(1, scale / 4);
+		const inset = width / 2;
+		context.lineWidth = width;
+		context.lineCap = "square";
 		for (let owner = 1; owner <= lines.length; owner++) {
 			context.beginPath();
 			for (let cell = 0; cell < owners.length; cell++) {
 				if (owners[cell] !== owner) continue;
 				const x = cell % size;
 				const y = (cell - x) / size;
-				if (y === 0 || owners[cell - size] !== owner) this.#edge(x, y, x + 1, y, scale);
-				if (y === size - 1 || owners[cell + size] !== owner) this.#edge(x, y + 1, x + 1, y + 1, scale);
-				if (x === 0 || owners[cell - 1] !== owner) this.#edge(x, y, x, y + 1, scale);
-				if (x === size - 1 || owners[cell + 1] !== owner) this.#edge(x + 1, y, x + 1, y + 1, scale);
+				const left = x * scale + inset;
+				const right = (x + 1) * scale - inset;
+				const top = y * scale + inset;
+				const bottom = (y + 1) * scale - inset;
+				if (y > 0 && owners[cell - size] !== owner) this.#edge(left, top, right, top);
+				if (y < size - 1 && owners[cell + size] !== owner) this.#edge(left, bottom, right, bottom);
+				if (x > 0 && owners[cell - 1] !== owner) this.#edge(left, top, left, bottom);
+				if (x < size - 1 && owners[cell + 1] !== owner) this.#edge(right, top, right, bottom);
 			}
 			context.strokeStyle = lines[owner - 1];
 			context.stroke();
 		}
 	}
 
-	#edge(x: number, y: number, x2: number, y2: number, scale: number): void {
+	#edge(x: number, y: number, x2: number, y2: number): void {
 		const context = this.#context;
-		context.moveTo(x * scale, y * scale);
-		context.lineTo(x2 * scale, y2 * scale);
+		context.moveTo(x, y);
+		context.lineTo(x2, y2);
 	}
 }
 //#endregion

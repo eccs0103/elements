@@ -1,18 +1,42 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Model, Field, Nullable } from "adaptive-extender/core";
+import { Model, Field, Nullable, Enum } from "adaptive-extender/core";
+import { Catalog, Kind } from "../../playground/models/elements.js";
 import { Rules } from "../../playground/models/rules.js";
 import { Move } from "../../playground/models/move.js";
 import { Match } from "../../playground/services/match.js";
 import { Bot, type Player } from "../../playground/services/players.js";
 
+//#region Entry
+export interface EntryScheme {
+	deck: Kind[];
+}
+
+export class Entry extends Model {
+	@Field(Array.Of(Enum.Of(Kind)), { name: "deck" })
+	deck: Kind[];
+
+	constructor();
+	constructor(deck: Kind[]);
+	constructor(deck?: Kind[]) {
+		if (deck === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.deck = deck;
+	}
+}
+//#endregion
 //#region Ticket
 export interface TicketScheme {
 	id: string;
 	seed: number;
 	rules: Rules;
 	human: number;
+	deck: Kind[];
 }
 
 export class Ticket extends Model {
@@ -30,10 +54,13 @@ export class Ticket extends Model {
 	@Field(Number, { name: "human" })
 	human: number;
 
+	@Field(Array.Of(Enum.Of(Kind)), { name: "deck" })
+	deck: Kind[];
+
 	constructor();
-	constructor(id: string, seed: number, rules: Rules, human: number);
-	constructor(id?: string, seed?: number, rules?: Rules, human?: number) {
-		if (id === undefined || seed === undefined || rules === undefined || human === undefined) {
+	constructor(id: string, seed: number, rules: Rules, human: number, deck: Kind[]);
+	constructor(id?: string, seed?: number, rules?: Rules, human?: number, deck?: Kind[]) {
+		if (id === undefined || seed === undefined || rules === undefined || human === undefined || deck === undefined) {
 			super();
 			return;
 		}
@@ -43,12 +70,17 @@ export class Ticket extends Model {
 		this.seed = seed;
 		this.rules = rules;
 		this.human = human;
+		this.deck = deck;
 	}
 
 	static get route(): string { return Ticket.#route; }
 
 	match(): Match {
-		return new Match(this.rules, this.seed);
+		const decks: (readonly Kind[])[] = [];
+		for (let side = 0; side < Match.count; side++) {
+			decks.push(side === this.human ? this.deck : Catalog.placeable);
+		}
+		return new Match(this.rules, this.seed, decks);
 	}
 
 	lineup(match: Match, human: Player): Player[] {

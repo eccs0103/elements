@@ -1,7 +1,7 @@
 "use strict";
 
 import "adaptive-extender/web";
-import { Ticket, Report, Verdict, Standing } from "../models/protocol.js";
+import { Entry, Ticket, Report, Verdict, Standing } from "../models/protocol.js";
 
 //#region Arena client
 export interface Server {
@@ -17,8 +17,8 @@ export class ArenaClient {
 		this.#origin = new URL(origin);
 	}
 
-	async open(): Promise<Ticket> {
-		return Ticket.import(await this.#send("POST", Ticket.route, null), "ticket");
+	async open(entry: Entry): Promise<Ticket> {
+		return Ticket.import(await this.#send("POST", Ticket.route, Entry.export(entry)), "ticket");
 	}
 
 	async judge(report: Report): Promise<Verdict> {

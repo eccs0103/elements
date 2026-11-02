@@ -6,10 +6,12 @@ import { SettingsService } from "../../settings/services/settings-service.js";
 import { Simulation } from "../services/simulation.js";
 import { Tray } from "../view/tray.js";
 import { ArenaClient } from "../../arena/services/client.js";
+import { Entry } from "../../arena/models/protocol.js";
 import { Relay } from "../../arena/services/relay.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
 
 const { baseURI } = document;
+const settings = SettingsService.instance;
 
 //#region Playground controller
 class PlaygroundController extends Controller {
@@ -22,7 +24,7 @@ class PlaygroundController extends Controller {
 
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
-		SettingsService.instance.content.apply();
+		settings.content.apply();
 
 		const canvasBoard = this.#canvasBoard;
 		const simulation = this.#simulation = new Simulation(canvasBoard);
@@ -40,7 +42,7 @@ class PlaygroundController extends Controller {
 		const simulation = this.#simulation;
 		simulation.launched = false;
 		this.#inputTogglePlay.checked = false;
-		simulation.start(await this.#arena.open());
+		simulation.start(await this.#arena.open(new Entry(settings.content.deck)));
 	}
 
 	async #restart(): Promise<void> {

@@ -11,26 +11,31 @@ import { type Player } from "./players.js";
 //#region Side
 class Side {
 	#hand: Hand;
-	#home: number;
+	#edge: number;
+	#depth: number;
 	#owner: number;
 	#pause: number;
 	#wait: number = 0;
 
-	constructor(hand: Hand, home: number, owner: number, pause: number) {
+	constructor(hand: Hand, edge: number, depth: number, owner: number, pause: number) {
 		this.#hand = hand;
-		this.#home = home;
+		this.#edge = edge;
+		this.#depth = depth;
 		this.#owner = owner;
 		this.#pause = pause;
 	}
 
 	get cards(): readonly Kind[] { return this.#hand.cards; }
-	get home(): number { return this.#home; }
 	get owner(): number { return this.#owner; }
 	get ready(): boolean { return this.#wait === 0; }
 	get charge(): number {
 		const pause = this.#pause;
 		if (pause === 0) return 1;
 		return 1 - this.#wait / pause;
+	}
+
+	home(y: number): boolean {
+		return Math.abs(y - this.#edge) < this.#depth;
 	}
 
 	take(slot: number): Kind {
@@ -46,22 +51,31 @@ class Side {
 //#endregion
 //#region Match
 export class Match {
+	static #home: number = 5;
+	static #count: number = 2;
 	#rules: Rules;
 	#board: Board;
 	#sides: readonly Side[];
 	#tick: number = 0;
 	#moves: Move[] = [];
 
-	constructor(rules: Rules, seed: number) {
+	constructor(rules: Rules, seed: number, decks: readonly (readonly Kind[])[]) {
 		const { size, hand, pause } = rules;
-		const deck = Catalog.placeable;
+		const { placeable } = Catalog;
+		const depth = Match.#home;
+		const count = Match.#count;
+		if (decks.length !== count) throw new RangeError(`A match needs ${count} decks, not ${decks.length}`);
+		if (decks.some(deck => deck.some(kind => !placeable.includes(kind)))) throw new TypeError("A deck holds an element that can't be placed");
+		const [south, north] = decks;
 		this.#rules = rules;
 		this.#board = new Board(size, seed);
 		this.#sides = [
-			new Side(new Hand(deck, hand, seed + 1), size - 1, 1, pause),
-			new Side(new Hand(deck, hand, seed + 2), 0, 2, pause),
+			new Side(new Hand(south, hand, seed + 1), size - 1, depth, 1, pause),
+			new Side(new Hand(north, hand, seed + 2), 0, depth, 2, pause),
 		];
 	}
+
+	static get count(): number { return Match.#count; }
 
 	get rules(): Rules { return this.#rules; }
 	get board(): Board { return this.#board; }
@@ -102,7 +116,7 @@ export class Match {
 		if (!Number.isInteger(slot) || slot < 0 || slot >= seat.cards.length) return false;
 		if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= size || y < 0 || y >= size) return false;
 		if (seat.cards[slot] === Catalog.ground) return false;
-		return y === seat.home || board.touches(seat.owner, x, y);
+		return seat.home(y) || board.touches(seat.owner, x, y);
 	}
 
 	play(move: Move): boolean {

@@ -18,6 +18,8 @@ export class Board {
 	#owners: Uint8Array;
 	#progress: Uint8Array;
 	#births: Uint32Array;
+	#fresh: Uint8Array;
+	#reverse: boolean = false;
 	#candidates: Int32Array = new Int32Array(8);
 	#steps: Uint8Array = new Uint8Array(Board.#slots);
 	#budget: number = 0;
@@ -34,6 +36,7 @@ export class Board {
 		this.#owners = new Uint8Array(area);
 		this.#progress = new Uint8Array(area * Board.#slots);
 		this.#births = new Uint32Array(area);
+		this.#fresh = new Uint8Array(area);
 		for (let cell = 0; cell < area; cell++) {
 			this.#spawn(cell, Catalog.ground, null, 0);
 		}
@@ -88,9 +91,15 @@ export class Board {
 
 	step(): void {
 		const area = this.#kinds.length;
-		for (let cell = 0; cell < area; cell++) {
+		const fresh = this.#fresh;
+		const reverse = this.#reverse;
+		fresh.fill(0);
+		for (let index = 0; index < area; index++) {
+			const cell = reverse ? area - 1 - index : index;
+			if (fresh[cell] === 1) continue;
 			this.#execute(cell);
 		}
+		this.#reverse = !reverse;
 	}
 
 	#spawn(cell: number, kind: Kind, budget: number | null, owner: number): void {
@@ -102,6 +111,7 @@ export class Board {
 		this.#owners[cell] = kind === Catalog.ground ? 0 : owner;
 		this.#progress.fill(0, cell * slots, cell * slots + slots);
 		this.#births[cell]++;
+		this.#fresh[cell] = 1;
 	}
 
 	#execute(cell: number): void {
