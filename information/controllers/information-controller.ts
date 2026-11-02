@@ -26,7 +26,6 @@ class InformationController extends Controller {
 		const fragment = document.importNode(this.#templateElement.content, true);
 		fragment.getElement(SVGRectElement, "svg.avatar rect").setAttribute("fill", element.color.toString());
 		fragment.getElement(HTMLHeadingElement, "h2.name").textContent = element.name;
-		fragment.getElement(HTMLElement, "dd.chance").textContent = `${(Catalog.chance(element) * 100).toFixed(2)}%`;
 		const dlAbilities = fragment.getElement(HTMLElement, "dl.abilities");
 		for (const reaction of element.reactions) {
 			dlAbilities.appendChild(this.#describe(reaction));

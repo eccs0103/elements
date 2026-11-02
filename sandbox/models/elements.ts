@@ -1,7 +1,7 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Color, type Random } from "adaptive-extender/core";
+import { Color } from "adaptive-extender/core";
 
 //#region Reaction
 export enum Kind {
@@ -128,7 +128,6 @@ export interface ElementTraits {
 	name: string;
 	color: Readonly<Color>;
 	faded: Readonly<Color>;
-	weight: number;
 	phase: Phase;
 	heat: number;
 	flammable: boolean;
@@ -145,7 +144,6 @@ export class Element {
 
 	get name(): string { return this.#traits.name; }
 	get color(): Readonly<Color> { return this.#traits.color; }
-	get weight(): number { return this.#traits.weight; }
 	get phase(): Phase { return this.#traits.phase; }
 	get heat(): number { return this.#traits.heat; }
 	get flammable(): boolean { return this.#traits.flammable; }
@@ -167,53 +165,45 @@ export class Catalog {
 	static #water: Readonly<Color> = Color.fromRGB(0, 50, 255);
 	static #lava: Readonly<Color> = Color.fromRGB(255, 0, 0);
 	static #ice: Readonly<Color> = Color.fromRGB(0, 200, 255);
-	static #ground: Selector = Selector.of(Phase.powder, Climate.any);
+	static #soil: Selector = Selector.of(Phase.powder, Climate.any);
 	static #flames: Selector = Selector.of(Phase.energy, Climate.hot);
 	static #magma: Selector = Selector.of(Phase.liquid, Climate.hot);
 	static #moisture: Selector = Selector.of(Phase.liquid, Climate.cold);
 	static #fuel: Selector = Selector.flammable();
 
 	static #elements: readonly Element[] = [
-		new Element({ name: "Dirt", color: Catalog.#dirt, faded: Catalog.#dirt, weight: 90, phase: Phase.powder, heat: 0, flammable: false, budget: 0, reactions: [] }),
-		new Element({ name: "Grass", color: Catalog.#grass, faded: Catalog.#grass, weight: 4, phase: Phase.plant, heat: 0, flammable: true, budget: 0, reactions: [
-			Reaction.spread("Grow", "Grass can expand by converting a random adjacent Dirt element into a Grass element. The ability targets the eight neighboring cells (up, down, left, right, and diagonals) to find a Dirt element and transform it.", 10, Reach.surrounding, Catalog.#ground),
+		new Element({ name: "Dirt", color: Catalog.#dirt, faded: Catalog.#dirt, phase: Phase.powder, heat: 0, flammable: false, budget: 0, reactions: [] }),
+		new Element({ name: "Grass", color: Catalog.#grass, faded: Catalog.#grass, phase: Phase.plant, heat: 0, flammable: true, budget: 0, reactions: [
+			Reaction.spread("Grow", "Grass can expand by converting a random adjacent Dirt element into a Grass element. The ability targets the eight neighboring cells (up, down, left, right, and diagonals) to find a Dirt element and transform it.", 10, Reach.surrounding, Catalog.#soil),
 		] }),
-		new Element({ name: "Fire", color: Catalog.#fire, faded: Catalog.#fire, weight: 2, phase: Phase.energy, heat: 2, flammable: false, budget: 0, reactions: [
+		new Element({ name: "Fire", color: Catalog.#fire, faded: Catalog.#fire, phase: Phase.energy, heat: 2, flammable: false, budget: 0, reactions: [
 			Reaction.ignite("Burn", "Fire spreads by converting a random adjacent Grass element into a Fire element. It targets the four neighboring cells (up, down, left, right) to find a Grass element and ignite it. When Fire successfully spreads, it resets the progress of the Fade ability.", 4, Catalog.#fuel, Kind.fire),
 			Reaction.burnout("Fade", "When Fire burns out, it converts itself into a Dirt element. This ability is triggered when Fire has not spread to a new Grass element after a certain period, indicating the fire has exhausted its fuel and extinguishes itself.", 16, Kind.dirt),
 		] }),
-		new Element({ name: "Water", color: Catalog.#water, faded: Catalog.#water, weight: 2, phase: Phase.liquid, heat: -1, flammable: false, budget: 0, reactions: [
-			Reaction.spread("Flow", "Water can spread by converting a random adjacent Dirt element into a Water element. This ability targets the eight neighboring cells to find a Dirt element and transform it into Water.", 8, Reach.surrounding, Catalog.#ground),
+		new Element({ name: "Water", color: Catalog.#water, faded: Catalog.#water, phase: Phase.liquid, heat: -1, flammable: false, budget: 0, reactions: [
+			Reaction.spread("Flow", "Water can spread by converting a random adjacent Dirt element into a Water element. This ability targets the eight neighboring cells to find a Dirt element and transform it into Water.", 8, Reach.surrounding, Catalog.#soil),
 			Reaction.destroy("Evaporate", "Water evaporates when it encounters Fire. This ability converts a random adjacent Fire element and itself into Dirt elements. It targets the four neighboring cells to find a Fire element and then transforms both the Fire and Water into Dirt, simulating the evaporation process.", 8, Catalog.#flames, Kind.dirt, Kind.dirt),
 		] }),
-		new Element({ name: "Lava", color: Catalog.#lava, faded: Catalog.#fire, weight: 1, phase: Phase.liquid, heat: 3, flammable: false, budget: 3, reactions: [
-			Reaction.spread("Flow", "Lava can spread by converting a random adjacent Dirt element into a Lava element with lower density. This ability targets the four neighboring cells to find a Dirt element and transform it into Lava. The new Lava element will have a reduced density compared to the original.", 15, Reach.orthogonal, Catalog.#ground),
+		new Element({ name: "Lava", color: Catalog.#lava, faded: Catalog.#fire, phase: Phase.liquid, heat: 3, flammable: false, budget: 3, reactions: [
+			Reaction.spread("Flow", "Lava can spread by converting a random adjacent Dirt element into a Lava element with lower density. This ability targets the four neighboring cells to find a Dirt element and transform it into Lava. The new Lava element will have a reduced density compared to the original.", 15, Reach.orthogonal, Catalog.#soil),
 			Reaction.ignite("Burn", "Lava can ignite Grass by converting a random adjacent Grass element into a Fire element. It targets the four neighboring cells to find a Grass element and set it on fire.", 8, Catalog.#fuel, Kind.fire),
 			Reaction.cool("Fade", "Lava cools down when it encounters Water. This ability converts a random adjacent Water element into a Dirt element and decreases the Lava's density. It targets the four neighboring cells to find a Water element. If the Lava's density reaches zero, it transforms itself into a Fire element, simulating the cooling process.", 4, Catalog.#moisture, Kind.dirt, Kind.fire),
 		] }),
-		new Element({ name: "Ice", color: Catalog.#ice, faded: Catalog.#water, weight: 1, phase: Phase.solid, heat: -2, flammable: false, budget: 3, reactions: [
-			Reaction.spread("Flow", "Ice can spread by converting a random adjacent Dirt element into an Ice element with lower density. This ability targets the four neighboring cells to find a Dirt element and transform it into Ice. The new Ice element will have a reduced density compared to the original.", 12, Reach.orthogonal, Catalog.#ground),
+		new Element({ name: "Ice", color: Catalog.#ice, faded: Catalog.#water, phase: Phase.solid, heat: -2, flammable: false, budget: 3, reactions: [
+			Reaction.spread("Flow", "Ice can spread by converting a random adjacent Dirt element into an Ice element with lower density. This ability targets the four neighboring cells to find a Dirt element and transform it into Ice. The new Ice element will have a reduced density compared to the original.", 12, Reach.orthogonal, Catalog.#soil),
 			Reaction.cool("Melt", "Ice melts when it encounters Fire. This ability converts a random adjacent Fire element into a Dirt element and decreases the Ice's density. It targets the four neighboring cells to find a Fire element. If the Ice's density reaches zero, it transforms itself into a Water element, simulating the melting process.", 4, Catalog.#flames, Kind.dirt, Kind.water),
 			Reaction.destroy("Evaporate", "Ice evaporates when it encounters Lava. This ability converts a random adjacent Lava element and itself into Dirt elements. It targets the four neighboring cells to find a Lava element and then transforms both the Lava and Ice into Dirt, simulating the evaporation process.", 4, Catalog.#magma, Kind.dirt, Kind.dirt),
 		] }),
 	];
 
-	static #cases: readonly (readonly [Kind, number])[] = Catalog.#elements.map((element, kind) => [kind, element.weight] as const);
-
-	static #total: number = Catalog.#elements.reduce((total, element) => total + element.weight, 0);
+	static #placeable: readonly Kind[] = [Kind.grass, Kind.fire, Kind.water, Kind.lava, Kind.ice];
 
 	static get elements(): readonly Element[] { return Catalog.#elements; }
+	static get ground(): Kind { return Kind.dirt; }
+	static get placeable(): readonly Kind[] { return Catalog.#placeable; }
 
 	static at(kind: Kind): Element {
 		return Catalog.#elements[kind];
-	}
-
-	static pick(random: Random): Kind {
-		return random.case(Catalog.#cases);
-	}
-
-	static chance(element: Element): number {
-		return element.weight / Catalog.#total;
 	}
 }
 //#endregion

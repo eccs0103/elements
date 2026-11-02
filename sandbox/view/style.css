@@ -13,9 +13,6 @@ div#stage {
 canvas#board {
 	inline-size: 100%;
 	block-size: 100%;
-	image-rendering: pixelated;
-	touch-action: none;
-	cursor: crosshair;
 }
 
 div#toolkit {
@@ -38,23 +35,30 @@ div#toolkit {
 	}
 }
 
-div#picker {
+div#hand {
 	align-items: center;
+	gap: var(--size-gap);
+	padding: var(--size-gap);
 
-	& input:checked + label {
-		background-color: transparent;
-
-		& span.swatch {
-			outline: var(--size-large-separator) solid var(--color-highlight);
-		}
-	}
-
-	& span.swatch {
+	& span.card {
 		display: inline-block;
 		aspect-ratio: 1;
 		block-size: var(--size-standart);
-		background-color: var(--color);
+		background: linear-gradient(to top, var(--color) calc(var(--charge, 1) * 100%), color-mix(in srgb, var(--color) 30%, transparent) 0);
+		touch-action: none;
+		cursor: grab;
 	}
+}
+
+span.ghost {
+	position: fixed;
+	inset: 0 auto auto 0;
+	block-size: var(--size-standart);
+	aspect-ratio: 1;
+	background-color: var(--color);
+	opacity: 0.8;
+	pointer-events: none;
+	translate: calc(var(--x) - 50%) calc(var(--y) - 50%);
 }
 
 @media (orientation: portrait) {
@@ -65,11 +69,11 @@ div#picker {
 	}
 
 	div#toolkit,
-	div#picker {
+	div#hand {
 		flex-direction: row;
 	}
 
-	div#picker {
+	div#hand {
 		margin-inline-start: auto;
 	}
 }
@@ -82,11 +86,11 @@ div#picker {
 	}
 
 	div#toolkit,
-	div#picker {
+	div#hand {
 		flex-direction: column;
 	}
 
-	div#picker {
+	div#hand {
 		margin-block-start: auto;
 	}
 }

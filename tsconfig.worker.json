@@ -7,6 +7,10 @@
 	"include": [
 		"sandbox/controllers/simulation-worker.ts",
 		"sandbox/models/commands.ts",
-		"sandbox/services/painter.ts"
+		"sandbox/services/painter.ts",
+		"arena/controllers/server-worker.ts",
+		"arena/models/envelopes.ts",
+		"arena/services/ledger.ts",
+		"arena/services/router.ts"
 	]
 }

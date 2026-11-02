@@ -4,20 +4,21 @@ import "adaptive-extender/web";
 import { Controller } from "adaptive-extender/web";
 import { SettingsService } from "../../settings/services/settings-service.js";
 import { Simulation } from "../services/simulation.js";
-import { Picker } from "../view/picker.js";
+import { Tray } from "../view/tray.js";
+import { ArenaClient } from "../../arena/services/client.js";
+import { Relay } from "../../arena/services/relay.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
 
-const { trunc } = Math;
+const { baseURI } = document;
 
 //#region Sandbox controller
 class SandboxController extends Controller {
 	#canvasBoard: HTMLCanvasElement = document.getElement(HTMLCanvasElement, "canvas#board");
 	#inputTogglePlay: HTMLInputElement = document.getElement(HTMLInputElement, "input#toggle-play");
 	#buttonReloadBoard: HTMLButtonElement = document.getElement(HTMLButtonElement, "button#reload-board");
-	#divPicker: HTMLDivElement = document.getElement(HTMLDivElement, "div#picker");
+	#divHand: HTMLDivElement = document.getElement(HTMLDivElement, "div#hand");
+	#arena: ArenaClient = new ArenaClient(new Relay(), new URL("/", baseURI));
 	#simulation: Simulation;
-	#picker: Picker;
-	#last: number | null = null;
 
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
@@ -25,33 +26,59 @@ class SandboxController extends Controller {
 
 		const canvasBoard = this.#canvasBoard;
 		const simulation = this.#simulation = new Simulation(canvasBoard);
-		this.#picker = new Picker(this.#divPicker);
+		const tray = new Tray(this.#divHand, canvasBoard, simulation);
+		simulation.addEventListener("update", event => tray.render());
+		simulation.addEventListener("finish", event => void this.#conclude());
+
 		const inputTogglePlay = this.#inputTogglePlay;
 		inputTogglePlay.addEventListener("change", event => simulation.launched = inputTogglePlay.checked);
-		this.#buttonReloadBoard.addEventListener("click", event => simulation.generate());
-
-		canvasBoard.addEventListener("pointerdown", (event) => {
-			canvasBoard.setPointerCapture(event.pointerId);
-			this.#drop(event);
-		});
-		canvasBoard.addEventListener("pointermove", (event) => {
-			if (!canvasBoard.hasPointerCapture(event.pointerId)) return;
-			this.#drop(event);
-		});
-		canvasBoard.addEventListener("pointerup", event => this.#last = null);
-		canvasBoard.addEventListener("pointercancel", event => this.#last = null);
+		this.#buttonReloadBoard.addEventListener("click", event => void this.#restart());
+		await this.#begin();
 	}
 
-	#drop(event: PointerEvent): void {
-		const size = Simulation.size;
-		const { left, top, width, height } = this.#canvasBoard.getBoundingClientRect();
-		const x = trunc((event.clientX - left) / width * size);
-		const y = trunc((event.clientY - top) / height * size);
-		if (x < 0 || x >= size || y < 0 || y >= size) return;
-		const cell = y * size + x;
-		if (cell === this.#last) return;
-		this.#last = cell;
-		this.#simulation.drop(this.#picker.selected, x, y);
+	async #begin(): Promise<void> {
+		const simulation = this.#simulation;
+		simulation.launched = false;
+		this.#inputTogglePlay.checked = false;
+		simulation.start(await this.#arena.open());
+	}
+
+	async #restart(): Promise<void> {
+		try {
+			await this.#begin();
+		} catch (reason) {
+			window.alert(Error.from(reason).message);
+		}
+	}
+
+	async #conclude(): Promise<void> {
+		try {
+			await this.#judge();
+		} catch (reason) {
+			window.alert(Error.from(reason).message);
+		}
+	}
+
+	async #judge(): Promise<void> {
+		const simulation = this.#simulation;
+		const inputTogglePlay = this.#inputTogglePlay;
+		const { ticket, report } = simulation;
+		inputTogglePlay.checked = false;
+		if (ticket === null || report === null) return;
+		const arena = this.#arena;
+		const verdict = await arena.judge(report);
+		const { humanity, boss } = await arena.standing();
+		const { human } = ticket;
+		const { winner, scores } = verdict;
+		const mine = scores[human];
+		const theirs = scores.reduce((sum, score) => sum + score, 0) - mine;
+		let outcome = "Draw";
+		if (winner === human) outcome = "You won";
+		else if (winner !== null) outcome = "The boss won";
+		if (!window.confirm(`${outcome} ${mine} : ${theirs}.\nHumanity ${humanity} : ${boss} Boss.\nPlay again?`)) return;
+		await this.#begin();
+		simulation.launched = true;
+		inputTogglePlay.checked = true;
 	}
 
 	async catch(error: Error): Promise<void> {

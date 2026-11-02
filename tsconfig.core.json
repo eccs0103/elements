@@ -7,6 +7,13 @@
 	"include": [
 		"environment/models/**/*.ts",
 		"sandbox/models/elements.ts",
-		"sandbox/services/board.ts"
+		"sandbox/models/rules.ts",
+		"sandbox/models/move.ts",
+		"sandbox/services/board.ts",
+		"sandbox/services/hand.ts",
+		"sandbox/services/match.ts",
+		"sandbox/services/players.ts",
+		"arena/models/protocol.ts",
+		"arena/services/arena.ts"
 	]
 }

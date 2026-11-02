@@ -2,7 +2,6 @@ article.element {
 	display: grid;
 	grid-template:
 		'avatar		name' auto
-		'avatar		probability' auto
 		'abilities	abilities' auto
 		/ minmax(var(--size-large-standart), auto) 1fr;
 	column-gap: var(--size-large-gap);
@@ -14,10 +13,7 @@ article.element {
 
 	& > h2.name {
 		grid-area: name;
-	}
-
-	& > dl.probability {
-		grid-area: probability;
+		align-self: center;
 	}
 
 	& > dl.abilities {

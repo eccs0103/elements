@@ -15,11 +15,13 @@ export class Board {
 	#kinds: Uint8Array;
 	#budgets: Uint8Array;
 	#tints: Uint8Array;
+	#owners: Uint8Array;
 	#progress: Uint8Array;
 	#births: Uint32Array;
 	#candidates: Int32Array = new Int32Array(8);
 	#steps: Uint8Array = new Uint8Array(Board.#slots);
 	#budget: number = 0;
+	#owner: number = 0;
 
 	constructor(size: number, seed: number) {
 		if (!Number.isInteger(size) || size <= 0) throw new RangeError(`The size ${size} must be a positive integer`);
@@ -29,8 +31,12 @@ export class Board {
 		this.#kinds = new Uint8Array(area);
 		this.#budgets = new Uint8Array(area);
 		this.#tints = new Uint8Array(area);
+		this.#owners = new Uint8Array(area);
 		this.#progress = new Uint8Array(area * Board.#slots);
 		this.#births = new Uint32Array(area);
+		for (let cell = 0; cell < area; cell++) {
+			this.#spawn(cell, Catalog.ground, null, 0);
+		}
 	}
 
 	static #tabulate(): readonly (readonly Uint8Array[])[] {
@@ -41,26 +47,43 @@ export class Board {
 	get kinds(): ArrayLike<number> { return this.#kinds; }
 	get budgets(): ArrayLike<number> { return this.#budgets; }
 	get tints(): ArrayLike<number> { return this.#tints; }
+	get owners(): ArrayLike<number> { return this.#owners; }
+	get size(): number { return this.#size; }
 
-	generate(): void {
-		const random = this.#random;
-		const area = this.#kinds.length;
-		for (let cell = 0; cell < area; cell++) {
-			this.#spawn(cell, Catalog.pick(random), null);
-		}
-	}
-
-	drop(kind: Kind, x: number, y: number): void {
+	drop(kind: Kind, x: number, y: number, owner: number): void {
 		const size = this.#size;
 		const offsets = Board.#orthogonal;
 		if (x < 0 || x >= size || y < 0 || y >= size) throw new RangeError(`The cell ${x}, ${y} is out of the board`);
-		this.#spawn(y * size + x, kind, null);
+		this.#spawn(y * size + x, kind, null, owner);
 		for (let index = 0; index < offsets.length; index += 2) {
 			const column = x + offsets[index];
 			const row = y + offsets[index + 1];
 			if (column < 0 || column >= size || row < 0 || row >= size) continue;
-			this.#spawn(row * size + column, kind, null);
+			this.#spawn(row * size + column, kind, null, owner);
 		}
+	}
+
+	territory(owner: number): number {
+		const owners = this.#owners;
+		let count = 0;
+		for (let cell = 0; cell < owners.length; cell++) {
+			if (owners[cell] === owner) count++;
+		}
+		return count;
+	}
+
+	touches(owner: number, x: number, y: number): boolean {
+		const size = this.#size;
+		const owners = this.#owners;
+		const offsets = Board.#surrounding;
+		if (owners[y * size + x] === owner) return true;
+		for (let index = 0; index < offsets.length; index += 2) {
+			const column = x + offsets[index];
+			const row = y + offsets[index + 1];
+			if (column < 0 || column >= size || row < 0 || row >= size) continue;
+			if (owners[row * size + column] === owner) return true;
+		}
+		return false;
 	}
 
 	step(): void {
@@ -70,12 +93,13 @@ export class Board {
 		}
 	}
 
-	#spawn(cell: number, kind: Kind, budget: number | null): void {
+	#spawn(cell: number, kind: Kind, budget: number | null, owner: number): void {
 		const slots = Board.#slots;
 		const value = budget ?? Catalog.at(kind).budget;
 		this.#kinds[cell] = kind;
 		this.#budgets[cell] = value;
 		this.#tints[cell] = value;
+		this.#owners[cell] = kind === Catalog.ground ? 0 : owner;
 		this.#progress.fill(0, cell * slots, cell * slots + slots);
 		this.#births[cell]++;
 	}
@@ -96,6 +120,7 @@ export class Board {
 			steps[slot] = progress[offset + slot];
 		}
 		this.#budget = budgets[cell];
+		this.#owner = this.#owners[cell];
 		for (let slot = 0; slot < reactions.length; slot++) {
 			const reaction = reactions[slot];
 			if (steps[slot] < reaction.interval) {
@@ -124,7 +149,7 @@ export class Board {
 	#act(cell: number, kind: Kind, reaction: Reaction, mask: Uint8Array): boolean {
 		const { law, product, remains } = reaction;
 		if (law === Law.burnout) {
-			if (remains !== null) this.#spawn(cell, remains, null);
+			if (remains !== null) this.#spawn(cell, remains, null, this.#owner);
 			return false;
 		}
 		const found = this.#gather(cell, reaction.reach, mask);
@@ -148,24 +173,24 @@ export class Board {
 	}
 
 	#grow(target: number, kind: Kind, budget: number | null): boolean {
-		this.#spawn(target, kind, budget);
+		this.#spawn(target, kind, budget, this.#owner);
 		return true;
 	}
 
 	#cool(cell: number, target: number, product: Kind, remains: Kind): boolean {
-		this.#spawn(target, product, null);
+		this.#spawn(target, product, null, this.#owner);
 		const budget = this.#budget;
 		if (budget > 0) {
 			this.#budget = budget - 1;
 			return true;
 		}
-		this.#spawn(cell, remains, null);
+		this.#spawn(cell, remains, null, this.#owner);
 		return true;
 	}
 
 	#destroy(cell: number, target: number, product: Kind, remains: Kind): boolean {
-		this.#spawn(target, product, null);
-		this.#spawn(cell, remains, null);
+		this.#spawn(target, product, null, this.#owner);
+		this.#spawn(cell, remains, null, this.#owner);
 		return true;
 	}
 

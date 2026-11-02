@@ -10,14 +10,16 @@ const { round, max } = Math;
 export class Painter {
 	static #stride: number = Catalog.elements.reduce((stride, element) => max(stride, element.budget + 1), 1);
 	static #palette: Uint32Array = Painter.#tabulate();
+	static #lines: readonly string[] = ["white", "black"];
+	static #shade: string = "rgba(0, 0, 0, 0.5)";
 	#context: OffscreenCanvasRenderingContext2D;
+	#cells: OffscreenCanvasRenderingContext2D;
 	#image: ImageData;
 	#pixels: Uint32Array;
 
 	constructor(canvas: OffscreenCanvas) {
 		this.#context = ReferenceError.suppress(canvas.getContext("2d"), "Failed to acquire 2D rendering context");
-		const image = this.#image = new ImageData(canvas.width, canvas.height);
-		this.#pixels = new Uint32Array(image.data.buffer);
+		this.#cells = this.#prepare(1);
 	}
 
 	static #tabulate(): Uint32Array {
@@ -34,7 +36,51 @@ export class Painter {
 		return palette;
 	}
 
-	paint(board: Board): void {
+	resize(width: number, height: number): void {
+		const { canvas } = this.#context;
+		canvas.width = width;
+		canvas.height = height;
+	}
+
+	paint(board: Board, zone: Uint8Array | null): void {
+		const { size } = board;
+		let cells = this.#cells;
+		if (cells.canvas.width !== size) cells = this.#cells = this.#prepare(size);
+		this.#fill(board);
+		const context = this.#context;
+		const { width, height } = context.canvas;
+		context.imageSmoothingEnabled = false;
+		context.drawImage(cells.canvas, 0, 0, width, height);
+		if (zone !== null) this.#dim(zone, board.size);
+		this.#outline(board);
+	}
+
+	#dim(zone: Uint8Array, size: number): void {
+		const context = this.#context;
+		const scale = context.canvas.width / size;
+		context.beginPath();
+		for (let y = 0; y < size; y++) {
+			let start = -1;
+			for (let x = 0; x <= size; x++) {
+				const stops = x === size || zone[y * size + x] === 1;
+				if (!stops && start < 0) start = x;
+				if (!stops || start < 0) continue;
+				context.rect(start * scale, y * scale, (x - start) * scale, scale);
+				start = -1;
+			}
+		}
+		context.fillStyle = Painter.#shade;
+		context.fill();
+	}
+
+	#prepare(size: number): OffscreenCanvasRenderingContext2D {
+		const cells = ReferenceError.suppress(new OffscreenCanvas(size, size).getContext("2d"), "Failed to acquire 2D rendering context");
+		const image = this.#image = new ImageData(size, size);
+		this.#pixels = new Uint32Array(image.data.buffer);
+		return cells;
+	}
+
+	#fill(board: Board): void {
 		const stride = Painter.#stride;
 		const palette = Painter.#palette;
 		const pixels = this.#pixels;
@@ -42,7 +88,35 @@ export class Painter {
 		for (let cell = 0; cell < pixels.length; cell++) {
 			pixels[cell] = palette[kinds[cell] * stride + tints[cell]];
 		}
-		this.#context.putImageData(this.#image, 0, 0);
+		this.#cells.putImageData(this.#image, 0, 0);
+	}
+
+	#outline(board: Board): void {
+		const lines = Painter.#lines;
+		const context = this.#context;
+		const { size, owners } = board;
+		const scale = context.canvas.width / size;
+		context.lineWidth = max(1, scale / 4);
+		for (let owner = 1; owner <= lines.length; owner++) {
+			context.beginPath();
+			for (let cell = 0; cell < owners.length; cell++) {
+				if (owners[cell] !== owner) continue;
+				const x = cell % size;
+				const y = (cell - x) / size;
+				if (y === 0 || owners[cell - size] !== owner) this.#edge(x, y, x + 1, y, scale);
+				if (y === size - 1 || owners[cell + size] !== owner) this.#edge(x, y + 1, x + 1, y + 1, scale);
+				if (x === 0 || owners[cell - 1] !== owner) this.#edge(x, y, x, y + 1, scale);
+				if (x === size - 1 || owners[cell + 1] !== owner) this.#edge(x + 1, y, x + 1, y + 1, scale);
+			}
+			context.strokeStyle = lines[owner - 1];
+			context.stroke();
+		}
+	}
+
+	#edge(x: number, y: number, x2: number, y2: number, scale: number): void {
+		const context = this.#context;
+		context.moveTo(x * scale, y * scale);
+		context.lineTo(x2 * scale, y2 * scale);
 	}
 }
 //#endregion

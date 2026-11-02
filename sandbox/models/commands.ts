@@ -3,9 +3,10 @@
 import "adaptive-extender/worker";
 import { Any, Deferred, Descendant, Enum, Field, Model } from "adaptive-extender/worker";
 import { Kind } from "./elements.js";
+import { Ticket, Report } from "../../arena/models/protocol.js";
 
 //#region Command
-export interface CommandDiscriminator extends InitializeCommandDiscriminator, GenerateCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator {
+export interface CommandDiscriminator extends InitializeCommandDiscriminator, StartCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator, PreviewCommandDiscriminator, ResizeCommandDiscriminator, StatusCommandDiscriminator, FinishCommandDiscriminator {
 }
 
 export interface CommandScheme {
@@ -13,9 +14,13 @@ export interface CommandScheme {
 }
 
 @Descendant(Deferred(_ => InitializeCommand))
-@Descendant(Deferred(_ => GenerateCommand))
+@Descendant(Deferred(_ => StartCommand))
 @Descendant(Deferred(_ => TickCommand))
 @Descendant(Deferred(_ => DropCommand))
+@Descendant(Deferred(_ => PreviewCommand))
+@Descendant(Deferred(_ => ResizeCommand))
+@Descendant(Deferred(_ => StatusCommand))
+@Descendant(Deferred(_ => FinishCommand))
 export abstract class Command extends Model {
 	constructor() {
 		super();
@@ -31,59 +36,49 @@ export interface InitializeCommandDiscriminator {
 export interface InitializeCommandScheme extends CommandScheme {
 	$type: keyof InitializeCommandDiscriminator;
 	canvas: OffscreenCanvas;
-	size: number;
-	seed: number;
 }
 
 export class InitializeCommand extends Command {
 	@Field(Any.ByReference(OffscreenCanvas))
 	canvas: OffscreenCanvas;
 
-	@Field(Number)
-	size: number;
-
-	@Field(Number)
-	seed: number;
-
 	constructor();
-	constructor(canvas: OffscreenCanvas, size: number, seed: number);
-	constructor(canvas?: OffscreenCanvas, size?: number, seed?: number) {
-		if (canvas === undefined || size === undefined || seed === undefined) {
+	constructor(canvas: OffscreenCanvas);
+	constructor(canvas?: OffscreenCanvas) {
+		if (canvas === undefined) {
 			super();
 			return;
 		}
 
 		super();
 		this.canvas = canvas;
-		this.size = size;
-		this.seed = seed;
 	}
 }
 //#endregion
-//#region Generate command
-export interface GenerateCommandDiscriminator {
-	"GenerateCommand": GenerateCommand;
+//#region Start command
+export interface StartCommandDiscriminator {
+	"StartCommand": StartCommand;
 }
 
-export interface GenerateCommandScheme extends CommandScheme {
-	$type: keyof GenerateCommandDiscriminator;
-	seed: number;
+export interface StartCommandScheme extends CommandScheme {
+	$type: keyof StartCommandDiscriminator;
+	ticket: Ticket;
 }
 
-export class GenerateCommand extends Command {
-	@Field(Number)
-	seed: number;
+export class StartCommand extends Command {
+	@Field(Ticket)
+	ticket: Ticket;
 
 	constructor();
-	constructor(seed: number);
-	constructor(seed?: number) {
-		if (seed === undefined) {
+	constructor(ticket: Ticket);
+	constructor(ticket?: Ticket) {
+		if (ticket === undefined) {
 			super();
 			return;
 		}
 
 		super();
-		this.seed = seed;
+		this.ticket = ticket;
 	}
 }
 //#endregion
@@ -106,14 +101,14 @@ export interface DropCommandDiscriminator {
 
 export interface DropCommandScheme extends CommandScheme {
 	$type: keyof DropCommandDiscriminator;
-	kind: Kind;
+	slot: number;
 	x: number;
 	y: number;
 }
 
 export class DropCommand extends Command {
-	@Field(Enum.Of(Kind))
-	kind: Kind;
+	@Field(Number)
+	slot: number;
 
 	@Field(Number)
 	x: number;
@@ -122,17 +117,135 @@ export class DropCommand extends Command {
 	y: number;
 
 	constructor();
-	constructor(kind: Kind, x: number, y: number);
-	constructor(kind?: Kind, x?: number, y?: number) {
-		if (kind === undefined || x === undefined || y === undefined) {
+	constructor(slot: number, x: number, y: number);
+	constructor(slot?: number, x?: number, y?: number) {
+		if (slot === undefined || x === undefined || y === undefined) {
 			super();
 			return;
 		}
 
 		super();
-		this.kind = kind;
+		this.slot = slot;
 		this.x = x;
 		this.y = y;
+	}
+}
+//#endregion
+//#region Preview command
+export interface PreviewCommandDiscriminator {
+	"PreviewCommand": PreviewCommand;
+}
+
+export interface PreviewCommandScheme extends CommandScheme {
+	$type: keyof PreviewCommandDiscriminator;
+	active: boolean;
+}
+
+export class PreviewCommand extends Command {
+	@Field(Boolean)
+	active: boolean;
+
+	constructor();
+	constructor(active: boolean);
+	constructor(active?: boolean) {
+		if (active === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.active = active;
+	}
+}
+//#endregion
+//#region Resize command
+export interface ResizeCommandDiscriminator {
+	"ResizeCommand": ResizeCommand;
+}
+
+export interface ResizeCommandScheme extends CommandScheme {
+	$type: keyof ResizeCommandDiscriminator;
+	width: number;
+	height: number;
+}
+
+export class ResizeCommand extends Command {
+	@Field(Number)
+	width: number;
+
+	@Field(Number)
+	height: number;
+
+	constructor();
+	constructor(width: number, height: number);
+	constructor(width?: number, height?: number) {
+		if (width === undefined || height === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.width = width;
+		this.height = height;
+	}
+}
+//#endregion
+//#region Status command
+export interface StatusCommandDiscriminator {
+	"StatusCommand": StatusCommand;
+}
+
+export interface StatusCommandScheme extends CommandScheme {
+	$type: keyof StatusCommandDiscriminator;
+	cards: Kind[];
+	charge: number;
+}
+
+export class StatusCommand extends Command {
+	@Field(Array.Of(Enum.Of(Kind)))
+	cards: Kind[];
+
+	@Field(Number)
+	charge: number;
+
+	constructor();
+	constructor(cards: Kind[], charge: number);
+	constructor(cards?: Kind[], charge?: number) {
+		if (cards === undefined || charge === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.cards = cards;
+		this.charge = charge;
+	}
+}
+//#endregion
+//#region Finish command
+export interface FinishCommandDiscriminator {
+	"FinishCommand": FinishCommand;
+}
+
+export interface FinishCommandScheme extends CommandScheme {
+	$type: keyof FinishCommandDiscriminator;
+	report: Report;
+}
+
+export class FinishCommand extends Command {
+	@Field(Report)
+	report: Report;
+
+	constructor();
+	constructor(report: Report);
+	constructor(report?: Report) {
+		if (report === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.report = report;
 	}
 }
 //#endregion
