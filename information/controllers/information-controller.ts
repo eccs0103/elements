@@ -2,7 +2,7 @@
 
 import "adaptive-extender/web";
 import { Controller } from "adaptive-extender/web";
-import { Catalog, type Element } from "../../sandbox/models/elements.js";
+import { Catalog, type Element, type Reaction } from "../../sandbox/models/elements.js";
 import { SettingsService } from "../../settings/services/settings-service.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
 
@@ -10,7 +10,7 @@ import { AnalyticsController } from "../../environment/controllers/analytics-con
 class InformationController extends Controller {
 	#divElements: HTMLDivElement = document.getElement(HTMLDivElement, "div#elements");
 	#templateElement: HTMLTemplateElement = document.getElement(HTMLTemplateElement, "template#element");
-	#templateProperty: HTMLTemplateElement = document.getElement(HTMLTemplateElement, "template#property");
+	#templateAbility: HTMLTemplateElement = document.getElement(HTMLTemplateElement, "template#ability");
 
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
@@ -27,9 +27,9 @@ class InformationController extends Controller {
 		fragment.getElement(SVGRectElement, "svg.avatar rect").setAttribute("fill", element.color.toString());
 		fragment.getElement(HTMLHeadingElement, "h2.name").textContent = element.name;
 		fragment.getElement(HTMLElement, "dd.chance").textContent = `${(Catalog.chance(element) * 100).toFixed(2)}%`;
-		const dlProperties = fragment.getElement(HTMLElement, "dl.properties");
-		for (const [label, value] of this.#properties(element)) {
-			dlProperties.appendChild(this.#describe(label, value));
+		const dlAbilities = fragment.getElement(HTMLElement, "dl.abilities");
+		for (const reaction of element.reactions) {
+			dlAbilities.appendChild(this.#describe(reaction));
 		}
 		return fragment;
 	}
@@ -40,23 +40,11 @@ class InformationController extends Controller {
 		return hrSeparator;
 	}
 
-	*#properties(element: Element): Generator<readonly [string, string]> {
-		const { phase, heat, spread, budget, fuel, lifetime, hot, cold, inertia } = element;
-		yield ["Phase:", phase];
-		yield ["Heat:", heat > 0 ? `+${heat}` : `${heat}`];
-		if (spread !== null) yield ["Spreads:", `every ${spread} tick(s)`];
-		if (budget > 0) yield ["Budget:", `${budget}`];
-		if (fuel !== null) yield ["Fuel:", `${fuel} tick(s)`];
-		if (lifetime !== null) yield ["Lifetime:", `${lifetime} tick(s)`];
-		if (hot !== null) yield ["When hot:", Catalog.at(hot).name];
-		if (cold !== null) yield ["When cold:", Catalog.at(cold).name];
-		if (hot !== null || cold !== null) yield ["Inertia:", `${inertia}`];
-	}
-
-	#describe(label: string, value: string): DocumentFragment {
-		const fragment = document.importNode(this.#templateProperty.content, true);
-		fragment.getElement(HTMLElement, "dt.label").textContent = label;
-		fragment.getElement(HTMLElement, "dd.value").textContent = value;
+	#describe(reaction: Reaction): DocumentFragment {
+		const fragment = document.importNode(this.#templateAbility.content, true);
+		fragment.getElement(HTMLElement, "dt.name").textContent = reaction.name;
+		fragment.getElement(HTMLElement, "dd.preparation").textContent = `Preparation: ${reaction.interval} frame(s)`;
+		fragment.getElement(HTMLElement, "dd.summary").textContent = reaction.description;
 		return fragment;
 	}
 

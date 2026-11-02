@@ -3,7 +3,7 @@ article.element {
 	grid-template:
 		'avatar		name' auto
 		'avatar		probability' auto
-		'properties	properties' auto
+		'abilities	abilities' auto
 		/ minmax(var(--size-large-standart), auto) 1fr;
 	column-gap: var(--size-large-gap);
 
@@ -20,8 +20,15 @@ article.element {
 		grid-area: probability;
 	}
 
-	& > dl.properties {
-		grid-area: properties;
-		margin-block-start: 1em;
+	& > dl.abilities {
+		grid-area: abilities;
+
+		& > dt {
+			margin-block-start: 1em;
+		}
+
+		& > dd {
+			margin-inline-start: 1em;
+		}
 	}
 }

@@ -31,6 +31,7 @@ export interface InitializeCommandDiscriminator {
 export interface InitializeCommandScheme extends CommandScheme {
 	$type: keyof InitializeCommandDiscriminator;
 	canvas: OffscreenCanvas;
+	size: number;
 	seed: number;
 }
 
@@ -39,18 +40,22 @@ export class InitializeCommand extends Command {
 	canvas: OffscreenCanvas;
 
 	@Field(Number)
+	size: number;
+
+	@Field(Number)
 	seed: number;
 
 	constructor();
-	constructor(canvas: OffscreenCanvas, seed: number);
-	constructor(canvas?: OffscreenCanvas, seed?: number) {
-		if (canvas === undefined || seed === undefined) {
+	constructor(canvas: OffscreenCanvas, size: number, seed: number);
+	constructor(canvas?: OffscreenCanvas, size?: number, seed?: number) {
+		if (canvas === undefined || size === undefined || seed === undefined) {
 			super();
 			return;
 		}
 
 		super();
 		this.canvas = canvas;
+		this.size = size;
 		this.seed = seed;
 	}
 }

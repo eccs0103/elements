@@ -38,9 +38,9 @@ export class Painter {
 		const stride = Painter.#stride;
 		const palette = Painter.#palette;
 		const pixels = this.#pixels;
-		const { kinds, budgets } = board;
+		const { kinds, tints } = board;
 		for (let cell = 0; cell < pixels.length; cell++) {
-			pixels[cell] = palette[kinds[cell] * stride + budgets[cell]];
+			pixels[cell] = palette[kinds[cell] * stride + tints[cell]];
 		}
 		this.#context.putImageData(this.#image, 0, 0);
 	}

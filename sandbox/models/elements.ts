@@ -3,7 +3,7 @@
 import "adaptive-extender/core";
 import { Color, type Random } from "adaptive-extender/core";
 
-//#region Element
+//#region Reaction
 export enum Kind {
 	dirt,
 	grass,
@@ -21,6 +21,109 @@ export enum Phase {
 	solid = "solid",
 }
 
+export enum Climate {
+	any,
+	hot,
+	cold,
+}
+
+export enum Law {
+	spread,
+	ignite,
+	cool,
+	destroy,
+	burnout,
+}
+
+export enum Reach {
+	none = 0,
+	orthogonal = 4,
+	surrounding = 8,
+}
+
+export class Selector {
+	#phase: Phase | null;
+	#climate: Climate;
+	#flammable: boolean;
+
+	constructor(phase: Phase | null, climate: Climate, flammable: boolean) {
+		this.#phase = phase;
+		this.#climate = climate;
+		this.#flammable = flammable;
+	}
+
+	static of(phase: Phase, climate: Climate): Selector {
+		return new Selector(phase, climate, false);
+	}
+
+	static flammable(): Selector {
+		return new Selector(null, Climate.any, true);
+	}
+
+	matches(element: Element): boolean {
+		const phase = this.#phase;
+		const climate = this.#climate;
+		if (this.#flammable && !element.flammable) return false;
+		if (phase !== null && element.phase !== phase) return false;
+		if (climate === Climate.hot && element.heat <= 0) return false;
+		if (climate === Climate.cold && element.heat >= 0) return false;
+		return true;
+	}
+}
+
+export class Reaction {
+	#name: string;
+	#description: string;
+	#law: Law;
+	#interval: number;
+	#reach: Reach;
+	#target: Selector | null;
+	#product: Kind | null;
+	#remains: Kind | null;
+
+	constructor(name: string, description: string, law: Law, interval: number, reach: Reach, target: Selector | null, product: Kind | null, remains: Kind | null) {
+		if (!Number.isInteger(interval) || interval <= 0) throw new RangeError(`The interval ${interval} must be a positive integer`);
+		this.#name = name;
+		this.#description = description;
+		this.#law = law;
+		this.#interval = interval;
+		this.#reach = reach;
+		this.#target = target;
+		this.#product = product;
+		this.#remains = remains;
+	}
+
+	static spread(name: string, description: string, interval: number, reach: Reach, target: Selector): Reaction {
+		return new Reaction(name, description, Law.spread, interval, reach, target, null, null);
+	}
+
+	static ignite(name: string, description: string, interval: number, target: Selector, product: Kind): Reaction {
+		return new Reaction(name, description, Law.ignite, interval, Reach.orthogonal, target, product, null);
+	}
+
+	static cool(name: string, description: string, interval: number, target: Selector, product: Kind, remains: Kind): Reaction {
+		return new Reaction(name, description, Law.cool, interval, Reach.orthogonal, target, product, remains);
+	}
+
+	static destroy(name: string, description: string, interval: number, target: Selector, product: Kind, remains: Kind): Reaction {
+		return new Reaction(name, description, Law.destroy, interval, Reach.orthogonal, target, product, remains);
+	}
+
+	static burnout(name: string, description: string, interval: number, remains: Kind): Reaction {
+		return new Reaction(name, description, Law.burnout, interval, Reach.none, null, null, remains);
+	}
+
+	get name(): string { return this.#name; }
+	get description(): string { return this.#description; }
+	get law(): Law { return this.#law; }
+	get interval(): number { return this.#interval; }
+	get reach(): Reach { return this.#reach; }
+	get target(): Selector | null { return this.#target; }
+	get product(): Kind | null { return this.#product; }
+	get remains(): Kind | null { return this.#remains; }
+}
+//#endregion
+//#region Element
 export interface ElementTraits {
 	name: string;
 	color: Readonly<Color>;
@@ -28,18 +131,12 @@ export interface ElementTraits {
 	weight: number;
 	phase: Phase;
 	heat: number;
-	spread: number | null;
+	flammable: boolean;
 	budget: number;
-	fuel: number | null;
-	lifetime: number | null;
-	hot: Kind | null;
-	cold: Kind | null;
-	inertia: number;
+	reactions: readonly Reaction[];
 }
 
 export class Element {
-	static #boiling: number = 2;
-	static #freezing: number = -2;
 	#traits: Readonly<ElementTraits>;
 
 	constructor(traits: Readonly<ElementTraits>) {
@@ -51,20 +148,9 @@ export class Element {
 	get weight(): number { return this.#traits.weight; }
 	get phase(): Phase { return this.#traits.phase; }
 	get heat(): number { return this.#traits.heat; }
-	get spread(): number | null { return this.#traits.spread; }
+	get flammable(): boolean { return this.#traits.flammable; }
 	get budget(): number { return this.#traits.budget; }
-	get fuel(): number | null { return this.#traits.fuel; }
-	get lifetime(): number | null { return this.#traits.lifetime; }
-	get hot(): Kind | null { return this.#traits.hot; }
-	get cold(): Kind | null { return this.#traits.cold; }
-	get inertia(): number { return this.#traits.inertia; }
-
-	fate(warmth: number): Kind | null {
-		const { hot, cold } = this.#traits;
-		if (warmth >= Element.#boiling) return hot;
-		if (warmth <= Element.#freezing) return cold;
-		return null;
-	}
+	get reactions(): readonly Reaction[] { return this.#traits.reactions; }
 
 	tint(budget: number): Color {
 		const { color, faded, budget: maximum } = this.#traits;
@@ -81,14 +167,35 @@ export class Catalog {
 	static #water: Readonly<Color> = Color.fromRGB(0, 50, 255);
 	static #lava: Readonly<Color> = Color.fromRGB(255, 0, 0);
 	static #ice: Readonly<Color> = Color.fromRGB(0, 200, 255);
+	static #ground: Selector = Selector.of(Phase.powder, Climate.any);
+	static #flames: Selector = Selector.of(Phase.energy, Climate.hot);
+	static #magma: Selector = Selector.of(Phase.liquid, Climate.hot);
+	static #moisture: Selector = Selector.of(Phase.liquid, Climate.cold);
+	static #fuel: Selector = Selector.flammable();
 
 	static #elements: readonly Element[] = [
-		new Element({ name: "Dirt", color: Catalog.#dirt, faded: Catalog.#dirt, weight: 90, phase: Phase.powder, heat: 0, spread: null, budget: 0, fuel: null, lifetime: null, hot: null, cold: null, inertia: 0 }),
-		new Element({ name: "Grass", color: Catalog.#grass, faded: Catalog.#grass, weight: 4, phase: Phase.plant, heat: 0, spread: 10, budget: 16, fuel: 16, lifetime: null, hot: Kind.fire, cold: null, inertia: 8 }),
-		new Element({ name: "Fire", color: Catalog.#fire, faded: Catalog.#fire, weight: 2, phase: Phase.energy, heat: 2, spread: null, budget: 0, fuel: null, lifetime: 16, hot: null, cold: Kind.dirt, inertia: 16 }),
-		new Element({ name: "Water", color: Catalog.#water, faded: Catalog.#water, weight: 2, phase: Phase.liquid, heat: -2, spread: 8, budget: 12, fuel: null, lifetime: null, hot: Kind.dirt, cold: null, inertia: 16 }),
-		new Element({ name: "Lava", color: Catalog.#lava, faded: Catalog.#fire, weight: 1, phase: Phase.liquid, heat: 3, spread: 15, budget: 4, fuel: null, lifetime: null, hot: null, cold: Kind.dirt, inertia: 16 }),
-		new Element({ name: "Ice", color: Catalog.#ice, faded: Catalog.#water, weight: 1, phase: Phase.solid, heat: -2, spread: 12, budget: 4, fuel: null, lifetime: null, hot: Kind.water, cold: null, inertia: 24 }),
+		new Element({ name: "Dirt", color: Catalog.#dirt, faded: Catalog.#dirt, weight: 90, phase: Phase.powder, heat: 0, flammable: false, budget: 0, reactions: [] }),
+		new Element({ name: "Grass", color: Catalog.#grass, faded: Catalog.#grass, weight: 4, phase: Phase.plant, heat: 0, flammable: true, budget: 0, reactions: [
+			Reaction.spread("Grow", "Grass can expand by converting a random adjacent Dirt element into a Grass element. The ability targets the eight neighboring cells (up, down, left, right, and diagonals) to find a Dirt element and transform it.", 10, Reach.surrounding, Catalog.#ground),
+		] }),
+		new Element({ name: "Fire", color: Catalog.#fire, faded: Catalog.#fire, weight: 2, phase: Phase.energy, heat: 2, flammable: false, budget: 0, reactions: [
+			Reaction.ignite("Burn", "Fire spreads by converting a random adjacent Grass element into a Fire element. It targets the four neighboring cells (up, down, left, right) to find a Grass element and ignite it. When Fire successfully spreads, it resets the progress of the Fade ability.", 4, Catalog.#fuel, Kind.fire),
+			Reaction.burnout("Fade", "When Fire burns out, it converts itself into a Dirt element. This ability is triggered when Fire has not spread to a new Grass element after a certain period, indicating the fire has exhausted its fuel and extinguishes itself.", 16, Kind.dirt),
+		] }),
+		new Element({ name: "Water", color: Catalog.#water, faded: Catalog.#water, weight: 2, phase: Phase.liquid, heat: -1, flammable: false, budget: 0, reactions: [
+			Reaction.spread("Flow", "Water can spread by converting a random adjacent Dirt element into a Water element. This ability targets the eight neighboring cells to find a Dirt element and transform it into Water.", 8, Reach.surrounding, Catalog.#ground),
+			Reaction.destroy("Evaporate", "Water evaporates when it encounters Fire. This ability converts a random adjacent Fire element and itself into Dirt elements. It targets the four neighboring cells to find a Fire element and then transforms both the Fire and Water into Dirt, simulating the evaporation process.", 8, Catalog.#flames, Kind.dirt, Kind.dirt),
+		] }),
+		new Element({ name: "Lava", color: Catalog.#lava, faded: Catalog.#fire, weight: 1, phase: Phase.liquid, heat: 3, flammable: false, budget: 3, reactions: [
+			Reaction.spread("Flow", "Lava can spread by converting a random adjacent Dirt element into a Lava element with lower density. This ability targets the four neighboring cells to find a Dirt element and transform it into Lava. The new Lava element will have a reduced density compared to the original.", 15, Reach.orthogonal, Catalog.#ground),
+			Reaction.ignite("Burn", "Lava can ignite Grass by converting a random adjacent Grass element into a Fire element. It targets the four neighboring cells to find a Grass element and set it on fire.", 8, Catalog.#fuel, Kind.fire),
+			Reaction.cool("Fade", "Lava cools down when it encounters Water. This ability converts a random adjacent Water element into a Dirt element and decreases the Lava's density. It targets the four neighboring cells to find a Water element. If the Lava's density reaches zero, it transforms itself into a Fire element, simulating the cooling process.", 4, Catalog.#moisture, Kind.dirt, Kind.fire),
+		] }),
+		new Element({ name: "Ice", color: Catalog.#ice, faded: Catalog.#water, weight: 1, phase: Phase.solid, heat: -2, flammable: false, budget: 3, reactions: [
+			Reaction.spread("Flow", "Ice can spread by converting a random adjacent Dirt element into an Ice element with lower density. This ability targets the four neighboring cells to find a Dirt element and transform it into Ice. The new Ice element will have a reduced density compared to the original.", 12, Reach.orthogonal, Catalog.#ground),
+			Reaction.cool("Melt", "Ice melts when it encounters Fire. This ability converts a random adjacent Fire element into a Dirt element and decreases the Ice's density. It targets the four neighboring cells to find a Fire element. If the Ice's density reaches zero, it transforms itself into a Water element, simulating the melting process.", 4, Catalog.#flames, Kind.dirt, Kind.water),
+			Reaction.destroy("Evaporate", "Ice evaporates when it encounters Lava. This ability converts a random adjacent Lava element and itself into Dirt elements. It targets the four neighboring cells to find a Lava element and then transforms both the Lava and Ice into Dirt, simulating the evaporation process.", 4, Catalog.#magma, Kind.dirt, Kind.dirt),
+		] }),
 	];
 
 	static #cases: readonly (readonly [Kind, number])[] = Catalog.#elements.map((element, kind) => [kind, element.weight] as const);
@@ -96,7 +203,6 @@ export class Catalog {
 	static #total: number = Catalog.#elements.reduce((total, element) => total + element.weight, 0);
 
 	static get elements(): readonly Element[] { return Catalog.#elements; }
-	static get ground(): Kind { return Kind.dirt; }
 
 	static at(kind: Kind): Element {
 		return Catalog.#elements[kind];

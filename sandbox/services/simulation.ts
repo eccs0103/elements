@@ -9,6 +9,7 @@ const { baseURI } = document;
 
 //#region Simulation
 export class Simulation {
+	static #size: number = 81;
 	static #rate: number = 90;
 	static #seeds: number = 0x7FFFFFFF;
 	#worker: Worker = new Worker(new URL("./controllers/simulation-worker.js", baseURI), { type: "module" });
@@ -22,13 +23,14 @@ export class Simulation {
 		engine.addEventListener("trigger", event => worker.postMessage(Command.export(new TickCommand())));
 		document.addEventListener("visibilitychange", event => this.#sync());
 		const offscreen = canvas.transferControlToOffscreen();
-		worker.postMessage(Command.export(new InitializeCommand(offscreen, Simulation.#seed())), [offscreen]);
+		worker.postMessage(Command.export(new InitializeCommand(offscreen, Simulation.#size, Simulation.#seed())), [offscreen]);
 	}
 
 	static #seed(): number {
 		return Random.global.integer(Simulation.#seeds);
 	}
 
+	static get size(): number { return Simulation.#size; }
 	get launched(): boolean { return this.#playing; }
 	set launched(value: boolean) {
 		this.#playing = value;

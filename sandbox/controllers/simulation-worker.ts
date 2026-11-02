@@ -10,9 +10,10 @@ import { Painter } from "../services/painter.js";
 class SimulationWorker extends Controller {
 	#board: Board;
 	#painter: Painter;
+	#size: number;
 
 	#generate(seed: number): void {
-		const board = this.#board = new Board(seed);
+		const board = this.#board = new Board(this.#size, seed);
 		board.generate();
 		this.#painter.paint(board);
 	}
@@ -21,9 +22,10 @@ class SimulationWorker extends Controller {
 		const command = Command.import(event.data, "command");
 
 		if (command instanceof InitializeCommand) {
-			const { canvas, seed } = command;
-			canvas.width = Board.size;
-			canvas.height = Board.size;
+			const { canvas, size, seed } = command;
+			canvas.width = size;
+			canvas.height = size;
+			this.#size = size;
 			this.#painter = new Painter(canvas);
 			this.#generate(seed);
 			return;

@@ -2,212 +2,178 @@
 
 import "adaptive-extender/core";
 import { Random } from "adaptive-extender/core";
-import { Catalog, Phase, type Kind, type Element } from "../models/elements.js";
-
-const { max, trunc, sign } = Math;
+import { Catalog, Law, Reach, type Kind, type Reaction } from "../models/elements.js";
 
 //#region Board
 export class Board {
-	static #size: number = 81;
+	static #slots: number = Catalog.elements.reduce((slots, element) => Math.max(slots, element.reactions.length), 0);
 	static #orthogonal: Int8Array = Int8Array.of(0, -1, -1, 0, 1, 0, 0, 1);
 	static #surrounding: Int8Array = Int8Array.of(-1, -1, 0, -1, 1, -1, -1, 0, 1, 0, -1, 1, 0, 1, 1, 1);
-	static #ceiling: number = 0x7FFFFFFF;
-	static #heats: Int8Array = Int8Array.from(Catalog.elements, element => element.heat);
-	static #moist: Uint8Array = Uint8Array.from(Catalog.elements, element => Number(element.phase === Phase.liquid && element.heat < 0));
+	static #masks: readonly (readonly Uint8Array[])[] = Board.#tabulate();
+	#size: number;
 	#random: Random;
 	#kinds: Uint8Array;
-	#next: Uint8Array;
 	#budgets: Uint8Array;
-	#clocks: Uint8Array;
-	#lives: Uint8Array;
-	#exposures: Uint8Array;
+	#tints: Uint8Array;
+	#progress: Uint8Array;
+	#births: Uint32Array;
 	#candidates: Int32Array = new Int32Array(8);
-	#targets: Int32Array;
-	#products: Uint8Array;
-	#offspring: Uint8Array;
-	#sources: Int32Array;
-	#ranks: Uint32Array;
-	#winners: Int32Array;
-	#count: number = 0;
+	#steps: Uint8Array = new Uint8Array(Board.#slots);
+	#budget: number = 0;
 
-	constructor(seed: number) {
-		const size = Board.#size;
+	constructor(size: number, seed: number) {
+		if (!Number.isInteger(size) || size <= 0) throw new RangeError(`The size ${size} must be a positive integer`);
 		const area = size * size;
+		this.#size = size;
 		this.#random = new Random(seed);
 		this.#kinds = new Uint8Array(area);
-		this.#next = new Uint8Array(area);
 		this.#budgets = new Uint8Array(area);
-		this.#clocks = new Uint8Array(area);
-		this.#lives = new Uint8Array(area);
-		this.#exposures = new Uint8Array(area);
-		this.#targets = new Int32Array(area);
-		this.#products = new Uint8Array(area);
-		this.#offspring = new Uint8Array(area);
-		this.#sources = new Int32Array(area);
-		this.#ranks = new Uint32Array(area);
-		this.#winners = new Int32Array(area);
+		this.#tints = new Uint8Array(area);
+		this.#progress = new Uint8Array(area * Board.#slots);
+		this.#births = new Uint32Array(area);
 	}
 
-	static get size(): number { return Board.#size; }
+	static #tabulate(): readonly (readonly Uint8Array[])[] {
+		const { elements } = Catalog;
+		return elements.map(element => element.reactions.map(reaction => Uint8Array.from(elements, other => Number(reaction.target?.matches(other) ?? false))));
+	}
+
 	get kinds(): ArrayLike<number> { return this.#kinds; }
 	get budgets(): ArrayLike<number> { return this.#budgets; }
+	get tints(): ArrayLike<number> { return this.#tints; }
 
 	generate(): void {
 		const random = this.#random;
-		const kinds = this.#kinds;
-		for (let cell = 0; cell < kinds.length; cell++) {
-			const kind = Catalog.pick(random);
-			this.#spawn(kinds, cell, kind, Catalog.at(kind).budget, null);
+		const area = this.#kinds.length;
+		for (let cell = 0; cell < area; cell++) {
+			this.#spawn(cell, Catalog.pick(random), null);
 		}
 	}
 
 	drop(kind: Kind, x: number, y: number): void {
-		const size = Board.#size;
+		const size = this.#size;
 		const offsets = Board.#orthogonal;
-		const kinds = this.#kinds;
-		const { budget } = Catalog.at(kind);
 		if (x < 0 || x >= size || y < 0 || y >= size) throw new RangeError(`The cell ${x}, ${y} is out of the board`);
-		this.#spawn(kinds, y * size + x, kind, budget, null);
+		this.#spawn(y * size + x, kind, null);
 		for (let index = 0; index < offsets.length; index += 2) {
 			const column = x + offsets[index];
 			const row = y + offsets[index + 1];
 			if (column < 0 || column >= size || row < 0 || row >= size) continue;
-			this.#spawn(kinds, row * size + column, kind, budget, null);
+			this.#spawn(row * size + column, kind, null);
 		}
 	}
 
 	step(): void {
-		const kinds = this.#kinds;
-		const next = this.#next;
-		next.set(kinds);
-		this.#count = 0;
-		for (let cell = 0; cell < kinds.length; cell++) {
-			const element = Catalog.at(kinds[cell]);
-			const warmth = this.#sense(cell);
-			if (this.#transform(cell, element, warmth)) continue;
-			if (this.#decay(cell, element)) continue;
-			this.#grow(cell, element);
+		const area = this.#kinds.length;
+		for (let cell = 0; cell < area; cell++) {
+			this.#execute(cell);
 		}
-		this.#settle();
-		kinds.set(next);
 	}
 
-	#spawn(target: Uint8Array, cell: number, kind: Kind, budget: number, life: number | null): void {
-		target[cell] = kind;
-		this.#budgets[cell] = budget;
-		this.#clocks[cell] = 0;
-		this.#lives[cell] = life ?? Catalog.at(kind).lifetime ?? 0;
-		this.#exposures[cell] = 0;
+	#spawn(cell: number, kind: Kind, budget: number | null): void {
+		const slots = Board.#slots;
+		const value = budget ?? Catalog.at(kind).budget;
+		this.#kinds[cell] = kind;
+		this.#budgets[cell] = value;
+		this.#tints[cell] = value;
+		this.#progress.fill(0, cell * slots, cell * slots + slots);
+		this.#births[cell]++;
 	}
 
-	#sense(cell: number): number {
-		const size = Board.#size;
-		const offsets = Board.#surrounding;
-		const kinds = this.#kinds;
-		const heats = Board.#heats;
-		const x = cell % size;
-		const y = (cell - x) / size;
-		let warmth = 0;
-		for (let index = 0; index < offsets.length; index += 2) {
-			const column = x + offsets[index];
-			const row = y + offsets[index + 1];
-			if (column < 0 || column >= size || row < 0 || row >= size) continue;
-			warmth += heats[kinds[row * size + column]];
+	#execute(cell: number): void {
+		const kind = this.#kinds[cell];
+		const { reactions } = Catalog.at(kind);
+		if (reactions.length === 0) return;
+		const slots = Board.#slots;
+		const masks = Board.#masks[kind];
+		const progress = this.#progress;
+		const steps = this.#steps;
+		const births = this.#births;
+		const budgets = this.#budgets;
+		const birth = births[cell];
+		const offset = cell * slots;
+		for (let slot = 0; slot < slots; slot++) {
+			steps[slot] = progress[offset + slot];
 		}
-		return warmth;
-	}
-
-	#intensity(cell: number, direction: number): number {
-		const size = Board.#size;
-		const offsets = Board.#surrounding;
-		const kinds = this.#kinds;
-		const heats = Board.#heats;
-		const x = cell % size;
-		const y = (cell - x) / size;
-		let strongest = 0;
-		for (let index = 0; index < offsets.length; index += 2) {
-			const column = x + offsets[index];
-			const row = y + offsets[index + 1];
-			if (column < 0 || column >= size || row < 0 || row >= size) continue;
-			strongest = max(strongest, heats[kinds[row * size + column]] * direction);
+		this.#budget = budgets[cell];
+		for (let slot = 0; slot < reactions.length; slot++) {
+			const reaction = reactions[slot];
+			if (steps[slot] < reaction.interval) {
+				steps[slot]++;
+				continue;
+			}
+			if (!this.#act(cell, kind, reaction, masks[slot])) continue;
+			steps[slot] = 0;
+			if (reaction.law === Law.ignite) this.#rekindle(reactions);
 		}
-		return strongest;
-	}
-
-	#soaked(cell: number): boolean {
-		const size = Board.#size;
-		const offsets = Board.#surrounding;
-		const kinds = this.#kinds;
-		const moist = Board.#moist;
-		const x = cell % size;
-		const y = (cell - x) / size;
-		for (let index = 0; index < offsets.length; index += 2) {
-			const column = x + offsets[index];
-			const row = y + offsets[index + 1];
-			if (column < 0 || column >= size || row < 0 || row >= size) continue;
-			if (moist[kinds[row * size + column]] === 1) return true;
+		if (births[cell] !== birth) return;
+		for (let slot = 0; slot < slots; slot++) {
+			progress[offset + slot] = steps[slot];
 		}
-		return false;
+		budgets[cell] = this.#budget;
 	}
 
-	#transform(cell: number, element: Element, warmth: number): boolean {
-		const fate = element.fate(warmth);
-		const exposures = this.#exposures;
-		if (fate === null) {
-			exposures[cell] = 0;
+	#rekindle(reactions: readonly Reaction[]): void {
+		const steps = this.#steps;
+		for (let slot = 0; slot < reactions.length; slot++) {
+			if (reactions[slot].law !== Law.burnout) continue;
+			steps[slot] = 0;
+		}
+	}
+
+	#act(cell: number, kind: Kind, reaction: Reaction, mask: Uint8Array): boolean {
+		const { law, product, remains } = reaction;
+		if (law === Law.burnout) {
+			if (remains !== null) this.#spawn(cell, remains, null);
 			return false;
 		}
-		const exposure = exposures[cell] + this.#intensity(cell, sign(warmth));
-		if (exposure <= element.inertia) {
-			exposures[cell] = exposure;
-			return false;
+		const found = this.#gather(cell, reaction.reach, mask);
+		if (found === 0) return false;
+		const budget = this.#budget;
+		const limited = Catalog.at(kind).budget > 0;
+		if (law === Law.spread && limited && budget <= 1) return false;
+		const chosen = this.#candidates[this.#random.integer(found - 1)];
+		switch (law) {
+		case Law.spread: return this.#grow(chosen, kind, limited ? budget - 1 : null);
+		case Law.ignite: return this.#grow(chosen, this.#require(product), null);
+		case Law.cool: return this.#cool(cell, chosen, this.#require(product), this.#require(remains));
+		case Law.destroy: return this.#destroy(cell, chosen, this.#require(product), this.#require(remains));
+		default: throw new TypeError(`Invalid '${law}' law`);
 		}
-		this.#spawn(this.#next, cell, fate, Catalog.at(fate).budget, element.fuel);
+	}
+
+	#require(kind: Kind | null): Kind {
+		if (kind === null) throw new ReferenceError("The reaction has no resulting element");
+		return kind;
+	}
+
+	#grow(target: number, kind: Kind, budget: number | null): boolean {
+		this.#spawn(target, kind, budget);
 		return true;
 	}
 
-	#decay(cell: number, element: Element): boolean {
-		if (element.lifetime === null) return false;
-		const lives = this.#lives;
-		const life = lives[cell];
-		if (life > 1) {
-			lives[cell] = life - 1;
-			return false;
+	#cool(cell: number, target: number, product: Kind, remains: Kind): boolean {
+		this.#spawn(target, product, null);
+		const budget = this.#budget;
+		if (budget > 0) {
+			this.#budget = budget - 1;
+			return true;
 		}
-		const ground = Catalog.ground;
-		this.#spawn(this.#next, cell, ground, Catalog.at(ground).budget, null);
+		this.#spawn(cell, remains, null);
 		return true;
 	}
 
-	#grow(cell: number, element: Element): void {
-		const { spread, phase } = element;
-		if (spread === null) return;
-		const budget = this.#budgets[cell];
-		if (budget <= 1) return;
-		const clocks = this.#clocks;
-		const clock = clocks[cell];
-		const plant = phase === Phase.plant;
-		const interval = plant && this.#soaked(cell) ? max(trunc(spread / 2), 1) : spread;
-		if (clock < interval) {
-			clocks[cell] = clock + 1;
-			return;
-		}
-		const found = this.#gather(cell, plant ? Board.#surrounding : Board.#orthogonal);
-		if (found === 0) return;
-		const random = this.#random;
-		const claim = this.#count++;
-		this.#targets[claim] = this.#candidates[random.integer(found - 1)];
-		this.#products[claim] = this.#kinds[cell];
-		this.#offspring[claim] = budget - 1;
-		this.#sources[claim] = cell;
-		this.#ranks[claim] = random.integer(Board.#ceiling);
+	#destroy(cell: number, target: number, product: Kind, remains: Kind): boolean {
+		this.#spawn(target, product, null);
+		this.#spawn(cell, remains, null);
+		return true;
 	}
 
-	#gather(cell: number, offsets: Int8Array): number {
-		const size = Board.#size;
+	#gather(cell: number, reach: Reach, mask: Uint8Array): number {
+		const size = this.#size;
 		const kinds = this.#kinds;
 		const candidates = this.#candidates;
-		const ground = Catalog.ground;
+		const offsets = reach === Reach.surrounding ? Board.#surrounding : Board.#orthogonal;
 		const x = cell % size;
 		const y = (cell - x) / size;
 		let found = 0;
@@ -216,35 +182,10 @@ export class Board {
 			const row = y + offsets[index + 1];
 			if (column < 0 || column >= size || row < 0 || row >= size) continue;
 			const neighbour = row * size + column;
-			if (kinds[neighbour] !== ground) continue;
+			if (mask[kinds[neighbour]] === 0) continue;
 			candidates[found++] = neighbour;
 		}
 		return found;
-	}
-
-	#settle(): void {
-		const count = this.#count;
-		const targets = this.#targets;
-		const ranks = this.#ranks;
-		const winners = this.#winners;
-		winners.fill(-1);
-		for (let claim = 0; claim < count; claim++) {
-			const target = targets[claim];
-			const winner = winners[target];
-			if (winner >= 0 && ranks[winner] >= ranks[claim]) continue;
-			winners[target] = claim;
-		}
-		const next = this.#next;
-		const products = this.#products;
-		const offspring = this.#offspring;
-		const clocks = this.#clocks;
-		const sources = this.#sources;
-		for (let claim = 0; claim < count; claim++) {
-			const target = targets[claim];
-			if (winners[target] !== claim) continue;
-			this.#spawn(next, target, products[claim], offspring[claim], null);
-			clocks[sources[claim]] = 0;
-		}
 	}
 }
 //#endregion

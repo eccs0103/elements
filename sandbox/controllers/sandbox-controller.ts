@@ -3,7 +3,6 @@
 import "adaptive-extender/web";
 import { Controller } from "adaptive-extender/web";
 import { SettingsService } from "../../settings/services/settings-service.js";
-import { Board } from "../services/board.js";
 import { Simulation } from "../services/simulation.js";
 import { Picker } from "../view/picker.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
@@ -44,7 +43,7 @@ class SandboxController extends Controller {
 	}
 
 	#drop(event: PointerEvent): void {
-		const size = Board.size;
+		const size = Simulation.size;
 		const { left, top, width, height } = this.#canvasBoard.getBoundingClientRect();
 		const x = trunc((event.clientX - left) / width * size);
 		const y = trunc((event.clientY - top) / height * size);
