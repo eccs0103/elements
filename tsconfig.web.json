@@ -8,6 +8,7 @@
 		"environment/services/**/*.ts",
 		"sandbox/controllers/sandbox-controller.ts",
 		"sandbox/services/simulation.ts",
+		"sandbox/view/picker.ts",
 		"settings/**/*.ts",
 		"information/**/*.ts"
 	]

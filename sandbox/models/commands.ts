@@ -1,10 +1,11 @@
 "use strict";
 
 import "adaptive-extender/worker";
-import { Any, Deferred, Descendant, Field, Model } from "adaptive-extender/worker";
+import { Any, Deferred, Descendant, Enum, Field, Model } from "adaptive-extender/worker";
+import { Kind } from "./elements.js";
 
 //#region Command
-export interface CommandDiscriminator extends InitializeCommandDiscriminator, GenerateCommandDiscriminator, TickCommandDiscriminator, CaptureCommandDiscriminator, PictureCommandDiscriminator, StallCommandDiscriminator {
+export interface CommandDiscriminator extends InitializeCommandDiscriminator, GenerateCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator {
 }
 
 export interface CommandScheme {
@@ -14,9 +15,7 @@ export interface CommandScheme {
 @Descendant(Deferred(_ => InitializeCommand))
 @Descendant(Deferred(_ => GenerateCommand))
 @Descendant(Deferred(_ => TickCommand))
-@Descendant(Deferred(_ => CaptureCommand))
-@Descendant(Deferred(_ => PictureCommand))
-@Descendant(Deferred(_ => StallCommand))
+@Descendant(Deferred(_ => DropCommand))
 export abstract class Command extends Model {
 	constructor() {
 		super();
@@ -32,7 +31,6 @@ export interface InitializeCommandDiscriminator {
 export interface InitializeCommandScheme extends CommandScheme {
 	$type: keyof InitializeCommandDiscriminator;
 	canvas: OffscreenCanvas;
-	size: number;
 	seed: number;
 }
 
@@ -41,22 +39,18 @@ export class InitializeCommand extends Command {
 	canvas: OffscreenCanvas;
 
 	@Field(Number)
-	size: number;
-
-	@Field(Number)
 	seed: number;
 
 	constructor();
-	constructor(canvas: OffscreenCanvas, size: number, seed: number);
-	constructor(canvas?: OffscreenCanvas, size?: number, seed?: number) {
-		if (canvas === undefined || size === undefined || seed === undefined) {
+	constructor(canvas: OffscreenCanvas, seed: number);
+	constructor(canvas?: OffscreenCanvas, seed?: number) {
+		if (canvas === undefined || seed === undefined) {
 			super();
 			return;
 		}
 
 		super();
 		this.canvas = canvas;
-		this.size = size;
 		this.seed = seed;
 	}
 }
@@ -100,74 +94,40 @@ export interface TickCommandScheme extends CommandScheme {
 export class TickCommand extends Command {
 }
 //#endregion
-//#region Capture command
-export interface CaptureCommandDiscriminator {
-	"CaptureCommand": CaptureCommand;
+//#region Drop command
+export interface DropCommandDiscriminator {
+	"DropCommand": DropCommand;
 }
 
-export interface CaptureCommandScheme extends CommandScheme {
-	$type: keyof CaptureCommandDiscriminator;
-	width: number;
-	height: number;
+export interface DropCommandScheme extends CommandScheme {
+	$type: keyof DropCommandDiscriminator;
+	kind: Kind;
+	x: number;
+	y: number;
 }
 
-export class CaptureCommand extends Command {
-	@Field(Number)
-	width: number;
+export class DropCommand extends Command {
+	@Field(Enum.Of(Kind))
+	kind: Kind;
 
 	@Field(Number)
-	height: number;
+	x: number;
+
+	@Field(Number)
+	y: number;
 
 	constructor();
-	constructor(width: number, height: number);
-	constructor(width?: number, height?: number) {
-		if (width === undefined || height === undefined) {
+	constructor(kind: Kind, x: number, y: number);
+	constructor(kind?: Kind, x?: number, y?: number) {
+		if (kind === undefined || x === undefined || y === undefined) {
 			super();
 			return;
 		}
 
 		super();
-		this.width = width;
-		this.height = height;
+		this.kind = kind;
+		this.x = x;
+		this.y = y;
 	}
-}
-//#endregion
-//#region Picture command
-export interface PictureCommandDiscriminator {
-	"PictureCommand": PictureCommand;
-}
-
-export interface PictureCommandScheme extends CommandScheme {
-	$type: keyof PictureCommandDiscriminator;
-	picture: Blob;
-}
-
-export class PictureCommand extends Command {
-	@Field(Any.ByReference(Blob))
-	picture: Blob;
-
-	constructor();
-	constructor(picture: Blob);
-	constructor(picture?: Blob) {
-		if (picture === undefined) {
-			super();
-			return;
-		}
-
-		super();
-		this.picture = picture;
-	}
-}
-//#endregion
-//#region Stall command
-export interface StallCommandDiscriminator {
-	"StallCommand": StallCommand;
-}
-
-export interface StallCommandScheme extends CommandScheme {
-	$type: keyof StallCommandDiscriminator;
-}
-
-export class StallCommand extends Command {
 }
 //#endregion

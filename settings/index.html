@@ -19,7 +19,6 @@
 	<link rel="stylesheet" href="../styles/global.css">
 	<link rel="stylesheet" href="../styles/themes/material.css">
 	<link rel="stylesheet" href="../sandbox/view/layout.css">
-	<link rel="stylesheet" href="./view/style.css">
 	<script type="module" src="../environment/services/analytics-service.ts"></script>
 	<script type="module" src="./controllers/settings-controller.ts"></script>
 </head>
@@ -48,40 +47,6 @@
 						<option value="dark">Dark</option>
 					</select>
 					<dfn class="definition">External design of the page: color scheme, background and foreground, font.</dfn>
-				</section>
-				<hr class="depth">
-				<h3>Game</h3>
-				<section class="option">
-					<p class="title">Show TPS</p>
-					<input id="counter" type="checkbox" hidden>
-					<label for="counter" role="checkbox" class="value depth toggle">
-						<span class="layer knob"></span>
-					</label>
-					<dfn class="definition">Show or hide the ticks per second counter with load indicator.</dfn>
-				</section>
-				<section class="option">
-					<p class="title">Speed</p>
-					<input id="speed" type="number" inputmode="numeric" required class="value depth rounded with-padding flex">
-					<dfn class="definition">Ticks per second: the speed of interaction of elements. It does not depend on the frame rate of the screen.</dfn>
-				</section>
-				<hr class="depth">
-				<h3>Board</h3>
-				<section class="option">
-					<p class="title">Board size</p>
-					<input id="size" type="number" inputmode="numeric" required class="value depth rounded with-padding flex">
-					<dfn class="definition">Board generated size. Resizing the board will generate it anew with the given coefficients.</dfn>
-				</section>
-				<section class="option">
-					<p class="title">On cycle end</p>
-					<select id="cycle" class="value depth rounded with-padding flex" required>
-						<option value="terminate">Terminate</option>
-						<option value="ask">Ask</option>
-						<option value="repeat">Repeat</option>
-					</select>
-					<dfn class="definition">Actions after the end of the game cycle.</dfn>
-				</section>
-				<section class="option">
-					<button id="reset" type="button" class="layer warn-background rounded with-padding grid-line">Reset settings</button>
 				</section>
 			</div>
 		</div>

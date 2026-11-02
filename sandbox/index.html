@@ -36,29 +36,20 @@
 			<span class="icon">Information</span>
 		</a>
 	</nav>
-	<main class="flex">
-		<div id="frame" class="with-padding large-padding flex">
-			<div id="player" class="layer rounded with-padding flex">
-				<div id="display" class="flex">
-					<canvas id="board" class="depth rounded"></canvas>
-					<div id="toolkit" class="translucent rounded with-padding">
-						<input id="toggle-play" type="checkbox" hidden>
-						<label for="toggle-play" role="checkbox" title="Launch" class="flex with-padding">
-							<span class="icon">Launch</span>
-						</label>
-						<button id="reload-board" type="button" title="Reload" class="flex with-padding">
-							<span class="icon">Reload</span>
-						</button>
-						<button id="capture-canvas" type="button" title="Capture canvas" class="flex with-padding">
-							<span class="icon">Capture canvas</span>
-						</button>
-					</div>
-				</div>
+	<main>
+		<div id="stage">
+			<canvas id="board"></canvas>
+			<div id="toolkit" class="flex">
+				<input id="toggle-play" type="checkbox" hidden>
+				<label for="toggle-play" role="checkbox" title="Launch" class="flex with-padding">
+					<span class="icon">Launch</span>
+				</label>
+				<button id="reload-board" type="button" title="Reload" class="flex with-padding">
+					<span class="icon">Reload</span>
+				</button>
+				<div id="picker" class="flex"></div>
 			</div>
 		</div>
-		<aside class="flex column">
-			<output id="tick-counter" class="layer rounded with-padding flex center" hidden>-</output>
-		</aside>
 	</main>
 </body>
 

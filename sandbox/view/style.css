@@ -1,78 +1,92 @@
-div#frame {
-	position: absolute;
-	inset: 0;
-	margin: auto;
-	max-block-size: 100%;
-	aspect-ratio: 1;
-}
-
-div#player {
-	inline-size: 100%;
-	block-size: 100%;
-	border-radius: calc(var(--size-gap) + var(--size-gap));
-}
-
-div#display {
-	position: relative;
-	inline-size: 100%;
-	block-size: 100%;
+main {
+	container-type: size;
+	display: grid;
+	place-content: center;
 	overflow: hidden;
+}
+
+div#stage {
+	--thickness: calc(var(--size-standart) + 2 * var(--size-gap));
+	display: grid;
 }
 
 canvas#board {
 	inline-size: 100%;
 	block-size: 100%;
 	image-rendering: pixelated;
+	touch-action: none;
+	cursor: crosshair;
 }
 
 div#toolkit {
-	position: absolute;
-	inset-block-end: 0;
-	inline-size: 100%;
-	display: grid;
-	grid-template-columns: repeat(2, max-content) 1fr;
-	color: white;
-	opacity: 0.5;
-	transition: opacity var(--time-duration);
+	align-items: center;
 
-	&:hover {
-		opacity: 1;
+	& input#toggle-play:checked + label {
+		background-color: transparent;
 	}
 
 	& label[for="toggle-play"] span.icon {
 		--url: url(../../assets/icons/play.svg);
 	}
 
-	& input#toggle-play:checked + label {
-		background-color: unset;
-
-		& span.icon {
-			--url: url(../../assets/icons/pause.svg);
-		}
+	& input#toggle-play:checked + label span.icon {
+		--url: url(../../assets/icons/pause.svg);
 	}
 
 	& button#reload-board span.icon {
 		--url: url(../../assets/icons/rotate-right.svg);
 	}
+}
 
-	& button#capture-canvas {
-		justify-self: end;
+div#picker {
+	align-items: center;
 
-		& span.icon {
-			--url: url(../../assets/icons/camera.svg);
+	& input:checked + label {
+		background-color: transparent;
+
+		& span.swatch {
+			outline: var(--size-large-separator) solid var(--color-highlight);
 		}
+	}
+
+	& span.swatch {
+		display: inline-block;
+		aspect-ratio: 1;
+		block-size: var(--size-standart);
+		background-color: var(--color);
 	}
 }
 
-aside {
-	position: absolute;
-	inset: 0 0 0 auto;
-	align-items: flex-end;
+@media (orientation: portrait) {
+	div#stage {
+		--side: min(100cqi, 100cqb - var(--thickness));
+		grid-template-columns: var(--side);
+		grid-template-rows: var(--side) var(--thickness);
+	}
+
+	div#toolkit,
+	div#picker {
+		flex-direction: row;
+	}
+
+	div#picker {
+		margin-inline-start: auto;
+	}
 }
 
-output#tick-counter {
-	--color-indicator: var(--color-main);
-	border-start-end-radius: 0 !important;
-	border-style: solid;
-	border-color: var(--color-indicator);
+@media (orientation: landscape) {
+	div#stage {
+		--side: min(100cqb, 100cqi - var(--thickness));
+		grid-template-columns: var(--side) var(--thickness);
+		grid-template-rows: var(--side);
+	}
+
+	div#toolkit,
+	div#picker {
+		flex-direction: column;
+	}
+
+	div#picker {
+		margin-block-start: auto;
+	}
 }
