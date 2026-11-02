@@ -55,17 +55,17 @@ class SettingsController extends Controller {
 	async #toggle(kind: Kind, active: boolean): Promise<void> {
 		settings.content.toggle(kind, active);
 		this.#refresh();
-		try {
-			await settings.save();
-		} catch (reason) {
-			window.alert(Error.from(reason).message);
-		}
+		await this.#save();
 	}
 
 	async #rescheme(): Promise<void> {
 		const { content } = settings;
 		content.scheme = Enum.Of(Scheme).import(this.#selectScheme.value, "scheme");
 		content.apply();
+		await this.#save();
+	}
+
+	async #save(): Promise<void> {
 		try {
 			await settings.save();
 		} catch (reason) {

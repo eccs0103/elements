@@ -20,7 +20,7 @@ class Session {
 		const match = this.#match = ticket.match();
 		const { size } = match.rules;
 		this.#ticket = ticket;
-		this.#players = ticket.lineup(match, new Human());
+		this.#players = ticket.lineup(new Human());
 		this.#zone = new Uint8Array(size * size);
 	}
 
@@ -36,14 +36,10 @@ class Session {
 	}
 
 	zone(): Uint8Array {
-		const match = this.#match;
 		const zone = this.#zone;
-		const { human } = this.#ticket;
-		const { size } = match.rules;
-		for (let y = 0; y < size; y++) {
-			for (let x = 0; x < size; x++) {
-				zone[y * size + x] = Number(match.legal(human, 0, x, y));
-			}
+		zone.fill(0);
+		for (const cell of this.#match.cells(this.#ticket.human, 0)) {
+			zone[cell] = 1;
 		}
 		return zone;
 	}

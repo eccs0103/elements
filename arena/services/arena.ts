@@ -54,7 +54,7 @@ export class Arena {
 		const { moves } = report;
 		if (moves.some(move => move.side !== human)) throw new TypeError("The report holds moves of a side that is not human");
 		const match = ticket.match();
-		const players = ticket.lineup(match, new Human());
+		const players = ticket.lineup(new Human());
 		let index = 0;
 		while (!match.finished) {
 			while (index < moves.length && moves[index].tick === match.tick) {

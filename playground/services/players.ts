@@ -43,22 +43,12 @@ export class Bot implements Player {
 		}
 		this.#delay = null;
 		const slot = random.integer(match.cards(side).length - 1);
-		const cells = this.#candidates(match, side, slot);
+		const cells = match.cells(side, slot);
 		if (cells.length === 0) return null;
 		const cell = random.item(cells);
 		const { size } = rules;
-		return new Move(match.tick, side, slot, cell % size, (cell - cell % size) / size);
-	}
-
-	#candidates(match: Match, side: number, slot: number): number[] {
-		const { size } = match.rules;
-		const cells: number[] = [];
-		for (let y = 0; y < size; y++) {
-			for (let x = 0; x < size; x++) {
-				if (match.legal(side, slot, x, y)) cells.push(y * size + x);
-			}
-		}
-		return cells;
+		const x = cell % size;
+		return new Move(match.tick, side, slot, x, (cell - x) / size);
 	}
 }
 //#endregion

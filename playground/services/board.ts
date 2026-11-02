@@ -4,13 +4,77 @@ import "adaptive-extender/core";
 import { Random } from "adaptive-extender/core";
 import { Catalog, Law, Reach, type Kind, type Reaction } from "../models/elements.js";
 
-//#region Board
-export class Board {
-	static #slots: number = Catalog.elements.reduce((slots, element) => Math.max(slots, element.reactions.length), 0);
+const { max } = Math;
+
+//#region Neighbourhood
+class Neighbourhood {
 	static #orthogonal: Int8Array = Int8Array.of(0, -1, -1, 0, 1, 0, 0, 1);
 	static #surrounding: Int8Array = Int8Array.of(-1, -1, 0, -1, 1, -1, -1, 0, 1, 0, -1, 1, 0, 1, 1, 1);
+	#starts: Uint32Array;
+	#cells: Uint32Array;
+
+	constructor(size: number, offsets: Int8Array) {
+		const area = size * size;
+		const starts = this.#starts = new Uint32Array(area + 1);
+		const cells: number[] = [];
+		for (let cell = 0; cell < area; cell++) {
+			const x = cell % size;
+			const y = (cell - x) / size;
+			for (let index = 0; index < offsets.length; index += 2) {
+				const column = x + offsets[index];
+				const row = y + offsets[index + 1];
+				if (column < 0 || column >= size || row < 0 || row >= size) continue;
+				cells.push(row * size + column);
+			}
+			starts[cell + 1] = cells.length;
+		}
+		this.#cells = Uint32Array.from(cells);
+	}
+
+	static orthogonal(size: number): Neighbourhood {
+		return new Neighbourhood(size, Neighbourhood.#orthogonal);
+	}
+
+	static surrounding(size: number): Neighbourhood {
+		return new Neighbourhood(size, Neighbourhood.#surrounding);
+	}
+
+	around(cell: number): Uint32Array {
+		const starts = this.#starts;
+		return this.#cells.subarray(starts[cell], starts[cell + 1]);
+	}
+
+	gather(cell: number, kinds: Uint8Array, mask: Uint8Array, candidates: Int32Array): number {
+		const cells = this.#cells;
+		const starts = this.#starts;
+		const end = starts[cell + 1];
+		let found = 0;
+		for (let index = starts[cell]; index < end; index++) {
+			const neighbour = cells[index];
+			if (mask[kinds[neighbour]] === 0) continue;
+			candidates[found++] = neighbour;
+		}
+		return found;
+	}
+
+	touches(cell: number, owners: Uint8Array, owner: number): boolean {
+		const cells = this.#cells;
+		const starts = this.#starts;
+		const end = starts[cell + 1];
+		for (let index = starts[cell]; index < end; index++) {
+			if (owners[cells[index]] === owner) return true;
+		}
+		return false;
+	}
+}
+//#endregion
+//#region Board
+export class Board {
+	static #slots: number = max(...Catalog.elements.map(element => element.reactions.length));
 	static #masks: readonly (readonly Uint8Array[])[] = Board.#tabulate();
 	#size: number;
+	#orthogonal: Neighbourhood;
+	#surrounding: Neighbourhood;
 	#random: Random;
 	#kinds: Uint8Array;
 	#budgets: Uint8Array;
@@ -29,6 +93,8 @@ export class Board {
 		if (!Number.isInteger(size) || size <= 0) throw new RangeError(`The size ${size} must be a positive integer`);
 		const area = size * size;
 		this.#size = size;
+		this.#orthogonal = Neighbourhood.orthogonal(size);
+		this.#surrounding = Neighbourhood.surrounding(size);
 		this.#random = new Random(seed);
 		this.#kinds = new Uint8Array(area);
 		this.#budgets = new Uint8Array(area);
@@ -44,25 +110,21 @@ export class Board {
 
 	static #tabulate(): readonly (readonly Uint8Array[])[] {
 		const { elements } = Catalog;
-		return elements.map(element => element.reactions.map(reaction => Uint8Array.from(elements, other => Number(reaction.target?.matches(other) ?? false))));
+		return elements.map(element => element.reactions.map(reaction => Uint8Array.from(elements, other => Number(reaction.affects(other)))));
 	}
 
 	get kinds(): ArrayLike<number> { return this.#kinds; }
-	get budgets(): ArrayLike<number> { return this.#budgets; }
 	get tints(): ArrayLike<number> { return this.#tints; }
 	get owners(): ArrayLike<number> { return this.#owners; }
 	get size(): number { return this.#size; }
 
 	drop(kind: Kind, x: number, y: number, owner: number): void {
 		const size = this.#size;
-		const offsets = Board.#orthogonal;
 		if (x < 0 || x >= size || y < 0 || y >= size) throw new RangeError(`The cell ${x}, ${y} is out of the board`);
-		this.#spawn(y * size + x, kind, null, owner);
-		for (let index = 0; index < offsets.length; index += 2) {
-			const column = x + offsets[index];
-			const row = y + offsets[index + 1];
-			if (column < 0 || column >= size || row < 0 || row >= size) continue;
-			this.#spawn(row * size + column, kind, null, owner);
+		const cell = y * size + x;
+		this.#spawn(cell, kind, null, owner);
+		for (const neighbour of this.#orthogonal.around(cell)) {
+			this.#spawn(neighbour, kind, null, owner);
 		}
 	}
 
@@ -76,17 +138,9 @@ export class Board {
 	}
 
 	touches(owner: number, x: number, y: number): boolean {
-		const size = this.#size;
 		const owners = this.#owners;
-		const offsets = Board.#surrounding;
-		if (owners[y * size + x] === owner) return true;
-		for (let index = 0; index < offsets.length; index += 2) {
-			const column = x + offsets[index];
-			const row = y + offsets[index + 1];
-			if (column < 0 || column >= size || row < 0 || row >= size) continue;
-			if (owners[row * size + column] === owner) return true;
-		}
-		return false;
+		const cell = y * this.#size + x;
+		return owners[cell] === owner || this.#surrounding.touches(cell, owners, owner);
 	}
 
 	step(): void {
@@ -158,23 +212,27 @@ export class Board {
 
 	#act(cell: number, kind: Kind, reaction: Reaction, mask: Uint8Array): boolean {
 		const { law, product, remains } = reaction;
+		const owner = this.#owner;
 		if (law === Law.burnout) {
-			if (remains !== null) this.#spawn(cell, remains, null, this.#owner);
+			if (remains !== null) this.#spawn(cell, remains, null, owner);
 			return false;
 		}
-		const found = this.#gather(cell, reaction.reach, mask);
+		const candidates = this.#candidates;
+		const neighbourhood = reaction.reach === Reach.surrounding ? this.#surrounding : this.#orthogonal;
+		const found = neighbourhood.gather(cell, this.#kinds, mask, candidates);
 		if (found === 0) return false;
 		const budget = this.#budget;
 		const limited = Catalog.at(kind).budget > 0;
 		if (law === Law.spread && limited && budget <= 1) return false;
-		const chosen = this.#candidates[this.#random.integer(found - 1)];
+		const chosen = candidates[this.#random.integer(found - 1)];
 		switch (law) {
-		case Law.spread: return this.#grow(chosen, kind, limited ? budget - 1 : null);
-		case Law.ignite: return this.#grow(chosen, this.#require(product), null);
-		case Law.cool: return this.#cool(cell, chosen, this.#require(product), this.#require(remains));
-		case Law.destroy: return this.#destroy(cell, chosen, this.#require(product), this.#require(remains));
+		case Law.spread: this.#spawn(chosen, kind, limited ? budget - 1 : null, owner); break;
+		case Law.ignite: this.#spawn(chosen, this.#require(product), null, owner); break;
+		case Law.cool: this.#cool(cell, chosen, this.#require(product), this.#require(remains)); break;
+		case Law.destroy: this.#spawn(chosen, this.#require(product), null, owner); this.#spawn(cell, this.#require(remains), null, owner); break;
 		default: throw new TypeError(`Invalid '${law}' law`);
 		}
+		return true;
 	}
 
 	#require(kind: Kind | null): Kind {
@@ -182,45 +240,15 @@ export class Board {
 		return kind;
 	}
 
-	#grow(target: number, kind: Kind, budget: number | null): boolean {
-		this.#spawn(target, kind, budget, this.#owner);
-		return true;
-	}
-
-	#cool(cell: number, target: number, product: Kind, remains: Kind): boolean {
-		this.#spawn(target, product, null, this.#owner);
+	#cool(cell: number, target: number, product: Kind, remains: Kind): void {
+		const owner = this.#owner;
 		const budget = this.#budget;
+		this.#spawn(target, product, null, owner);
 		if (budget > 0) {
 			this.#budget = budget - 1;
-			return true;
+			return;
 		}
-		this.#spawn(cell, remains, null, this.#owner);
-		return true;
-	}
-
-	#destroy(cell: number, target: number, product: Kind, remains: Kind): boolean {
-		this.#spawn(target, product, null, this.#owner);
-		this.#spawn(cell, remains, null, this.#owner);
-		return true;
-	}
-
-	#gather(cell: number, reach: Reach, mask: Uint8Array): number {
-		const size = this.#size;
-		const kinds = this.#kinds;
-		const candidates = this.#candidates;
-		const offsets = reach === Reach.surrounding ? Board.#surrounding : Board.#orthogonal;
-		const x = cell % size;
-		const y = (cell - x) / size;
-		let found = 0;
-		for (let index = 0; index < offsets.length; index += 2) {
-			const column = x + offsets[index];
-			const row = y + offsets[index + 1];
-			if (column < 0 || column >= size || row < 0 || row >= size) continue;
-			const neighbour = row * size + column;
-			if (mask[kinds[neighbour]] === 0) continue;
-			candidates[found++] = neighbour;
-		}
-		return found;
+		this.#spawn(cell, remains, null, owner);
 	}
 }
 //#endregion

@@ -8,6 +8,8 @@ import { Board } from "./board.js";
 import { Hand } from "./hand.js";
 import { type Player } from "./players.js";
 
+const { abs } = Math;
+
 //#region Side
 class Side {
 	#hand: Hand;
@@ -34,8 +36,12 @@ class Side {
 		return 1 - this.#wait / pause;
 	}
 
+	armed(slot: number): boolean {
+		return this.ready && Number.isInteger(slot) && slot >= 0 && slot < this.#hand.cards.length;
+	}
+
 	home(y: number): boolean {
-		return Math.abs(y - this.#edge) < this.#depth;
+		return abs(y - this.#edge) < this.#depth;
 	}
 
 	take(slot: number): Kind {
@@ -80,17 +86,8 @@ export class Match {
 	get rules(): Rules { return this.#rules; }
 	get board(): Board { return this.#board; }
 	get tick(): number { return this.#tick; }
-	get remaining(): number { return this.#rules.length - this.#tick; }
 	get finished(): boolean { return this.#tick >= this.#rules.length; }
 	get moves(): readonly Move[] { return this.#moves; }
-	get sides(): number { return this.#sides.length; }
-
-	get winner(): number | null {
-		const first = this.score(0);
-		const second = this.score(1);
-		if (first === second) return null;
-		return first > second ? 0 : 1;
-	}
 
 	cards(side: number): readonly Kind[] {
 		return this.#side(side).cards;
@@ -112,11 +109,25 @@ export class Match {
 		const seat = this.#side(side);
 		const board = this.#board;
 		const { size } = board;
-		if (this.finished || !seat.ready) return false;
-		if (!Number.isInteger(slot) || slot < 0 || slot >= seat.cards.length) return false;
+		if (this.finished || !seat.armed(slot)) return false;
 		if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= size || y < 0 || y >= size) return false;
-		if (seat.cards[slot] === Catalog.ground) return false;
 		return seat.home(y) || board.touches(seat.owner, x, y);
+	}
+
+	cells(side: number, slot: number): number[] {
+		const seat = this.#side(side);
+		const board = this.#board;
+		const { size } = board;
+		const { owner } = seat;
+		const cells: number[] = [];
+		if (this.finished || !seat.armed(slot)) return cells;
+		for (let y = 0; y < size; y++) {
+			const home = seat.home(y);
+			for (let x = 0; x < size; x++) {
+				if (home || board.touches(owner, x, y)) cells.push(y * size + x);
+			}
+		}
+		return cells;
 	}
 
 	play(move: Move): boolean {

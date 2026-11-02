@@ -30,11 +30,11 @@ class PlaygroundController extends Controller {
 		const simulation = this.#simulation = new Simulation(canvasBoard);
 		const tray = new Tray(this.#divHand, canvasBoard, simulation);
 		simulation.addEventListener("update", event => tray.render());
-		simulation.addEventListener("finish", event => void this.#conclude());
+		simulation.addEventListener("finish", event => void this.#guard(this.#judge()));
 
 		const inputTogglePlay = this.#inputTogglePlay;
 		inputTogglePlay.addEventListener("change", event => simulation.launched = inputTogglePlay.checked);
-		this.#buttonReloadBoard.addEventListener("click", event => void this.#restart());
+		this.#buttonReloadBoard.addEventListener("click", event => void this.#guard(this.#begin()));
 		await this.#begin();
 	}
 
@@ -45,17 +45,9 @@ class PlaygroundController extends Controller {
 		simulation.start(await this.#arena.open(new Entry(settings.content.deck)));
 	}
 
-	async #restart(): Promise<void> {
+	async #guard(task: Promise<void>): Promise<void> {
 		try {
-			await this.#begin();
-		} catch (reason) {
-			window.alert(Error.from(reason).message);
-		}
-	}
-
-	async #conclude(): Promise<void> {
-		try {
-			await this.#judge();
+			await task;
 		} catch (reason) {
 			window.alert(Error.from(reason).message);
 		}

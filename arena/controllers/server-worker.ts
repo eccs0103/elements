@@ -18,12 +18,8 @@ class ServerWorker extends Controller {
 		self.postMessage(Reply.export(new Reply(id, response.status, await response.text())));
 	}
 
-	#onMessage(event: MessageEvent): void {
-		void this.#answer(event);
-	}
-
 	async run(): Promise<void> {
-		self.addEventListener("message", this.#onMessage.bind(this));
+		self.addEventListener("message", this.#answer.bind(this));
 	}
 }
 //#endregion

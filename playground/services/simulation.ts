@@ -33,8 +33,7 @@ export class Simulation extends EventTarget {
 		document.addEventListener("visibilitychange", event => this.#sync());
 		const offscreen = canvas.transferControlToOffscreen();
 		worker.postMessage(Command.export(new InitializeCommand(offscreen)), [offscreen]);
-		const observer = new ResizeObserver(entries => this.#resize(canvas));
-		observer.observe(canvas);
+		new ResizeObserver(entries => this.#resize(canvas)).observe(canvas);
 		this.#resize(canvas);
 	}
 

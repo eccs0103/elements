@@ -28,8 +28,7 @@ export class Hand {
 	play(slot: number): Kind {
 		const cards = this.#cards;
 		if (!Number.isInteger(slot) || slot < 0 || slot >= cards.length) throw new RangeError(`The slot ${slot} is out of the hand`);
-		const kind = cards[slot];
-		cards.splice(slot, 1);
+		const [kind] = cards.splice(slot, 1);
 		this.#ages[this.#deck.indexOf(kind)] = 0;
 		cards.splice(slot, 0, this.#draw());
 		return kind;

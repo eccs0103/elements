@@ -40,9 +40,5 @@ export class SettingsService {
 	async save(): Promise<void> {
 		await this.#cell.save();
 	}
-
-	reset(): void {
-		this.#cell.reset();
-	}
 }
 //#endregion

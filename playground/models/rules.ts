@@ -3,6 +3,8 @@
 import "adaptive-extender/core";
 import { Model, Field } from "adaptive-extender/core";
 
+const { round } = Math;
+
 //#region Rules
 export interface RulesScheme {
 	size: number;
@@ -32,7 +34,7 @@ export class Rules extends Model {
 	get pause(): number { return this.ticks(this.cooldown); }
 
 	ticks(seconds: number): number {
-		return Math.round(seconds * this.rate);
+		return round(seconds * this.rate);
 	}
 }
 //#endregion

@@ -9,7 +9,7 @@ const { round, max } = Math;
 
 //#region Painter
 export class Painter {
-	static #stride: number = Catalog.elements.reduce((stride, element) => max(stride, element.budget + 1), 1);
+	static #stride: number = max(...Catalog.elements.map(element => element.budget)) + 1;
 	static #palette: Uint32Array = Painter.#tabulate();
 	static #lines: readonly string[] = [Color.newWhite.toString(), Color.newBlack.toString()];
 	static #shade: string = Color.fromRGB(0, 0, 0, 0.5).toString();
@@ -20,7 +20,7 @@ export class Painter {
 
 	constructor(canvas: OffscreenCanvas) {
 		this.#context = ReferenceError.suppress(canvas.getContext("2d"), "Failed to acquire 2D rendering context");
-		this.#cells = this.#prepare(1);
+		this.#prepare(1);
 	}
 
 	static #tabulate(): Uint32Array {
@@ -45,14 +45,13 @@ export class Painter {
 
 	paint(board: Board, zone: Uint8Array | null): void {
 		const { size } = board;
-		let cells = this.#cells;
-		if (cells.canvas.width !== size) cells = this.#cells = this.#prepare(size);
+		if (this.#cells.canvas.width !== size) this.#prepare(size);
 		this.#fill(board);
 		const context = this.#context;
 		const { width, height } = context.canvas;
 		context.imageSmoothingEnabled = false;
-		context.drawImage(cells.canvas, 0, 0, width, height);
-		if (zone !== null) this.#dim(zone, board.size);
+		context.drawImage(this.#cells.canvas, 0, 0, width, height);
+		if (zone !== null) this.#dim(zone, size);
 		this.#outline(board);
 	}
 
@@ -74,11 +73,10 @@ export class Painter {
 		context.fill();
 	}
 
-	#prepare(size: number): OffscreenCanvasRenderingContext2D {
-		const cells = ReferenceError.suppress(new OffscreenCanvas(size, size).getContext("2d"), "Failed to acquire 2D rendering context");
+	#prepare(size: number): void {
+		this.#cells = ReferenceError.suppress(new OffscreenCanvas(size, size).getContext("2d"), "Failed to acquire 2D rendering context");
 		const image = this.#image = new ImageData(size, size);
 		this.#pixels = new Uint32Array(image.data.buffer);
-		return cells;
 	}
 
 	#fill(board: Board): void {

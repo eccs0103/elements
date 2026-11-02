@@ -1,7 +1,7 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Model, Field, Nullable, Enum } from "adaptive-extender/core";
+import { Model, Field, Enum } from "adaptive-extender/core";
 import { Catalog, Kind } from "../../playground/models/elements.js";
 import { Rules } from "../../playground/models/rules.js";
 import { Move } from "../../playground/models/move.js";
@@ -76,19 +76,12 @@ export class Ticket extends Model {
 	static get route(): string { return Ticket.#route; }
 
 	match(): Match {
-		const decks: (readonly Kind[])[] = [];
-		for (let side = 0; side < Match.count; side++) {
-			decks.push(side === this.human ? this.deck : Catalog.placeable);
-		}
+		const decks = Iterator.range(0, Match.count).map(side => side === this.human ? this.deck : Catalog.placeable).toArray();
 		return new Match(this.rules, this.seed, decks);
 	}
 
-	lineup(match: Match, human: Player): Player[] {
-		const players: Player[] = [];
-		for (let side = 0; side < match.sides; side++) {
-			players.push(side === this.human ? human : new Bot(this.seed + 3 + side));
-		}
-		return players;
+	lineup(human: Player): Player[] {
+		return Iterator.range(0, Match.count).map(side => side === this.human ? human : new Bot(this.seed + 3 + side)).toArray();
 	}
 }
 //#endregion
@@ -121,40 +114,37 @@ export class Report extends Model {
 //#endregion
 //#region Verdict
 export interface VerdictScheme {
-	winner: number | null;
 	scores: number[];
 }
 
 export class Verdict extends Model {
 	static #route: string = "/api/verdicts";
 
-	@Field(Nullable.Of(Number), { name: "winner" })
-	winner: number | null;
-
 	@Field(Array.Of(Number), { name: "scores" })
 	scores: number[];
 
 	constructor();
-	constructor(winner: number | null, scores: number[]);
-	constructor(winner?: number | null, scores?: number[]) {
-		if (winner === undefined || scores === undefined) {
+	constructor(scores: number[]);
+	constructor(scores?: number[]) {
+		if (scores === undefined) {
 			super();
 			return;
 		}
 
 		super();
-		this.winner = winner;
 		this.scores = scores;
 	}
 
 	static get route(): string { return Verdict.#route; }
 
 	static of(match: Match): Verdict {
-		const scores: number[] = [];
-		for (let side = 0; side < match.sides; side++) {
-			scores.push(match.score(side));
-		}
-		return new Verdict(match.winner, scores);
+		return new Verdict(Iterator.range(0, Match.count).map(side => match.score(side)).toArray());
+	}
+
+	get winner(): number | null {
+		const [first, second] = this.scores;
+		if (first === second) return null;
+		return first > second ? 0 : 1;
 	}
 }
 //#endregion

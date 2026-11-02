@@ -12,7 +12,7 @@ export class Tray {
 	#container: HTMLElement;
 	#board: HTMLCanvasElement;
 	#simulation: Simulation;
-	#cards: HTMLSpanElement[] = [];
+	#spans: HTMLSpanElement[] = [];
 	#ghost: HTMLSpanElement;
 	#slot: number | null = null;
 
@@ -27,10 +27,9 @@ export class Tray {
 	}
 
 	render(): void {
-		const simulation = this.#simulation;
-		const { cards, charge } = simulation;
+		const { cards, charge } = this.#simulation;
 		const container = this.#container;
-		const spans = this.#cards;
+		const spans = this.#spans;
 		while (spans.length < cards.length) {
 			spans.push(this.#create(spans.length));
 		}

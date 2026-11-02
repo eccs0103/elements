@@ -118,9 +118,12 @@ export class Reaction {
 	get law(): Law { return this.#law; }
 	get interval(): number { return this.#interval; }
 	get reach(): Reach { return this.#reach; }
-	get target(): Selector | null { return this.#target; }
 	get product(): Kind | null { return this.#product; }
 	get remains(): Kind | null { return this.#remains; }
+
+	affects(element: Element): boolean {
+		return this.#target?.matches(element) ?? false;
+	}
 }
 //#endregion
 //#region Element
