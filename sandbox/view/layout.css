@@ -15,7 +15,7 @@ nav {
 	}
 
 	& a.icon-sandbox span.icon {
-		--url: url(../../assets/icons/table-cells-large.svg);
+		--url: url(../../assets/icons/cubes.svg);
 	}
 
 	& a.icon-settings span.icon {
