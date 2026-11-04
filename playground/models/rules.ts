@@ -3,11 +3,12 @@
 import "adaptive-extender/core";
 import { Model, Field } from "adaptive-extender/core";
 
-const { round } = Math;
+const { round, trunc } = Math;
 
 //#region Rules
 export interface RulesScheme {
 	size: number;
+	home: number;
 	rate: number;
 	seconds: number;
 	cooldown: number;
@@ -17,7 +18,10 @@ export interface RulesScheme {
 
 export class Rules extends Model {
 	@Field(Number, { name: "size" })
-	size: number = 81;
+	size: number = 41;
+
+	@Field(Number, { name: "home" })
+	home: number = 1 / 3;
 
 	@Field(Number, { name: "rate" })
 	rate: number = 90;
@@ -36,6 +40,12 @@ export class Rules extends Model {
 
 	get length(): number { return this.ticks(this.seconds); }
 	get pause(): number { return this.ticks(this.cooldown); }
+
+	get rows(): number {
+		const { home } = this;
+		if (!(home > 0 && home <= 0.5)) throw new RangeError(`The home ${home} must be above 0 and at most a half of the board`);
+		return trunc(this.size * home);
+	}
 
 	ticks(seconds: number): number {
 		return round(seconds * this.rate);

@@ -59,7 +59,6 @@ class Side {
 //#endregion
 //#region Match
 export class Match {
-	static #home: number = 5;
 	static #count: number = 2;
 	#rules: Rules;
 	#board: Board;
@@ -68,10 +67,9 @@ export class Match {
 	#moves: Move[] = [];
 
 	constructor(rules: Rules, seed: number, decks: readonly (readonly Element[])[]) {
-		const { size, hand, pause } = rules;
+		const { size, hand, pause, rows } = rules;
 		const { placeable } = PeriodicTable;
 		const capacity = Deck.capacity(rules);
-		const depth = Match.#home;
 		const count = Match.#count;
 		if (decks.length !== count) throw new RangeError(`A match needs ${count} decks, not ${decks.length}`);
 		if (decks.some(deck => deck.length !== capacity)) throw new RangeError(`A deck must hold exactly ${capacity} elements`);
@@ -80,8 +78,8 @@ export class Match {
 		this.#rules = rules;
 		this.#board = new Board(size, seed);
 		this.#sides = [
-			new Side(new Hand(south, hand, seed + 1), size - 1, depth, 1, pause),
-			new Side(new Hand(north, hand, seed + 2), 0, depth, 2, pause),
+			new Side(new Hand(south, hand, seed + 1), size - 1, rows, 1, pause),
+			new Side(new Hand(north, hand, seed + 2), 0, rows, 2, pause),
 		];
 	}
 
