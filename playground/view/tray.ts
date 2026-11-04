@@ -59,6 +59,7 @@ export class Tray {
 	#grab(event: PointerEvent, spanCard: HTMLSpanElement, slot: number): void {
 		const simulation = this.#simulation;
 		if (simulation.charge < 1) return;
+		simulation.launch();
 		spanCard.setPointerCapture(event.pointerId);
 		this.#slot = slot;
 		const spanGhost = this.#ghost;

@@ -16,8 +16,6 @@ const settings = SettingsService.instance;
 //#region Playground controller
 class PlaygroundController extends Controller {
 	#canvasBoard: HTMLCanvasElement = document.getElement(HTMLCanvasElement, "canvas#board");
-	#inputTogglePlay: HTMLInputElement = document.getElement(HTMLInputElement, "input#toggle-play");
-	#buttonReloadBoard: HTMLButtonElement = document.getElement(HTMLButtonElement, "button#reload-board");
 	#divHand: HTMLDivElement = document.getElement(HTMLDivElement, "div#hand");
 	#arena: ArenaClient = new ArenaClient(new Relay(), new URL("/", baseURI));
 	#simulation: Simulation;
@@ -31,17 +29,6 @@ class PlaygroundController extends Controller {
 		const tray = new Tray(this.#divHand, canvasBoard, simulation);
 		simulation.addEventListener("update", event => tray.render());
 		simulation.addEventListener("finish", event => void this.#guard(this.#judge()));
-
-		const inputTogglePlay = this.#inputTogglePlay;
-		inputTogglePlay.addEventListener("change", event => simulation.launched = inputTogglePlay.checked);
-		this.#buttonReloadBoard.addEventListener("click", event => void this.#guard(this.#begin()));
-		await this.#begin();
-	}
-
-	async #begin(): Promise<void> {
-		const simulation = this.#simulation;
-		simulation.launched = false;
-		this.#inputTogglePlay.checked = false;
 		simulation.start(await this.#arena.open(new Entry(settings.content.deck)));
 	}
 
@@ -54,10 +41,7 @@ class PlaygroundController extends Controller {
 	}
 
 	async #judge(): Promise<void> {
-		const simulation = this.#simulation;
-		const inputTogglePlay = this.#inputTogglePlay;
-		const { ticket, report } = simulation;
-		inputTogglePlay.checked = false;
+		const { ticket, report } = this.#simulation;
 		if (ticket === null || report === null) return;
 		const arena = this.#arena;
 		const verdict = await arena.judge(report);
@@ -70,9 +54,7 @@ class PlaygroundController extends Controller {
 		if (winner === human) outcome = "You won";
 		else if (winner !== null) outcome = "The boss won";
 		if (!window.confirm(`${outcome} ${mine} : ${theirs}.\nHumanity ${humanity} : ${boss} Boss.\nPlay again?`)) return;
-		await this.#begin();
-		simulation.launched = true;
-		inputTogglePlay.checked = true;
+		location.reload();
 	}
 
 	async catch(error: Error): Promise<void> {

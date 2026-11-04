@@ -18,7 +18,6 @@ export interface SimulationEventMap {
 export class Simulation extends EventTarget {
 	#worker: Worker = new Worker(new URL("./controllers/simulation-worker.js", baseURI), { type: "module" });
 	#engine: StaticEngine = new StaticEngine({ launch: false });
-	#playing: boolean = false;
 	#ticket: Ticket | null = null;
 	#cards: readonly Kind[] = [];
 	#charge: number = 0;
@@ -30,7 +29,6 @@ export class Simulation extends EventTarget {
 		const worker = this.#worker;
 		engine.addEventListener("trigger", event => worker.postMessage(Command.export(new TickCommand())));
 		worker.addEventListener("message", this.#onMessage.bind(this));
-		document.addEventListener("visibilitychange", event => this.#sync());
 		const offscreen = canvas.transferControlToOffscreen();
 		worker.postMessage(Command.export(new InitializeCommand(offscreen)), [offscreen]);
 		new ResizeObserver(entries => this.#resize(canvas)).observe(canvas);
@@ -42,10 +40,8 @@ export class Simulation extends EventTarget {
 	get charge(): number { return this.#charge; }
 	get report(): Report | null { return this.#report; }
 
-	get launched(): boolean { return this.#playing; }
-	set launched(value: boolean) {
-		this.#playing = value;
-		this.#sync();
+	launch(): void {
+		this.#engine.launched = true;
 	}
 
 	start(ticket: Ticket): void {
@@ -71,10 +67,6 @@ export class Simulation extends EventTarget {
 		this.#worker.postMessage(Command.export(new ResizeCommand(width, height)));
 	}
 
-	#sync(): void {
-		this.#engine.launched = this.#playing && !document.hidden;
-	}
-
 	#onMessage(event: MessageEvent): void {
 		const command = Command.import(event.data, "command");
 
@@ -88,7 +80,7 @@ export class Simulation extends EventTarget {
 
 		if (command instanceof FinishCommand) {
 			this.#report = command.report;
-			this.launched = false;
+			this.#engine.launched = false;
 			this.dispatchEvent(new Event("finish"));
 			return;
 		}

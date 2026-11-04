@@ -17,22 +17,6 @@ canvas#board {
 
 div#toolkit {
 	align-items: center;
-
-	& input#toggle-play:checked + label {
-		background-color: transparent;
-	}
-
-	& label[for="toggle-play"] span.icon {
-		--url: url(../../assets/icons/play.svg);
-	}
-
-	& input#toggle-play:checked + label span.icon {
-		--url: url(../../assets/icons/pause.svg);
-	}
-
-	& button#reload-board span.icon {
-		--url: url(../../assets/icons/rotate-right.svg);
-	}
 }
 
 div#hand {
