@@ -3,7 +3,7 @@
 import "adaptive-extender/core";
 import { Model, Field } from "adaptive-extender/core";
 import { Element, type ElementScheme } from "../../playground/models/elements.js";
-import { PeriodicTable } from "../../playground/services/periodic-table.js";
+import { Deck } from "../../playground/models/deck.js";
 import { Rules } from "../../playground/models/rules.js";
 import { Move } from "../../playground/models/move.js";
 import { Match } from "../../playground/services/match.js";
@@ -77,7 +77,7 @@ export class Ticket extends Model {
 	static get route(): string { return Ticket.#route; }
 
 	match(): Match {
-		const decks = Iterator.range(0, Match.count).map(side => side === this.human ? this.deck : PeriodicTable.placeable).toArray();
+		const decks = Iterator.range(0, Match.count).map(side => side === this.human ? this.deck : Deck.random(this.rules, this.seed + 5 + side).elements).toArray();
 		return new Match(this.rules, this.seed, decks);
 	}
 

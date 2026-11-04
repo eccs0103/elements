@@ -3,6 +3,7 @@
 import "adaptive-extender/web";
 import { Controller } from "adaptive-extender/web";
 import { SettingsService } from "../../settings/services/settings-service.js";
+import { DeckService } from "../services/deck-service.js";
 import { Simulation } from "../services/simulation.js";
 import { Tray } from "../view/tray.js";
 import { ArenaClient } from "../../arena/services/client.js";
@@ -12,6 +13,7 @@ import { AnalyticsController } from "../../environment/controllers/analytics-con
 
 const { baseURI } = document;
 const settings = SettingsService.instance;
+const deck = DeckService.instance;
 
 //#region Playground controller
 class PlaygroundController extends Controller {
@@ -23,13 +25,20 @@ class PlaygroundController extends Controller {
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
 		settings.content.apply();
+		const { content } = deck;
+		if (!content.full) return this.#complete(content.elements.length, content.capacity);
 
 		const canvasBoard = this.#canvasBoard;
 		const simulation = this.#simulation = new Simulation(canvasBoard);
 		const tray = new Tray(this.#divHand, canvasBoard, simulation);
 		simulation.addEventListener("update", event => tray.render());
 		simulation.addEventListener("finish", event => void this.#guard(this.#judge()));
-		simulation.start(await this.#arena.open(new Entry(settings.content.deck)));
+		simulation.start(await this.#arena.open(new Entry(content.elements)));
+	}
+
+	#complete(count: number, capacity: number): void {
+		if (!window.confirm(`Your deck holds ${count} of ${capacity} elements.\nOpen Settings to finish it?`)) return;
+		location.assign(new URL("../settings/", baseURI));
 	}
 
 	async #guard(task: Promise<void>): Promise<void> {

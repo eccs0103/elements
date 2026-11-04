@@ -5,6 +5,7 @@ import { type Element } from "../models/elements.js";
 import { PeriodicTable } from "./periodic-table.js";
 import { type Rules } from "../models/rules.js";
 import { type Move } from "../models/move.js";
+import { Deck } from "../models/deck.js";
 import { Board } from "./board.js";
 import { Hand } from "./hand.js";
 import { type Player } from "./players.js";
@@ -69,9 +70,11 @@ export class Match {
 	constructor(rules: Rules, seed: number, decks: readonly (readonly Element[])[]) {
 		const { size, hand, pause } = rules;
 		const { placeable } = PeriodicTable;
+		const capacity = Deck.capacity(rules);
 		const depth = Match.#home;
 		const count = Match.#count;
 		if (decks.length !== count) throw new RangeError(`A match needs ${count} decks, not ${decks.length}`);
+		if (decks.some(deck => deck.length !== capacity)) throw new RangeError(`A deck must hold exactly ${capacity} elements`);
 		if (decks.some(deck => deck.some(element => !placeable.some(item => item.is(element))))) throw new TypeError("A deck holds an element that can't be placed");
 		const [south, north] = decks;
 		this.#rules = rules;

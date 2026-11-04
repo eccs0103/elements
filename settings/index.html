@@ -19,6 +19,7 @@
 	<link rel="stylesheet" href="../styles/global.css">
 	<link rel="stylesheet" href="../styles/themes/material.css">
 	<link rel="stylesheet" href="../playground/view/layout.css">
+	<link rel="stylesheet" href="./view/style.css">
 	<script type="module" src="../environment/services/analytics-service.ts"></script>
 	<script type="module" src="./controllers/settings-controller.ts"></script>
 </head>
@@ -49,23 +50,35 @@
 					<dfn class="definition">External design of the page: color scheme, background and foreground, font.</dfn>
 				</section>
 			</div>
-			<div class="layer rounded flex column with-padding large-padding">
-				<h3>Deck</h3>
-				<span class="description">The elements your hand draws from during a match. A full hand of them always stays on.</span>
-				<div id="deck" class="flex column"></div>
+			<div id="deck" class="layer rounded flex column with-padding large-padding">
+				<header class="layer flex column">
+					<h3 class="flex">Deck<span id="count" class="description"></span></h3>
+					<span id="hint" class="description"></span>
+					<ol id="slots" class="with-gap"></ol>
+				</header>
+				<h3>Elements</h3>
+				<ul id="collection" class="with-gap"></ul>
 			</div>
 		</div>
 	</main>
-	<template id="card">
-		<section class="option">
-			<p class="title"></p>
-			<input type="checkbox" hidden>
-			<label role="checkbox" class="value depth toggle">
-				<span class="layer knob"></span>
-			</label>
-			<dfn class="definition"></dfn>
-		</section>
+	<template id="slot">
+		<li>
+			<button type="button" class="card slot depth rounded flex column center with-padding">
+				<span class="swatch rounded"></span>
+				<span class="name font-smaller-3"></span>
+			</button>
+		</li>
 	</template>
+	<template id="card">
+		<li>
+			<button type="button" class="card depth rounded flex column center with-padding">
+				<span class="swatch rounded"></span>
+				<span class="name font-smaller-3"></span>
+				<span class="reactions description font-smaller-4"></span>
+			</button>
+		</li>
+	</template>
+	<span class="ghost rounded" hidden></span>
 </body>
 
 </html>

@@ -11,6 +11,7 @@ export interface RulesScheme {
 	rate: number;
 	seconds: number;
 	cooldown: number;
+	deck: number;
 	hand: number;
 }
 
@@ -26,6 +27,9 @@ export class Rules extends Model {
 
 	@Field(Number, { name: "cooldown" })
 	cooldown: number = 3;
+
+	@Field(Number, { name: "deck" })
+	deck: number = 10;
 
 	@Field(Number, { name: "hand" })
 	hand: number = 3;

@@ -1,0 +1,78 @@
+div#deck > header {
+	position: sticky;
+	inset-block-start: 0;
+	z-index: 1;
+	padding-block-end: var(--size-gap);
+
+	& > h3 {
+		justify-content: space-between;
+	}
+}
+
+ol#slots,
+ul#collection {
+	display: grid;
+	padding: var(--size-gap) 0 0;
+	margin: 0;
+	list-style: none;
+}
+
+ol#slots {
+	grid-template-columns: repeat(auto-fill, minmax(var(--size-large-standart), 1fr));
+}
+
+ul#collection {
+	grid-template-columns: repeat(auto-fill, minmax(calc(2 * var(--size-large-standart)), 1fr));
+}
+
+span.swatch {
+	display: inline-block;
+	aspect-ratio: 1;
+	block-size: var(--size-standart);
+	background-color: var(--color);
+}
+
+button.card {
+	inline-size: 100%;
+	block-size: 100%;
+	gap: var(--size-small-gap);
+	touch-action: pan-y;
+	-webkit-touch-callout: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+
+	&.chosen {
+		opacity: 0.4;
+	}
+
+	&.empty span.swatch {
+		background-color: transparent;
+		outline: var(--size-separator) dashed currentColor;
+		outline-offset: calc(-1 * var(--size-separator));
+	}
+
+	&.target {
+		outline: var(--size-separator) solid var(--color-highlight);
+	}
+
+	&.lifted {
+		opacity: 0.4;
+	}
+}
+
+span.ghost {
+	position: fixed;
+	inset: 0 auto auto 0;
+	z-index: 2;
+	block-size: var(--size-large-standart);
+	aspect-ratio: 1;
+	background-color: var(--color);
+	opacity: 0.8;
+	pointer-events: none;
+	translate: calc(var(--x) - 50%) calc(var(--y) - 50%);
+
+	&.leaving {
+		opacity: 0.3;
+	}
+}

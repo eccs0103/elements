@@ -9,6 +9,7 @@
 		"playground/models/elements.ts",
 		"playground/models/rules.ts",
 		"playground/models/move.ts",
+		"playground/models/deck.ts",
 		"playground/services/periodic-table.ts",
 		"playground/services/board.ts",
 		"playground/services/hand.ts",
