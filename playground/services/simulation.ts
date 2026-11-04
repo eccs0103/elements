@@ -2,7 +2,7 @@
 
 import "adaptive-extender/web";
 import { StaticEngine } from "adaptive-extender/web";
-import { type Kind } from "../models/elements.js";
+import { type Element } from "../models/elements.js";
 import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
 import { type Ticket, type Report } from "../../arena/models/protocol.js";
 
@@ -19,7 +19,7 @@ export class Simulation extends EventTarget {
 	#worker: Worker = new Worker(new URL("./controllers/simulation-worker.js", baseURI), { type: "module" });
 	#engine: StaticEngine = new StaticEngine({ launch: false });
 	#ticket: Ticket | null = null;
-	#cards: readonly Kind[] = [];
+	#cards: readonly Element[] = [];
 	#charge: number = 0;
 	#report: Report | null = null;
 
@@ -36,7 +36,7 @@ export class Simulation extends EventTarget {
 	}
 
 	get ticket(): Ticket | null { return this.#ticket; }
-	get cards(): readonly Kind[] { return this.#cards; }
+	get cards(): readonly Element[] { return this.#cards; }
 	get charge(): number { return this.#charge; }
 	get report(): Report | null { return this.#report; }
 

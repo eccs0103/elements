@@ -2,14 +2,14 @@
 
 import "adaptive-extender/worker";
 import { Color } from "adaptive-extender/worker";
-import { Catalog } from "../models/elements.js";
+import { PeriodicTable } from "./periodic-table.js";
 import { type Board } from "./board.js";
 
 const { round, max } = Math;
 
 //#region Painter
 export class Painter {
-	static #stride: number = max(...Catalog.elements.map(element => element.budget)) + 1;
+	static #stride: number = max(...PeriodicTable.elements.map(element => element.budget)) + 1;
 	static #palette: Uint32Array = Painter.#tabulate();
 	static #lines: readonly string[] = [Color.newWhite.toString(), Color.newBlack.toString()];
 	static #shade: string = Color.fromRGB(0, 0, 0, 0.5).toString();
@@ -25,7 +25,7 @@ export class Painter {
 
 	static #tabulate(): Uint32Array {
 		const stride = Painter.#stride;
-		const { elements } = Catalog;
+		const { elements } = PeriodicTable;
 		const palette = new Uint32Array(elements.length * stride);
 		for (let kind = 0; kind < elements.length; kind++) {
 			const element = elements[kind];

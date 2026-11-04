@@ -2,7 +2,8 @@
 
 import "adaptive-extender/web";
 import { Controller } from "adaptive-extender/web";
-import { Catalog, type Element, type Reaction } from "../../playground/models/elements.js";
+import { type Element, type Reaction } from "../../playground/models/elements.js";
+import { PeriodicTable } from "../../playground/services/periodic-table.js";
 import { SettingsService } from "../../settings/services/settings-service.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
 
@@ -16,7 +17,7 @@ class InformationController extends Controller {
 		void AnalyticsController.launch();
 		SettingsService.instance.content.apply();
 		const divElements = this.#divElements;
-		for (const element of Catalog.elements) {
+		for (const element of PeriodicTable.elements) {
 			if (divElements.childElementCount > 0) divElements.appendChild(this.#separate());
 			divElements.appendChild(this.#render(element));
 		}

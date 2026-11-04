@@ -1,7 +1,8 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Catalog, type Kind } from "../models/elements.js";
+import { type Element } from "../models/elements.js";
+import { PeriodicTable } from "./periodic-table.js";
 import { type Rules } from "../models/rules.js";
 import { type Move } from "../models/move.js";
 import { Board } from "./board.js";
@@ -27,7 +28,7 @@ class Side {
 		this.#pause = pause;
 	}
 
-	get cards(): readonly Kind[] { return this.#hand.cards; }
+	get cards(): readonly Element[] { return this.#hand.cards; }
 	get owner(): number { return this.#owner; }
 	get ready(): boolean { return this.#wait === 0; }
 	get charge(): number {
@@ -44,7 +45,7 @@ class Side {
 		return abs(y - this.#edge) < this.#depth;
 	}
 
-	take(slot: number): Kind {
+	take(slot: number): Element {
 		this.#wait = this.#pause;
 		return this.#hand.play(slot);
 	}
@@ -65,13 +66,13 @@ export class Match {
 	#tick: number = 0;
 	#moves: Move[] = [];
 
-	constructor(rules: Rules, seed: number, decks: readonly (readonly Kind[])[]) {
+	constructor(rules: Rules, seed: number, decks: readonly (readonly Element[])[]) {
 		const { size, hand, pause } = rules;
-		const { placeable } = Catalog;
+		const { placeable } = PeriodicTable;
 		const depth = Match.#home;
 		const count = Match.#count;
 		if (decks.length !== count) throw new RangeError(`A match needs ${count} decks, not ${decks.length}`);
-		if (decks.some(deck => deck.some(kind => !placeable.includes(kind)))) throw new TypeError("A deck holds an element that can't be placed");
+		if (decks.some(deck => deck.some(element => !placeable.some(item => item.is(element))))) throw new TypeError("A deck holds an element that can't be placed");
 		const [south, north] = decks;
 		this.#rules = rules;
 		this.#board = new Board(size, seed);
@@ -89,7 +90,7 @@ export class Match {
 	get finished(): boolean { return this.#tick >= this.#rules.length; }
 	get moves(): readonly Move[] { return this.#moves; }
 
-	cards(side: number): readonly Kind[] {
+	cards(side: number): readonly Element[] {
 		return this.#side(side).cards;
 	}
 

@@ -2,7 +2,8 @@
 
 import "adaptive-extender/core";
 import { Random } from "adaptive-extender/core";
-import { Catalog, Law, Reach, type Kind, type Reaction } from "../models/elements.js";
+import { Law, Reach, type Element, type ElementType, type Reaction } from "../models/elements.js";
+import { PeriodicTable } from "./periodic-table.js";
 
 const { max } = Math;
 
@@ -70,7 +71,10 @@ class Neighbourhood {
 //#endregion
 //#region Board
 export class Board {
-	static #slots: number = max(...Catalog.elements.map(element => element.reactions.length));
+	static #reactions: readonly (readonly Reaction[])[] = PeriodicTable.elements.map(element => element.reactions);
+	static #capacities: Uint8Array = Uint8Array.from(PeriodicTable.elements, element => element.budget);
+	static #ground: number = PeriodicTable.id(PeriodicTable.ground);
+	static #slots: number = max(...Board.#reactions.map(reactions => reactions.length));
 	static #masks: readonly (readonly Uint8Array[])[] = Board.#tabulate();
 	#size: number;
 	#orthogonal: Neighbourhood;
@@ -104,12 +108,12 @@ export class Board {
 		this.#births = new Uint32Array(area);
 		this.#fresh = new Uint8Array(area);
 		for (let cell = 0; cell < area; cell++) {
-			this.#spawn(cell, Catalog.ground, null, 0);
+			this.#spawn(cell, Board.#ground, null, 0);
 		}
 	}
 
 	static #tabulate(): readonly (readonly Uint8Array[])[] {
-		const { elements } = Catalog;
+		const { elements } = PeriodicTable;
 		return elements.map(element => element.reactions.map(reaction => Uint8Array.from(elements, other => Number(reaction.affects(other)))));
 	}
 
@@ -118,10 +122,11 @@ export class Board {
 	get owners(): ArrayLike<number> { return this.#owners; }
 	get size(): number { return this.#size; }
 
-	drop(kind: Kind, x: number, y: number, owner: number): void {
+	drop(element: Element, x: number, y: number, owner: number): void {
 		const size = this.#size;
 		if (x < 0 || x >= size || y < 0 || y >= size) throw new RangeError(`The cell ${x}, ${y} is out of the board`);
 		const cell = y * size + x;
+		const kind = PeriodicTable.id(element);
 		this.#spawn(cell, kind, null, owner);
 		for (const neighbour of this.#orthogonal.around(cell)) {
 			this.#spawn(neighbour, kind, null, owner);
@@ -156,13 +161,13 @@ export class Board {
 		this.#reverse = !reverse;
 	}
 
-	#spawn(cell: number, kind: Kind, budget: number | null, owner: number): void {
+	#spawn(cell: number, kind: number, budget: number | null, owner: number): void {
 		const slots = Board.#slots;
-		const value = budget ?? Catalog.at(kind).budget;
+		const value = budget ?? Board.#capacities[kind];
 		this.#kinds[cell] = kind;
 		this.#budgets[cell] = value;
 		this.#tints[cell] = value;
-		this.#owners[cell] = kind === Catalog.ground ? 0 : owner;
+		this.#owners[cell] = kind === Board.#ground ? 0 : owner;
 		this.#progress.fill(0, cell * slots, cell * slots + slots);
 		this.#births[cell]++;
 		this.#fresh[cell] = 1;
@@ -170,7 +175,7 @@ export class Board {
 
 	#execute(cell: number): void {
 		const kind = this.#kinds[cell];
-		const { reactions } = Catalog.at(kind);
+		const reactions = Board.#reactions[kind];
 		if (reactions.length === 0) return;
 		const slots = Board.#slots;
 		const masks = Board.#masks[kind];
@@ -210,11 +215,11 @@ export class Board {
 		}
 	}
 
-	#act(cell: number, kind: Kind, reaction: Reaction, mask: Uint8Array): boolean {
+	#act(cell: number, kind: number, reaction: Reaction, mask: Uint8Array): boolean {
 		const { law, product, remains } = reaction;
 		const owner = this.#owner;
 		if (law === Law.burnout) {
-			if (remains !== null) this.#spawn(cell, remains, null, owner);
+			if (remains !== null) this.#spawn(cell, PeriodicTable.id(remains), null, owner);
 			return false;
 		}
 		const candidates = this.#candidates;
@@ -222,7 +227,7 @@ export class Board {
 		const found = neighbourhood.gather(cell, this.#kinds, mask, candidates);
 		if (found === 0) return false;
 		const budget = this.#budget;
-		const limited = Catalog.at(kind).budget > 0;
+		const limited = Board.#capacities[kind] > 0;
 		if (law === Law.spread && limited && budget <= 1) return false;
 		const chosen = candidates[this.#random.integer(found - 1)];
 		switch (law) {
@@ -235,12 +240,12 @@ export class Board {
 		return true;
 	}
 
-	#require(kind: Kind | null): Kind {
-		if (kind === null) throw new ReferenceError("The reaction has no resulting element");
-		return kind;
+	#require(type: ElementType | null): number {
+		if (type === null) throw new ReferenceError("The reaction has no resulting element");
+		return PeriodicTable.id(type);
 	}
 
-	#cool(cell: number, target: number, product: Kind, remains: Kind): void {
+	#cool(cell: number, target: number, product: number, remains: number): void {
 		const owner = this.#owner;
 		const budget = this.#budget;
 		this.#spawn(target, product, null, owner);

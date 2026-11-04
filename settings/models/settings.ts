@@ -2,7 +2,8 @@
 
 import "adaptive-extender/web";
 import { Model, Field, Enum } from "adaptive-extender/web";
-import { Catalog, Kind } from "../../playground/models/elements.js";
+import { Element, type ElementScheme } from "../../playground/models/elements.js";
+import { PeriodicTable } from "../../playground/services/periodic-table.js";
 import { Rules } from "../../playground/models/rules.js";
 
 //#region Settings
@@ -14,28 +15,28 @@ export enum Scheme {
 
 export interface SettingsScheme {
 	scheme: Scheme;
-	deck: Kind[];
+	deck: ElementScheme[];
 }
 
 export class Settings extends Model {
 	@Field(Enum.Of(Scheme), { name: "scheme" })
 	scheme: Scheme = Scheme.system;
 
-	@Field(Array.Of(Enum.Of(Kind)), { name: "deck" })
-	deck: Kind[] = Array.from(Catalog.placeable);
+	@Field(Array.Of(Element), { name: "deck" })
+	deck: Element[] = Array.from(PeriodicTable.placeable);
 
-	holds(kind: Kind): boolean {
-		return this.deck.includes(kind);
+	holds(element: Element): boolean {
+		return this.deck.some(item => item.is(element));
 	}
 
-	locked(kind: Kind): boolean {
-		return this.holds(kind) && this.deck.length <= new Rules().hand;
+	locked(element: Element): boolean {
+		return this.holds(element) && this.deck.length <= new Rules().hand;
 	}
 
-	toggle(kind: Kind, active: boolean): void {
-		if (!active && this.locked(kind)) throw new RangeError("The deck must hold at least a full hand");
+	toggle(element: Element, active: boolean): void {
+		if (!active && this.locked(element)) throw new RangeError("The deck must hold at least a full hand");
 		const deck = this.deck;
-		this.deck = Catalog.placeable.filter(item => item === kind ? active : deck.includes(item));
+		this.deck = PeriodicTable.placeable.filter(item => item.is(element) ? active : deck.some(other => other.is(item)));
 	}
 
 	apply(): void {

@@ -1,7 +1,6 @@
 "use strict";
 
 import "adaptive-extender/web";
-import { Catalog } from "../models/elements.js";
 import { type Simulation } from "../services/simulation.js";
 
 const { body } = document;
@@ -37,7 +36,7 @@ export class Tray {
 			spans.pop()?.remove();
 		}
 		for (let slot = 0; slot < cards.length; slot++) {
-			const { name, color } = Catalog.at(cards[slot]);
+			const { name, color } = cards[slot];
 			const spanCard = spans[slot];
 			spanCard.title = name;
 			spanCard.style.setProperty("--color", color.toString());

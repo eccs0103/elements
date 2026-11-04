@@ -3,7 +3,8 @@
 import "adaptive-extender/web";
 import { Controller, Enum } from "adaptive-extender/web";
 import { Scheme } from "../models/settings.js";
-import { Catalog, type Kind } from "../../playground/models/elements.js";
+import { type Element } from "../../playground/models/elements.js";
+import { PeriodicTable } from "../../playground/services/periodic-table.js";
 import { SettingsService } from "../services/settings-service.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
 
@@ -14,7 +15,7 @@ class SettingsController extends Controller {
 	#selectScheme: HTMLSelectElement = document.getElement(HTMLSelectElement, "select#scheme");
 	#divDeck: HTMLDivElement = document.getElement(HTMLDivElement, "div#deck");
 	#templateCard: HTMLTemplateElement = document.getElement(HTMLTemplateElement, "template#card");
-	#inputs: Map<Kind, HTMLInputElement> = new Map();
+	#inputs: Map<Element, HTMLInputElement> = new Map();
 
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
@@ -24,36 +25,35 @@ class SettingsController extends Controller {
 		selectScheme.value = content.scheme;
 		selectScheme.addEventListener("change", event => void this.#rescheme());
 		const divDeck = this.#divDeck;
-		for (const kind of Catalog.placeable) {
-			divDeck.appendChild(this.#render(kind));
+		for (const element of PeriodicTable.placeable) {
+			divDeck.appendChild(this.#render(element));
 		}
 		this.#refresh();
 	}
 
-	#render(kind: Kind): DocumentFragment {
-		const element = Catalog.at(kind);
+	#render(element: Element): DocumentFragment {
 		const fragment = document.importNode(this.#templateCard.content, true);
-		const id = `card-${kind}`;
+		const id = `card-${PeriodicTable.id(element)}`;
 		fragment.getElement(HTMLParagraphElement, "p.title").textContent = element.name;
 		fragment.getElement(HTMLElement, "dfn.definition").textContent = element.reactions.map(reaction => reaction.name).join(", ");
 		const inputCard = fragment.getElement(HTMLInputElement, "input[type=\"checkbox\"]");
 		inputCard.id = id;
 		fragment.getElement(HTMLLabelElement, "label.toggle").htmlFor = id;
-		inputCard.addEventListener("change", event => void this.#toggle(kind, inputCard.checked));
-		this.#inputs.set(kind, inputCard);
+		inputCard.addEventListener("change", event => void this.#toggle(element, inputCard.checked));
+		this.#inputs.set(element, inputCard);
 		return fragment;
 	}
 
 	#refresh(): void {
 		const { content } = settings;
-		for (const [kind, inputCard] of this.#inputs) {
-			inputCard.checked = content.holds(kind);
-			inputCard.disabled = content.locked(kind);
+		for (const [element, inputCard] of this.#inputs) {
+			inputCard.checked = content.holds(element);
+			inputCard.disabled = content.locked(element);
 		}
 	}
 
-	async #toggle(kind: Kind, active: boolean): Promise<void> {
-		settings.content.toggle(kind, active);
+	async #toggle(element: Element, active: boolean): Promise<void> {
+		settings.content.toggle(element, active);
 		this.#refresh();
 		await this.#save();
 	}

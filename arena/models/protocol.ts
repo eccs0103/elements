@@ -1,8 +1,9 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Model, Field, Enum } from "adaptive-extender/core";
-import { Catalog, Kind } from "../../playground/models/elements.js";
+import { Model, Field } from "adaptive-extender/core";
+import { Element, type ElementScheme } from "../../playground/models/elements.js";
+import { PeriodicTable } from "../../playground/services/periodic-table.js";
 import { Rules } from "../../playground/models/rules.js";
 import { Move } from "../../playground/models/move.js";
 import { Match } from "../../playground/services/match.js";
@@ -10,16 +11,16 @@ import { Bot, type Player } from "../../playground/services/players.js";
 
 //#region Entry
 export interface EntryScheme {
-	deck: Kind[];
+	deck: ElementScheme[];
 }
 
 export class Entry extends Model {
-	@Field(Array.Of(Enum.Of(Kind)), { name: "deck" })
-	deck: Kind[];
+	@Field(Array.Of(Element), { name: "deck" })
+	deck: Element[];
 
 	constructor();
-	constructor(deck: Kind[]);
-	constructor(deck?: Kind[]) {
+	constructor(deck: Element[]);
+	constructor(deck?: Element[]) {
 		if (deck === undefined) {
 			super();
 			return;
@@ -36,7 +37,7 @@ export interface TicketScheme {
 	seed: number;
 	rules: Rules;
 	human: number;
-	deck: Kind[];
+	deck: ElementScheme[];
 }
 
 export class Ticket extends Model {
@@ -54,12 +55,12 @@ export class Ticket extends Model {
 	@Field(Number, { name: "human" })
 	human: number;
 
-	@Field(Array.Of(Enum.Of(Kind)), { name: "deck" })
-	deck: Kind[];
+	@Field(Array.Of(Element), { name: "deck" })
+	deck: Element[];
 
 	constructor();
-	constructor(id: string, seed: number, rules: Rules, human: number, deck: Kind[]);
-	constructor(id?: string, seed?: number, rules?: Rules, human?: number, deck?: Kind[]) {
+	constructor(id: string, seed: number, rules: Rules, human: number, deck: Element[]);
+	constructor(id?: string, seed?: number, rules?: Rules, human?: number, deck?: Element[]) {
 		if (id === undefined || seed === undefined || rules === undefined || human === undefined || deck === undefined) {
 			super();
 			return;
@@ -76,7 +77,7 @@ export class Ticket extends Model {
 	static get route(): string { return Ticket.#route; }
 
 	match(): Match {
-		const decks = Iterator.range(0, Match.count).map(side => side === this.human ? this.deck : Catalog.placeable).toArray();
+		const decks = Iterator.range(0, Match.count).map(side => side === this.human ? this.deck : PeriodicTable.placeable).toArray();
 		return new Match(this.rules, this.seed, decks);
 	}
 

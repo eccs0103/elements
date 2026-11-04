@@ -1,8 +1,8 @@
 "use strict";
 
 import "adaptive-extender/worker";
-import { Any, Deferred, Descendant, Enum, Field, Model } from "adaptive-extender/worker";
-import { Kind } from "./elements.js";
+import { Any, Deferred, Descendant, Field, Model } from "adaptive-extender/worker";
+import { Element, type ElementScheme } from "./elements.js";
 import { Ticket, Report } from "../../arena/models/protocol.js";
 
 //#region Command
@@ -197,20 +197,20 @@ export interface StatusCommandDiscriminator {
 
 export interface StatusCommandScheme extends CommandScheme {
 	$type: keyof StatusCommandDiscriminator;
-	cards: Kind[];
+	cards: ElementScheme[];
 	charge: number;
 }
 
 export class StatusCommand extends Command {
-	@Field(Array.Of(Enum.Of(Kind)))
-	cards: Kind[];
+	@Field(Array.Of(Element))
+	cards: Element[];
 
 	@Field(Number)
 	charge: number;
 
 	constructor();
-	constructor(cards: Kind[], charge: number);
-	constructor(cards?: Kind[], charge?: number) {
+	constructor(cards: Element[], charge: number);
+	constructor(cards?: Element[], charge?: number) {
 		if (cards === undefined || charge === undefined) {
 			super();
 			return;

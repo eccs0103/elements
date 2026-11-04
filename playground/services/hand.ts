@@ -2,39 +2,39 @@
 
 import "adaptive-extender/core";
 import { Random } from "adaptive-extender/core";
-import { type Kind } from "../models/elements.js";
+import { type Element } from "../models/elements.js";
 
 //#region Hand
 export class Hand {
-	#deck: readonly Kind[];
-	#cards: Kind[] = [];
+	#deck: readonly Element[];
+	#cards: Element[] = [];
 	#ages: number[];
 	#random: Random;
 
-	constructor(deck: readonly Kind[], size: number, seed: number) {
-		if (new Set(deck).size !== deck.length) throw new TypeError("The deck must not repeat an element");
+	constructor(deck: readonly Element[], size: number, seed: number) {
+		if (deck.some((element, index) => deck.findIndex(other => other.is(element)) !== index)) throw new TypeError("The deck must not repeat an element");
 		if (!Number.isInteger(size) || size <= 0 || size > deck.length) throw new RangeError(`The hand size ${size} must be between 1 and the deck size ${deck.length}`);
 		this.#deck = deck;
 		this.#random = new Random(seed);
-		this.#ages = deck.map(kind => 0);
+		this.#ages = deck.map(element => 0);
 		const cards = this.#cards;
 		for (let slot = 0; slot < size; slot++) {
 			cards.push(this.#draw());
 		}
 	}
 
-	get cards(): readonly Kind[] { return this.#cards; }
+	get cards(): readonly Element[] { return this.#cards; }
 
-	play(slot: number): Kind {
+	play(slot: number): Element {
 		const cards = this.#cards;
 		if (!Number.isInteger(slot) || slot < 0 || slot >= cards.length) throw new RangeError(`The slot ${slot} is out of the hand`);
-		const [kind] = cards.splice(slot, 1);
-		this.#ages[this.#deck.indexOf(kind)] = 0;
+		const [element] = cards.splice(slot, 1);
+		this.#ages[this.#deck.indexOf(element)] = 0;
 		cards.splice(slot, 0, this.#draw());
-		return kind;
+		return element;
 	}
 
-	#draw(): Kind {
+	#draw(): Element {
 		const deck = this.#deck;
 		const ages = this.#ages;
 		const cards = this.#cards;
