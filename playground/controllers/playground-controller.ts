@@ -1,7 +1,7 @@
 "use strict";
 
 import "adaptive-extender/web";
-import { Controller } from "adaptive-extender/web";
+import { Controller, URI } from "adaptive-extender/web";
 import { SettingsService } from "../../settings/services/settings-service.js";
 import { DeckService } from "../services/deck-service.js";
 import { Simulation } from "../services/simulation.js";
@@ -19,7 +19,7 @@ const deck = DeckService.instance;
 class PlaygroundController extends Controller {
 	#canvasBoard: HTMLCanvasElement = document.getElement(HTMLCanvasElement, "canvas#board");
 	#divHand: HTMLDivElement = document.getElement(HTMLDivElement, "div#hand");
-	#arena: ArenaClient = new ArenaClient(new Relay(), new URL("/", baseURI));
+	#arena: ArenaClient = new ArenaClient(new Relay(), new URI("/", baseURI));
 	#simulation: Simulation;
 
 	async run(): Promise<void> {
@@ -38,7 +38,7 @@ class PlaygroundController extends Controller {
 
 	#complete(count: number, capacity: number): void {
 		if (!window.confirm(`Your deck holds ${count} of ${capacity} elements.\nOpen Settings to finish it?`)) return;
-		location.assign(new URL("../settings/", baseURI));
+		location.assign(new URI("../settings/", baseURI).href);
 	}
 
 	async #guard(task: Promise<void>): Promise<void> {

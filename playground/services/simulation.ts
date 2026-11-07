@@ -1,7 +1,7 @@
 "use strict";
 
 import "adaptive-extender/web";
-import { StaticEngine } from "adaptive-extender/web";
+import { StaticEngine, URI } from "adaptive-extender/web";
 import { type Element } from "../models/elements.js";
 import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
 import { type Ticket, type Report } from "../../arena/models/protocol.js";
@@ -16,7 +16,7 @@ export interface SimulationEventMap {
 }
 
 export class Simulation extends EventTarget {
-	#worker: Worker = new Worker(new URL("./controllers/simulation-worker.js", baseURI), { type: "module" });
+	#worker: Worker = new Worker(new URI("./controllers/simulation-worker.js", baseURI).href, { type: "module" });
 	#engine: StaticEngine = new StaticEngine({ launch: false });
 	#ticket: Ticket | null = null;
 	#cards: readonly Element[] = [];

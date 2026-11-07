@@ -1,13 +1,14 @@
 "use strict";
 
 import "adaptive-extender/web";
+import { URI } from "adaptive-extender/web";
 import { Letter, Reply } from "../models/envelopes.js";
 
 const { baseURI } = document;
 
 //#region Relay
 export class Relay {
-	#worker: Worker = new Worker(new URL("../arena/controllers/server-worker.js", baseURI), { type: "module" });
+	#worker: Worker = new Worker(new URI("../arena/controllers/server-worker.js", baseURI).href, { type: "module" });
 	#pending: Map<number, PromiseWithResolvers<Response>> = new Map();
 	#counter: number = 0;
 
@@ -20,7 +21,7 @@ export class Relay {
 		const body = request.method === "GET" ? null : await request.text();
 		const answer = Promise.withResolvers<Response>();
 		this.#pending.set(id, answer);
-		this.#worker.postMessage(Letter.export(new Letter(id, request.method, new URL(request.url).pathname, body)));
+		this.#worker.postMessage(Letter.export(new Letter(id, request.method, new URI(request.url).pathname, body)));
 		return await answer.promise;
 	}
 

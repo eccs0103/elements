@@ -1,6 +1,7 @@
 "use strict";
 
 import "adaptive-extender/worker";
+import { URI } from "adaptive-extender/worker";
 import { Entry, Ticket, Report, Verdict, Standing } from "../models/protocol.js";
 import { type Arena } from "./arena.js";
 
@@ -23,7 +24,7 @@ export class ArenaRouter {
 	async #route(request: Request): Promise<Response> {
 		const arena = this.#arena;
 		const { method } = request;
-		const { pathname } = new URL(request.url);
+		const { pathname } = new URI(request.url);
 		if (method === "POST" && pathname === Ticket.route) return Response.json(Ticket.export(await arena.open(Entry.import(await request.json(), "entry"))));
 		if (method === "POST" && pathname === Verdict.route) return Response.json(Verdict.export(await arena.judge(Report.import(await request.json(), "report"))));
 		if (method === "GET" && pathname === Standing.route) return Response.json(Standing.export(await arena.standing()));

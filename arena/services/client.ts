@@ -1,6 +1,7 @@
 "use strict";
 
 import "adaptive-extender/web";
+import { URI } from "adaptive-extender/web";
 import { Entry, Ticket, Report, Verdict, Standing } from "../models/protocol.js";
 
 //#region Arena client
@@ -10,11 +11,11 @@ export interface Server {
 
 export class ArenaClient {
 	#server: Server;
-	#origin: URL;
+	#origin: URI;
 
-	constructor(server: Server, origin: Readonly<URL>) {
+	constructor(server: Server, origin: Readonly<URI>) {
 		this.#server = server;
-		this.#origin = new URL(origin);
+		this.#origin = new URI(origin);
 	}
 
 	async open(entry: Entry): Promise<Ticket> {
@@ -31,7 +32,7 @@ export class ArenaClient {
 
 	async #send(method: string, route: string, body: unknown): Promise<unknown> {
 		const content = body === null ? null : JSON.stringify(body);
-		const request = new Request(new URL(route, this.#origin), { method, body: content, headers: { ["Content-Type"]: "application/json" } });
+		const request = new Request(new URI(route, this.#origin).href, { method, body: content, headers: { ["Content-Type"]: "application/json" } });
 		const response = await this.#server.fetch(request);
 		const payload = await response.json();
 		if (!response.ok) throw new Error(`The arena answered ${response.status}: ${JSON.stringify(payload)}`);
