@@ -84,7 +84,7 @@ export class Board {
 	#budgets: Uint8Array;
 	#tints: Uint8Array;
 	#owners: Uint8Array;
-	#progress: Uint8Array;
+	#progress: Uint16Array;
 	#births: Uint32Array;
 	#fresh: Uint8Array;
 	#reverse: boolean = false;
@@ -104,7 +104,7 @@ export class Board {
 		this.#budgets = new Uint8Array(area);
 		this.#tints = new Uint8Array(area);
 		this.#owners = new Uint8Array(area);
-		this.#progress = new Uint8Array(area * Board.#slots);
+		this.#progress = new Uint16Array(area * Board.#slots);
 		this.#births = new Uint32Array(area);
 		this.#fresh = new Uint8Array(area);
 		for (let cell = 0; cell < area; cell++) {
@@ -114,13 +114,35 @@ export class Board {
 
 	static #tabulate(): readonly (readonly Uint8Array[])[] {
 		const { elements } = PeriodicTable;
-		return elements.map(element => element.reactions.map(reaction => Uint8Array.from(elements, other => Number(reaction.affects(other)))));
+		return elements.map((element, kind) => element.reactions.map(reaction => {
+			const result = Board.#result(kind, reaction);
+			return Uint8Array.from(elements, (other, id) => Number(id !== result && reaction.affects(other)));
+		}));
+	}
+
+	static #result(kind: number, reaction: Reaction): number {
+		if (reaction.law === Law.spread) return kind;
+		const { product } = reaction;
+		if (product === null) return -1;
+		return PeriodicTable.id(product);
 	}
 
 	get kinds(): ArrayLike<number> { return this.#kinds; }
 	get tints(): ArrayLike<number> { return this.#tints; }
 	get owners(): ArrayLike<number> { return this.#owners; }
 	get size(): number { return this.#size; }
+
+	clone(seed: number): Board {
+		const board = new Board(this.#size, seed);
+		board.#kinds.set(this.#kinds);
+		board.#budgets.set(this.#budgets);
+		board.#tints.set(this.#tints);
+		board.#owners.set(this.#owners);
+		board.#progress.set(this.#progress);
+		board.#births.set(this.#births);
+		board.#reverse = this.#reverse;
+		return board;
+	}
 
 	drop(element: Element, x: number, y: number, owner: number): void {
 		const size = this.#size;
@@ -233,6 +255,7 @@ export class Board {
 		switch (law) {
 		case Law.spread: this.#spawn(chosen, kind, limited ? budget - 1 : null, owner); break;
 		case Law.ignite: this.#spawn(chosen, this.#require(product), null, owner); break;
+		case Law.convert: this.#spawn(chosen, this.#require(product), null, owner); break;
 		case Law.cool: this.#cool(cell, chosen, this.#require(product), this.#require(remains)); break;
 		case Law.destroy: this.#spawn(chosen, this.#require(product), null, owner); this.#spawn(cell, this.#require(remains), null, owner); break;
 		default: throw new TypeError(`Invalid '${law}' law`);

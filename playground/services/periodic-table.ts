@@ -1,11 +1,11 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Dirt, Grass, Fire, Water, Lava, Ice, Element, type ElementType } from "../models/elements.js";
+import { Dirt, Grass, Fire, Water, Lava, Ice, Ember, Magma, Plasma, Steam, Gunpowder, Snow, Frost, Cryo, Crystal, Mud, Acid, Oil, Brine, Slime, Sand, Stone, Metal, Salt, Glass, Sponge, Rust, Vine, Moss, Mushroom, Wood, Blight, Coral, Pollen, Spark, Lightning, Void, Wind, Element, type ElementType } from "../models/elements.js";
 
 //#region Periodic table
 export class PeriodicTable {
-	static #types: readonly ElementType[] = [Dirt, Grass, Fire, Water, Lava, Ice];
+	static #types: readonly ElementType[] = [Dirt, Grass, Fire, Water, Lava, Ice, Ember, Magma, Plasma, Steam, Gunpowder, Snow, Frost, Cryo, Crystal, Mud, Acid, Oil, Brine, Slime, Sand, Stone, Metal, Salt, Glass, Sponge, Rust, Vine, Moss, Mushroom, Wood, Blight, Coral, Pollen, Spark, Lightning, Void, Wind];
 	static #ground: ElementType = Dirt;
 	static #elements: readonly Element[] = PeriodicTable.#types.map(type => new type());
 	static #placeable: readonly Element[] = PeriodicTable.#elements.filter(element => !(element instanceof PeriodicTable.#ground));

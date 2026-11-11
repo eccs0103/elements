@@ -36,7 +36,7 @@ export class Rules extends Model {
 	deck: number = 10;
 
 	@Field(Number, { name: "hand" })
-	hand: number = 3;
+	hand: number = 4;
 
 	get length(): number { return this.ticks(this.seconds); }
 	get pause(): number { return this.ticks(this.cooldown); }
