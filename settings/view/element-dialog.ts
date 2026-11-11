@@ -206,7 +206,7 @@ export class ElementDialog {
 
 	#trait(kind: string, text: string): HTMLLIElement {
 		const liTrait = document.createElement("li");
-		liTrait.classList.add("trait", "depth", "rounded", "flex", "alt-center", "with-gap", "small-gap", "with-padding", "small-padding", "font-smaller-3", kind);
+		liTrait.classList.add("trait", "depth", "rounded", "flex", "alt-center", "with-gap", "small-gap", "with-padding", "small-padding", "font-smaller-2", kind);
 		const spanIcon = document.createElement("span");
 		spanIcon.classList.add("icon");
 		liTrait.append(spanIcon, document.createTextNode(text));
