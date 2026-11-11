@@ -106,6 +106,12 @@ export class Match {
 		return this.#board.territory(this.#side(side).owner);
 	}
 
+	holder(cell: number): number | null {
+		const owner = this.#board.owners[cell];
+		const side = this.#sides.findIndex(seat => seat.owner === owner);
+		return side < 0 ? null : side;
+	}
+
 	legal(side: number, slot: number, x: number, y: number): boolean {
 		const seat = this.#side(side);
 		const board = this.#board;

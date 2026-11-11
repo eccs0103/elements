@@ -6,6 +6,8 @@ import { SettingsService } from "../../settings/services/settings-service.js";
 import { DeckService } from "../services/deck-service.js";
 import { Simulation } from "../services/simulation.js";
 import { Tray } from "../view/tray.js";
+import { Crosshair } from "../view/crosshair.js";
+import { Peek } from "../view/peek.js";
 import { ArenaClient } from "../../arena/services/client.js";
 import { Entry } from "../../arena/models/protocol.js";
 import { Relay } from "../../arena/services/relay.js";
@@ -19,6 +21,10 @@ const deck = DeckService.instance;
 class PlaygroundController extends Controller {
 	#canvasBoard: HTMLCanvasElement = document.getElement(HTMLCanvasElement, "canvas#board");
 	#divHand: HTMLDivElement = document.getElement(HTMLDivElement, "div#hand");
+	#divCrosshair: HTMLDivElement = document.getElement(HTMLDivElement, "div#crosshair");
+	#sectionPeek: HTMLElement = document.getElement(HTMLElement, "section#peek");
+	#templateLine: HTMLTemplateElement = document.getElement(HTMLTemplateElement, "template#line");
+	#templateChip: HTMLTemplateElement = document.getElement(HTMLTemplateElement, "template#chip");
 	#arena: ArenaClient = new ArenaClient(new Relay(), new URI("/", baseURI));
 	#simulation: Simulation;
 
@@ -30,8 +36,11 @@ class PlaygroundController extends Controller {
 
 		const canvasBoard = this.#canvasBoard;
 		const simulation = this.#simulation = new Simulation(canvasBoard);
-		const tray = new Tray(this.#divHand, canvasBoard, simulation);
+		const crosshair = new Crosshair(this.#divCrosshair, canvasBoard, simulation);
+		const tray = new Tray(this.#divHand, crosshair, simulation);
+		const peek = new Peek(this.#sectionPeek, canvasBoard, crosshair, simulation, this.#templateLine, this.#templateChip);
 		simulation.addEventListener("update", event => tray.render());
+		simulation.addEventListener("update", event => peek.render());
 		simulation.addEventListener("finish", event => void this.#guard(this.#judge()));
 		simulation.start(await this.#arena.open(new Entry(content.elements)));
 	}

@@ -1,12 +1,12 @@
 "use strict";
 
 import "adaptive-extender/worker";
-import { Any, Deferred, Descendant, Field, Model } from "adaptive-extender/worker";
+import { Any, Deferred, Descendant, Field, Model, Nullable } from "adaptive-extender/worker";
 import { Element, type ElementScheme } from "./elements.js";
 import { Ticket, Report } from "../../arena/models/protocol.js";
 
 //#region Command
-export interface CommandDiscriminator extends InitializeCommandDiscriminator, StartCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator, PreviewCommandDiscriminator, ResizeCommandDiscriminator, StatusCommandDiscriminator, FinishCommandDiscriminator {
+export interface CommandDiscriminator extends InitializeCommandDiscriminator, StartCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator, PreviewCommandDiscriminator, InspectCommandDiscriminator, ResizeCommandDiscriminator, StatusCommandDiscriminator, FinishCommandDiscriminator {
 }
 
 export interface CommandScheme {
@@ -18,6 +18,7 @@ export interface CommandScheme {
 @Descendant(Deferred(_ => TickCommand))
 @Descendant(Deferred(_ => DropCommand))
 @Descendant(Deferred(_ => PreviewCommand))
+@Descendant(Deferred(_ => InspectCommand))
 @Descendant(Deferred(_ => ResizeCommand))
 @Descendant(Deferred(_ => StatusCommand))
 @Descendant(Deferred(_ => FinishCommand))
@@ -158,6 +159,33 @@ export class PreviewCommand extends Command {
 	}
 }
 //#endregion
+//#region Inspect command
+export interface InspectCommandDiscriminator {
+	"InspectCommand": InspectCommand;
+}
+
+export interface InspectCommandScheme extends CommandScheme {
+	$type: keyof InspectCommandDiscriminator;
+	cell: number | null;
+}
+
+export class InspectCommand extends Command {
+	@Field(Nullable.Of(Number))
+	cell: number | null;
+
+	constructor();
+	constructor(cell: number | null);
+	constructor(cell?: number | null) {
+		if (cell === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.cell = cell;
+	}
+}
+//#endregion
 //#region Resize command
 export interface ResizeCommandDiscriminator {
 	"ResizeCommand": ResizeCommand;
@@ -199,6 +227,8 @@ export interface StatusCommandScheme extends CommandScheme {
 	$type: keyof StatusCommandDiscriminator;
 	cards: ElementScheme[];
 	charge: number;
+	inspected: ElementScheme | null;
+	holder: number | null;
 }
 
 export class StatusCommand extends Command {
@@ -208,10 +238,16 @@ export class StatusCommand extends Command {
 	@Field(Number)
 	charge: number;
 
+	@Field(Nullable.Of(Element))
+	inspected: Element | null;
+
+	@Field(Nullable.Of(Number))
+	holder: number | null;
+
 	constructor();
-	constructor(cards: Element[], charge: number);
-	constructor(cards?: Element[], charge?: number) {
-		if (cards === undefined || charge === undefined) {
+	constructor(cards: Element[], charge: number, inspected: Element | null, holder: number | null);
+	constructor(cards?: Element[], charge?: number, inspected?: Element | null, holder?: number | null) {
+		if (cards === undefined || charge === undefined || inspected === undefined || holder === undefined) {
 			super();
 			return;
 		}
@@ -219,6 +255,8 @@ export class StatusCommand extends Command {
 		super();
 		this.cards = cards;
 		this.charge = charge;
+		this.inspected = inspected;
+		this.holder = holder;
 	}
 }
 //#endregion

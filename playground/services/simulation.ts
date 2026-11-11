@@ -3,7 +3,7 @@
 import "adaptive-extender/web";
 import { StaticEngine, URI } from "adaptive-extender/web";
 import { type Element } from "../models/elements.js";
-import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
+import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
 import { type Ticket, type Report } from "../../arena/models/protocol.js";
 
 const { baseURI } = document;
@@ -21,6 +21,8 @@ export class Simulation extends EventTarget {
 	#ticket: Ticket | null = null;
 	#cards: readonly Element[] = [];
 	#charge: number = 0;
+	#inspected: Element | null = null;
+	#holder: number | null = null;
 	#report: Report | null = null;
 
 	constructor(canvas: HTMLCanvasElement) {
@@ -38,6 +40,8 @@ export class Simulation extends EventTarget {
 	get ticket(): Ticket | null { return this.#ticket; }
 	get cards(): readonly Element[] { return this.#cards; }
 	get charge(): number { return this.#charge; }
+	get inspected(): Element | null { return this.#inspected; }
+	get holder(): number | null { return this.#holder; }
 	get report(): Report | null { return this.#report; }
 
 	launch(): void {
@@ -59,6 +63,10 @@ export class Simulation extends EventTarget {
 		this.#worker.postMessage(Command.export(new PreviewCommand(active)));
 	}
 
+	inspect(cell: number | null): void {
+		this.#worker.postMessage(Command.export(new InspectCommand(cell)));
+	}
+
 	#resize(canvas: HTMLCanvasElement): void {
 		const ratio = devicePixelRatio;
 		const width = round(canvas.clientWidth * ratio);
@@ -71,9 +79,11 @@ export class Simulation extends EventTarget {
 		const command = Command.import(event.data, "command");
 
 		if (command instanceof StatusCommand) {
-			const { cards, charge } = command;
+			const { cards, charge, inspected, holder } = command;
 			this.#cards = cards;
 			this.#charge = charge;
+			this.#inspected = inspected;
+			this.#holder = holder;
 			this.dispatchEvent(new Event("update"));
 			return;
 		}

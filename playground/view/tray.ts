@@ -2,22 +2,22 @@
 
 import "adaptive-extender/web";
 import { type Simulation } from "../services/simulation.js";
+import { type Crosshair } from "./crosshair.js";
 
 const { body } = document;
-const { trunc } = Math;
 
 //#region Tray
 export class Tray {
 	#container: HTMLElement;
-	#board: HTMLCanvasElement;
+	#crosshair: Crosshair;
 	#simulation: Simulation;
 	#spans: HTMLSpanElement[] = [];
 	#ghost: HTMLSpanElement;
 	#slot: number | null = null;
 
-	constructor(container: HTMLElement, board: HTMLCanvasElement, simulation: Simulation) {
+	constructor(container: HTMLElement, crosshair: Crosshair, simulation: Simulation) {
 		this.#container = container;
-		this.#board = board;
+		this.#crosshair = crosshair;
 		this.#simulation = simulation;
 		const spanGhost = this.#ghost = document.createElement("span");
 		spanGhost.classList.add("ghost", "rounded");
@@ -73,27 +73,23 @@ export class Tray {
 		const { style } = this.#ghost;
 		style.setProperty("--x", `${event.clientX}px`);
 		style.setProperty("--y", `${event.clientY}px`);
+		this.#crosshair.aim(event);
 	}
 
 	#release(event: PointerEvent): void {
 		const slot = this.#slot;
 		if (slot === null) return;
+		const cell = this.#crosshair.cell(event);
 		this.#cancel();
-		const simulation = this.#simulation;
-		const { ticket } = simulation;
-		if (ticket === null) return;
-		const { size } = ticket.rules;
-		const { left, top, width, height } = this.#board.getBoundingClientRect();
-		const x = trunc((event.clientX - left) / width * size);
-		const y = trunc((event.clientY - top) / height * size);
-		if (x < 0 || x >= size || y < 0 || y >= size) return;
-		simulation.drop(slot, x, y);
+		if (cell === null) return;
+		this.#simulation.drop(slot, cell.x, cell.y);
 	}
 
 	#cancel(): void {
 		if (this.#slot === null) return;
 		this.#slot = null;
 		this.#ghost.hidden = true;
+		this.#crosshair.hide();
 		this.#simulation.preview(false);
 	}
 }

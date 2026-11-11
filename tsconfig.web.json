@@ -10,6 +10,8 @@
 		"playground/services/simulation.ts",
 		"playground/services/deck-service.ts",
 		"playground/view/tray.ts",
+		"playground/view/crosshair.ts",
+		"playground/view/peek.ts",
 		"arena/services/relay.ts",
 		"arena/services/client.ts",
 		"settings/**/*.ts"

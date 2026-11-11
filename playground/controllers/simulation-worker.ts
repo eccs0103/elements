@@ -1,8 +1,9 @@
 "use strict";
 
 import "adaptive-extender/worker";
-import { Controller } from "adaptive-extender/worker";
-import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
+import { Controller, Nullable } from "adaptive-extender/worker";
+import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
+import { PeriodicTable } from "../services/periodic-table.js";
 import { Move } from "../models/move.js";
 import { type Match } from "../services/match.js";
 import { Human, type Player } from "../services/players.js";
@@ -44,10 +45,13 @@ class Session {
 		return zone;
 	}
 
-	status(): StatusCommand {
+	status(cell: number | null): StatusCommand {
 		const match = this.#match;
 		const { human } = this.#ticket;
-		return new StatusCommand(Array.from(match.cards(human)), match.charge(human));
+		const { kinds } = match.board;
+		const inspected = Nullable.map(cell, cell => PeriodicTable.at(kinds[cell]));
+		const holder = Nullable.map(cell, match.holder.bind(match));
+		return new StatusCommand(Array.from(match.cards(human)), match.charge(human), inspected, holder);
 	}
 
 	report(): Report {
@@ -61,10 +65,15 @@ class SimulationWorker extends Controller {
 	#painter: Painter;
 	#session: Session | null = null;
 	#preview: boolean = false;
+	#inspected: number | null = null;
 
 	#paint(session: Session): void {
 		this.#painter.paint(session.match.board, this.#preview ? session.zone() : null);
-		self.postMessage(Command.export(session.status()));
+		this.#report(session);
+	}
+
+	#report(session: Session): void {
+		self.postMessage(Command.export(session.status(this.#inspected)));
 	}
 
 	#tick(session: Session): void {
@@ -95,6 +104,12 @@ class SimulationWorker extends Controller {
 		if (command instanceof PreviewCommand) {
 			this.#preview = command.active;
 			if (session !== null) this.#paint(session);
+			return;
+		}
+
+		if (command instanceof InspectCommand) {
+			this.#inspected = command.cell;
+			if (session !== null) this.#report(session);
 			return;
 		}
 

@@ -10,9 +10,120 @@ div#stage {
 	display: grid;
 }
 
+canvas#board,
+div#crosshair {
+	grid-area: 1 / 1;
+}
+
 canvas#board {
 	inline-size: 100%;
 	block-size: 100%;
+	touch-action: none;
+	-webkit-touch-callout: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+div#crosshair {
+	--line: color-mix(in srgb, var(--color-highlight) 30%, transparent);
+	position: relative;
+	overflow: hidden;
+	pointer-events: none;
+
+	& span {
+		position: absolute;
+		inset: 0 auto auto 0;
+		will-change: translate;
+	}
+
+	& span.row {
+		inline-size: 100%;
+		block-size: calc(100% / var(--size));
+		background-color: var(--line);
+		translate: 0 calc(var(--row) * 100%);
+	}
+
+	& span.column {
+		inline-size: calc(100% / var(--size));
+		block-size: 100%;
+		background-color: var(--line);
+		translate: calc(var(--column) * 100%) 0;
+	}
+
+	& span.cell {
+		inline-size: calc(100% / var(--size));
+		block-size: calc(100% / var(--size));
+		box-shadow: 0 0 0 var(--size-separator) var(--color-highlight);
+		translate: calc(var(--column) * 100%) calc(var(--row) * 100%);
+	}
+}
+
+section#peek {
+	position: absolute;
+	inset: var(--size-gap) 0 auto;
+	z-index: 1;
+	inline-size: min(calc(100% - 2 * var(--size-gap)), calc(12 * var(--size-standart)));
+	max-block-size: calc(50% - 2 * var(--size-gap));
+	margin-inline: auto;
+	overflow: hidden;
+	pointer-events: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+
+	&.bottom {
+		inset-block: auto var(--size-gap);
+	}
+
+	& h3,
+	& h4 {
+		margin: 0;
+	}
+
+	& span#about {
+		text-transform: capitalize;
+	}
+
+	& ul#traits,
+	& ol#acts {
+		padding: 0;
+		margin: 0;
+		list-style: none;
+	}
+
+	& li.trait span.icon {
+		inline-size: var(--size-small-standart);
+		block-size: var(--size-small-standart);
+	}
+
+	& li.trait.heat span.icon {
+		--url: url(../../assets/icons/temperature-half.svg);
+	}
+
+	& li.trait.flammable span.icon {
+		--url: url(../../assets/icons/fire.svg);
+	}
+
+	& li.trait.conductive span.icon {
+		--url: url(../../assets/icons/bolt.svg);
+	}
+
+	& span.tile {
+		display: inline-block;
+		flex-shrink: 0;
+		aspect-ratio: 1;
+		block-size: var(--size-standart);
+		background-image: linear-gradient(135deg, var(--color), var(--faded, var(--color)));
+	}
+
+	& span.chip span.tile {
+		block-size: var(--size-small-standart);
+	}
+
+	& span.chip.compact span.name {
+		display: none;
+	}
 }
 
 div#toolkit {
