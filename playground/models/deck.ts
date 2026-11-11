@@ -69,10 +69,9 @@ export class Deck extends Model {
 	}
 
 	reconcile(): void {
-		const { placeable } = PeriodicTable;
 		const kept: Element[] = [];
 		for (const element of this.elements) {
-			if (!placeable.some(item => item.is(element))) continue;
+			if (!PeriodicTable.places(element)) continue;
 			if (kept.some(item => item.is(element))) continue;
 			kept.push(element);
 		}
@@ -80,7 +79,7 @@ export class Deck extends Model {
 	}
 
 	#admit(element: Element): void {
-		if (!PeriodicTable.placeable.some(item => item.is(element))) throw new TypeError(`${element.name} can't be placed`);
+		if (!PeriodicTable.places(element)) throw new TypeError(`${element.name} can't be placed`);
 		if (this.holds(element)) throw new TypeError(`The deck already holds ${element.name}`);
 	}
 

@@ -147,6 +147,11 @@ export class Verdict extends Model {
 		if (first === second) return null;
 		return first > second ? 0 : 1;
 	}
+
+	against(side: number): number {
+		const { scores } = this;
+		return scores.reduce((sum, score) => sum + score, 0) - scores[side];
+	}
 }
 //#endregion
 //#region Standing

@@ -136,12 +136,9 @@ export class Reaction {
 	get product(): ElementType | null { return this.#product; }
 	get remains(): ElementType | null { return this.#remains; }
 
-	affects(element: Element): boolean {
-		return this.#target?.matches(element) ?? false;
-	}
-
 	reaches(actor: Element, other: Element): boolean {
-		if (!this.affects(other)) return false;
+		const target = this.#target;
+		if (target === null || !target.matches(other)) return false;
 		if (this.#law === Law.spread) return !other.is(actor);
 		const product = this.#product;
 		return product === null || !(other instanceof product);

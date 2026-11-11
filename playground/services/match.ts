@@ -42,8 +42,8 @@ class Side {
 		return this.ready && Number.isInteger(slot) && slot >= 0 && slot < this.#hand.cards.length;
 	}
 
-	home(y: number): boolean {
-		return abs(y - this.#edge) < this.#depth;
+	reaches(board: Board, x: number, y: number): boolean {
+		return abs(y - this.#edge) < this.#depth || board.touches(this.#owner, x, y);
 	}
 
 	take(slot: number): Element {
@@ -68,12 +68,11 @@ export class Match {
 
 	constructor(rules: Rules, seed: number, decks: readonly (readonly Element[])[]) {
 		const { size, hand, pause, rows } = rules;
-		const { placeable } = PeriodicTable;
 		const capacity = Deck.capacity(rules);
 		const count = Match.#count;
 		if (decks.length !== count) throw new RangeError(`A match needs ${count} decks, not ${decks.length}`);
 		if (decks.some(deck => deck.length !== capacity)) throw new RangeError(`A deck must hold exactly ${capacity} elements`);
-		if (decks.some(deck => deck.some(element => !placeable.some(item => item.is(element))))) throw new TypeError("A deck holds an element that can't be placed");
+		if (decks.some(deck => deck.some(element => !PeriodicTable.places(element)))) throw new TypeError("A deck holds an element that can't be placed");
 		const [south, north] = decks;
 		this.#rules = rules;
 		this.#board = new Board(size, seed);
@@ -113,20 +112,18 @@ export class Match {
 		const { size } = board;
 		if (this.finished || !seat.armed(slot)) return false;
 		if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= size || y < 0 || y >= size) return false;
-		return seat.home(y) || board.touches(seat.owner, x, y);
+		return seat.reaches(board, x, y);
 	}
 
 	cells(side: number, slot: number): number[] {
 		const seat = this.#side(side);
 		const board = this.#board;
 		const { size } = board;
-		const { owner } = seat;
 		const cells: number[] = [];
 		if (this.finished || !seat.armed(slot)) return cells;
 		for (let y = 0; y < size; y++) {
-			const home = seat.home(y);
 			for (let x = 0; x < size; x++) {
-				if (home || board.touches(owner, x, y)) cells.push(y * size + x);
+				if (seat.reaches(board, x, y)) cells.push(y * size + x);
 			}
 		}
 		return cells;

@@ -76,17 +76,17 @@
 			<figure class="demo flex column with-gap">
 				<canvas class="board depth rounded"></canvas>
 				<figcaption class="flex alt-center with-gap">
-					<span class="versus"></span>
+					<span id="versus"></span>
 					<button type="button" class="open highlight">Open</button>
 				</figcaption>
 			</figure>
-			<section class="acts flex column with-gap">
+			<section class="flex column with-gap">
 				<h3>What it does</h3>
-				<ol class="rows flex column with-gap"></ol>
+				<ol id="acts" class="rows flex column with-gap"></ol>
 			</section>
-			<section class="threats flex column with-gap">
+			<section class="flex column with-gap">
 				<h3>What stops it</h3>
-				<ol class="rows flex column with-gap"></ol>
+				<ol id="threats" class="rows flex column with-gap"></ol>
 			</section>
 			<footer class="flex column with-gap">
 				<button type="button" class="toggle rounded with-padding"></button>
@@ -115,9 +115,9 @@
 	</template>
 	<template id="row">
 		<li class="row flex column">
-			<span class="when description font-smaller-4"></span>
-			<p class="sentence flex wrap alt-center with-gap small-gap"></p>
-			<span class="summary description font-smaller-4"></span>
+			<header class="description font-smaller-4"></header>
+			<p class="flex wrap alt-center with-gap small-gap"></p>
+			<footer class="description font-smaller-4"></footer>
 		</li>
 	</template>
 	<template id="chip">

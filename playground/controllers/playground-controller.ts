@@ -58,7 +58,7 @@ class PlaygroundController extends Controller {
 		const { human } = ticket;
 		const { winner, scores } = verdict;
 		const mine = scores[human];
-		const theirs = scores.reduce((sum, score) => sum + score, 0) - mine;
+		const theirs = verdict.against(human);
 		let outcome = "Draw";
 		if (winner === human) outcome = "You won";
 		else if (winner !== null) outcome = "The boss won";

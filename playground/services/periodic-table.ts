@@ -11,8 +11,16 @@ export class PeriodicTable {
 	static #placeable: readonly Element[] = PeriodicTable.#elements.filter(element => !(element instanceof PeriodicTable.#ground));
 
 	static get elements(): readonly Element[] { return PeriodicTable.#elements; }
-	static get ground(): Element { return PeriodicTable.at(PeriodicTable.id(PeriodicTable.#ground)); }
+	static get ground(): Element { return PeriodicTable.of(PeriodicTable.#ground); }
 	static get placeable(): readonly Element[] { return PeriodicTable.#placeable; }
+
+	static places(element: Element): boolean {
+		return PeriodicTable.#placeable.some(item => item.is(element));
+	}
+
+	static of(type: ElementType): Element {
+		return PeriodicTable.#elements[PeriodicTable.id(type)];
+	}
 
 	static id(element: Element): number;
 	static id(type: ElementType): number;
