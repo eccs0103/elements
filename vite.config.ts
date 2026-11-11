@@ -13,7 +13,6 @@ export default defineConfig(async (env) => {
 	const inputs: URI[] = [
 		new URI("./playground/index.html", root),
 		new URI("./settings/index.html", root),
-		new URI("./information/index.html", root),
 	];
 	const rootEntries: URI[] = [
 	];

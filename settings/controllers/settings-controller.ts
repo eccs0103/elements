@@ -5,6 +5,7 @@ import { Controller, Enum } from "adaptive-extender/web";
 import { Scheme } from "../models/settings.js";
 import { SettingsService } from "../services/settings-service.js";
 import { DeckBuilder } from "../view/deck-builder.js";
+import { ElementDialog } from "../view/element-dialog.js";
 import { DeckService } from "../../playground/services/deck-service.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
 
@@ -18,6 +19,9 @@ class SettingsController extends Controller {
 	#templateSlot: HTMLTemplateElement = document.getElement(HTMLTemplateElement, "template#slot");
 	#templateCard: HTMLTemplateElement = document.getElement(HTMLTemplateElement, "template#card");
 	#spanGhost: HTMLSpanElement = document.getElement(HTMLSpanElement, "span.ghost");
+	#dialogDetails: HTMLDialogElement = document.getElement(HTMLDialogElement, "dialog#details");
+	#templateRow: HTMLTemplateElement = document.getElement(HTMLTemplateElement, "template#row");
+	#templateChip: HTMLTemplateElement = document.getElement(HTMLTemplateElement, "template#chip");
 
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
@@ -26,7 +30,8 @@ class SettingsController extends Controller {
 		const selectScheme = this.#selectScheme;
 		selectScheme.value = content.scheme;
 		selectScheme.addEventListener("change", event => void this.#rescheme());
-		new DeckBuilder(deck, this.#divDeck, this.#templateSlot, this.#templateCard, this.#spanGhost);
+		const details = new ElementDialog(deck, this.#dialogDetails, this.#templateRow, this.#templateChip);
+		new DeckBuilder(deck, details, this.#divDeck, this.#templateSlot, this.#templateCard, this.#spanGhost);
 	}
 
 	async #rescheme(): Promise<void> {

@@ -1,30 +1,38 @@
 "use strict";
 
 import "adaptive-extender/web";
-import { type Element } from "../../playground/models/elements.js";
+import { Phase, type Element } from "../../playground/models/elements.js";
 import { Rules } from "../../playground/models/rules.js";
 import { type DeckService } from "../../playground/services/deck-service.js";
 import { PeriodicTable } from "../../playground/services/periodic-table.js";
+import { type ElementDialog } from "./element-dialog.js";
 
 const { hypot } = Math;
 
-//#region Drag
-class Drag {
+//#region Press
+class Press {
 	#button: HTMLButtonElement;
 	#pointer: number;
+	#mouse: boolean;
 	#x: number;
 	#y: number;
-	#lifted: boolean = false;
+	#held: boolean = false;
+	#dragging: boolean = false;
 
 	constructor(button: HTMLButtonElement, event: PointerEvent) {
 		this.#button = button;
 		this.#pointer = event.pointerId;
+		this.#mouse = event.pointerType === "mouse";
 		this.#x = event.clientX;
 		this.#y = event.clientY;
+		button.classList.add("pressing");
 	}
 
 	get button(): HTMLButtonElement { return this.#button; }
-	get lifted(): boolean { return this.#lifted; }
+	get mouse(): boolean { return this.#mouse; }
+	get held(): boolean { return this.#held; }
+	get dragging(): boolean { return this.#dragging; }
+	get captured(): boolean { return this.#held || this.#dragging; }
 	get x(): number { return this.#x; }
 	get y(): number { return this.#y; }
 
@@ -32,40 +40,50 @@ class Drag {
 		return hypot(event.clientX - this.#x, event.clientY - this.#y) > threshold;
 	}
 
-	lift(): void {
+	hold(): void {
 		const button = this.#button;
-		this.#lifted = true;
+		this.#held = true;
+		button.setPointerCapture(this.#pointer);
+		button.classList.add("held");
+	}
+
+	drag(): void {
+		const button = this.#button;
+		this.#dragging = true;
 		button.setPointerCapture(this.#pointer);
 		button.classList.add("lifted");
 	}
 
 	settle(): void {
-		this.#button.classList.remove("lifted");
+		this.#button.classList.remove("pressing", "held", "lifted");
 	}
 }
 //#endregion
 //#region Deck builder
 export class DeckBuilder {
 	static #threshold: number = 6;
-	static #delay: number = 250;
+	static #delay: number = 200;
+	static #buzz: number = 10;
 	#service: DeckService;
+	#details: ElementDialog;
 	#spanCount: HTMLSpanElement;
 	#spanGhost: HTMLSpanElement;
 	#slots: HTMLButtonElement[] = [];
 	#cards: Map<HTMLButtonElement, Element> = new Map();
-	#drag: Drag | null = null;
+	#press: Press | null = null;
 	#timer: number | null = null;
 	#swallow: boolean = false;
 
-	constructor(service: DeckService, container: HTMLElement, templateSlot: HTMLTemplateElement, templateCard: HTMLTemplateElement, spanGhost: HTMLSpanElement) {
+	constructor(service: DeckService, details: ElementDialog, container: HTMLElement, templateSlot: HTMLTemplateElement, templateCard: HTMLTemplateElement, spanGhost: HTMLSpanElement) {
 		this.#service = service;
+		this.#details = details;
 		this.#spanGhost = spanGhost;
 		this.#spanCount = container.getElement(HTMLSpanElement, "span#count");
 		const olSlots = container.getElement(HTMLOListElement, "ol#slots");
-		const ulCollection = container.getElement(HTMLUListElement, "ul#collection");
+		const divCollection = container.getElement(HTMLDivElement, "div#collection");
 		const { capacity } = service.content;
 		const { hand } = new Rules();
-		container.getElement(HTMLSpanElement, "span#hint").textContent = `Drag elements into the deck, or tap one to add or remove it. In a match your hand holds ${hand} of these ${capacity} at random.`;
+		container.getElement(HTMLSpanElement, "span#hint").textContent = `Tap to add or remove, drag to place, hold for details. In a match your hand holds ${hand} of these ${capacity} at random.`;
 		const slots = this.#slots;
 		for (let slot = 0; slot < capacity; slot++) {
 			const fragment = document.importNode(templateSlot.content, true);
@@ -75,30 +93,60 @@ export class DeckBuilder {
 			slots.push(buttonSlot);
 			olSlots.appendChild(fragment);
 		}
-		for (const element of PeriodicTable.placeable) {
-			ulCollection.appendChild(this.#render(element, templateCard));
+		for (const phase of Object.values(Phase)) {
+			const elements = PeriodicTable.placeable.filter(element => element.phase === phase);
+			if (elements.length === 0) continue;
+			divCollection.appendChild(this.#group(phase, elements, templateCard));
 		}
+		details.dialog.addEventListener("close", event => this.#refresh());
+		document.addEventListener("keydown", event => this.#escape(event));
 		this.#refresh();
+	}
+
+	#group(phase: Phase, elements: readonly Element[], templateCard: HTMLTemplateElement): HTMLElement {
+		const sectionGroup = document.createElement("section");
+		sectionGroup.classList.add("group", "flex", "column");
+		const h4Phase = document.createElement("h4");
+		h4Phase.classList.add("phase", "flex");
+		const spanTotal = document.createElement("span");
+		spanTotal.classList.add("description");
+		spanTotal.textContent = String(elements.length);
+		h4Phase.append(document.createTextNode(phase), spanTotal);
+		const ulCards = document.createElement("ul");
+		ulCards.classList.add("cards", "with-gap");
+		for (const element of elements) {
+			ulCards.appendChild(this.#render(element, templateCard));
+		}
+		sectionGroup.append(h4Phase, ulCards);
+		return sectionGroup;
 	}
 
 	#render(element: Element, templateCard: HTMLTemplateElement): DocumentFragment {
 		const fragment = document.importNode(templateCard.content, true);
 		const buttonCard = fragment.getElement(HTMLButtonElement, "button.card");
-		buttonCard.style.setProperty("--color", element.color.toString());
+		this.#paint(buttonCard, element);
 		buttonCard.getElement(HTMLSpanElement, "span.name").textContent = element.name;
-		buttonCard.getElement(HTMLSpanElement, "span.reactions").textContent = element.reactions.map(reaction => reaction.name).join(", ");
+		buttonCard.getElement(HTMLSpanElement, "span.icon.flammable").hidden = !element.flammable;
+		buttonCard.getElement(HTMLSpanElement, "span.icon.conductive").hidden = !element.conductive;
 		buttonCard.addEventListener("click", event => void this.#guard(this.#pick(element)));
 		this.#bind(buttonCard);
 		this.#cards.set(buttonCard, element);
 		return fragment;
 	}
 
+	#paint(button: HTMLButtonElement, element: Element): void {
+		const { style } = button;
+		style.setProperty("--color", element.color.toString());
+		style.setProperty("--faded", element.tint(0).toString());
+	}
+
 	#bind(button: HTMLButtonElement): void {
-		button.addEventListener("pointerdown", event => this.#press(event, button));
+		button.addEventListener("pointerdown", event => this.#begin(event, button));
 		button.addEventListener("pointermove", event => this.#follow(event));
 		button.addEventListener("pointerup", event => void this.#guard(this.#release(event)));
 		button.addEventListener("pointercancel", event => this.#cancel());
 		button.addEventListener("touchmove", event => this.#hold(event), { passive: false });
+		button.addEventListener("contextmenu", event => this.#menu(event, button));
 	}
 
 	#refresh(): void {
@@ -114,23 +162,31 @@ export class DeckBuilder {
 		for (const [buttonCard, element] of this.#cards) {
 			const chosen = content.holds(element);
 			buttonCard.classList.toggle("chosen", chosen);
-			buttonCard.title = chosen ? `Remove ${element.name} from the deck` : `Add ${element.name} to the deck`;
+			buttonCard.title = chosen ? `${element.name}: tap to remove, hold for details` : `${element.name}: tap to add, hold for details`;
 		}
 	}
 
 	#fill(buttonSlot: HTMLButtonElement, element: Element): void {
 		const { name } = element;
 		buttonSlot.classList.remove("empty");
-		buttonSlot.title = `${name}: tap to remove, drag to move`;
-		buttonSlot.style.setProperty("--color", element.color.toString());
+		buttonSlot.title = `${name}: tap to remove, drag to move, hold for details`;
+		this.#paint(buttonSlot, element);
 		buttonSlot.getElement(HTMLSpanElement, "span.name").textContent = name;
 	}
 
 	#empty(buttonSlot: HTMLButtonElement): void {
+		const { style } = buttonSlot;
 		buttonSlot.classList.add("empty");
 		buttonSlot.title = "Empty slot: drop an element here";
-		buttonSlot.style.removeProperty("--color");
+		style.removeProperty("--color");
+		style.removeProperty("--faded");
 		buttonSlot.getElement(HTMLSpanElement, "span.name").textContent = "Empty";
+	}
+
+	#element(button: HTMLButtonElement): Element | null {
+		const element = this.#cards.get(button);
+		if (element !== undefined) return element;
+		return this.#service.content.elements.at(this.#slots.indexOf(button)) ?? null;
 	}
 
 	#movable(button: HTMLButtonElement): boolean {
@@ -140,46 +196,73 @@ export class DeckBuilder {
 		return this.#slots.indexOf(button) < content.elements.length;
 	}
 
-	#press(event: PointerEvent, button: HTMLButtonElement): void {
+	#begin(event: PointerEvent, button: HTMLButtonElement): void {
 		this.#swallow = false;
 		this.#cancel();
-		if (!event.isPrimary || !this.#movable(button)) return;
-		const drag = this.#drag = new Drag(button, event);
-		if (event.pointerType === "mouse") return;
-		this.#timer = setTimeout(this.#lift.bind(this, drag), DeckBuilder.#delay);
+		if (!event.isPrimary || event.button !== 0 || this.#element(button) === null) return;
+		const press = this.#press = new Press(button, event);
+		this.#timer = setTimeout(this.#reach.bind(this, press), DeckBuilder.#delay);
 	}
 
-	#lift(drag: Drag): void {
-		const spanGhost = this.#spanGhost;
+	#reach(press: Press): void {
 		this.#timer = null;
-		drag.lift();
-		spanGhost.style.setProperty("--color", drag.button.style.getPropertyValue("--color"));
-		spanGhost.hidden = false;
-		this.#aim(drag, drag.x, drag.y);
+		press.hold();
+		if ("vibrate" in navigator) navigator.vibrate(DeckBuilder.#buzz);
 	}
 
 	#follow(event: PointerEvent): void {
-		const drag = this.#drag;
-		if (drag === null) return;
-		if (!drag.lifted) {
-			if (!drag.strays(event, DeckBuilder.#threshold)) return;
-			if (event.pointerType !== "mouse") return this.#cancel();
-			this.#lift(drag);
+		const press = this.#press;
+		if (press === null) return;
+		if (press.dragging) return this.#aim(press, event.clientX, event.clientY);
+		if (!press.strays(event, DeckBuilder.#threshold)) return;
+		if (!press.held && !press.mouse) return this.#cancel();
+		if (!this.#movable(press.button)) {
+			this.#swallow = press.held;
+			return this.#cancel();
 		}
-		this.#aim(drag, event.clientX, event.clientY);
+		this.#lift(press);
+		this.#aim(press, event.clientX, event.clientY);
+	}
+
+	#lift(press: Press): void {
+		const spanGhost = this.#spanGhost;
+		const timer = this.#timer;
+		if (timer !== null) clearTimeout(timer);
+		this.#timer = null;
+		press.drag();
+		spanGhost.style.setProperty("--color", press.button.style.getPropertyValue("--color"));
+		spanGhost.hidden = false;
 	}
 
 	#hold(event: TouchEvent): void {
-		if (this.#drag?.lifted !== true) return;
+		if (this.#press?.captured !== true) return;
 		event.preventDefault();
 	}
 
-	#aim(drag: Drag, x: number, y: number): void {
+	#menu(event: MouseEvent, button: HTMLButtonElement): void {
+		event.preventDefault();
+		if (this.#press !== null) return;
+		this.#inspect(button);
+	}
+
+	#escape(event: KeyboardEvent): void {
+		if (event.key !== "Escape" || this.#press === null) return;
+		this.#swallow = true;
+		this.#cancel();
+	}
+
+	#inspect(button: HTMLButtonElement): void {
+		const element = this.#element(button);
+		if (element === null) return;
+		this.#details.show(element);
+	}
+
+	#aim(press: Press, x: number, y: number): void {
 		const { style, classList } = this.#spanGhost;
 		const target = this.#find(x, y);
 		style.setProperty("--x", `${x}px`);
 		style.setProperty("--y", `${y}px`);
-		classList.toggle("leaving", target === null && !this.#cards.has(drag.button));
+		classList.toggle("leaving", target === null && !this.#cards.has(press.button));
 		this.#mark(target);
 	}
 
@@ -197,20 +280,25 @@ export class DeckBuilder {
 	}
 
 	async #release(event: PointerEvent): Promise<void> {
-		const drag = this.#drag;
+		const press = this.#press;
 		this.#cancel();
-		if (drag === null || !drag.lifted) return;
+		if (press === null) return;
+		if (press.dragging) {
+			this.#swallow = true;
+			this.#drop(press.button, this.#find(event.clientX, event.clientY));
+			return await this.#commit();
+		}
+		if (!press.held) return;
 		this.#swallow = true;
-		this.#drop(drag.button, this.#find(event.clientX, event.clientY));
-		await this.#commit();
+		this.#inspect(press.button);
 	}
 
 	#cancel(): void {
 		const timer = this.#timer;
 		if (timer !== null) clearTimeout(timer);
 		this.#timer = null;
-		this.#drag?.settle();
-		this.#drag = null;
+		this.#press?.settle();
+		this.#press = null;
 		this.#spanGhost.hidden = true;
 		this.#mark(null);
 	}

@@ -114,17 +114,7 @@ export class Board {
 
 	static #tabulate(): readonly (readonly Uint8Array[])[] {
 		const { elements } = PeriodicTable;
-		return elements.map((element, kind) => element.reactions.map(reaction => {
-			const result = Board.#result(kind, reaction);
-			return Uint8Array.from(elements, (other, id) => Number(id !== result && reaction.affects(other)));
-		}));
-	}
-
-	static #result(kind: number, reaction: Reaction): number {
-		if (reaction.law === Law.spread) return kind;
-		const { product } = reaction;
-		if (product === null) return -1;
-		return PeriodicTable.id(product);
+		return elements.map(element => element.reactions.map(reaction => Uint8Array.from(elements, other => Number(reaction.reaches(element, other)))));
 	}
 
 	get kinds(): ArrayLike<number> { return this.#kinds; }

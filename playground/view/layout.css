@@ -21,10 +21,6 @@ nav {
 	& a.icon-settings span.icon {
 		--url: url(../../assets/icons/gear.svg);
 	}
-
-	& a.icon-information span.icon {
-		--url: url(../../assets/icons/information.svg);
-	}
 }
 
 main {
