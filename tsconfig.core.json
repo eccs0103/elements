@@ -16,6 +16,7 @@
 		"playground/services/match.ts",
 		"playground/services/players.ts",
 		"arena/models/protocol.ts",
-		"arena/services/arena.ts"
+		"arena/services/arena.ts",
+		"settings/models/sentence.ts"
 	]
 }

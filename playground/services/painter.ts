@@ -101,18 +101,19 @@ export class Painter {
 		context.lineCap = "square";
 		for (let owner = 1; owner <= lines.length; owner++) {
 			context.beginPath();
-			for (let cell = 0; cell < owners.length; cell++) {
-				if (owners[cell] !== owner) continue;
-				const x = cell % size;
-				const y = (cell - x) / size;
-				const left = x * scale + inset;
-				const right = (x + 1) * scale - inset;
+			for (let y = 0; y < size; y++) {
 				const top = y * scale + inset;
 				const bottom = (y + 1) * scale - inset;
-				if (y > 0 && owners[cell - size] !== owner) this.#edge(left, top, right, top);
-				if (y < size - 1 && owners[cell + size] !== owner) this.#edge(left, bottom, right, bottom);
-				if (x > 0 && owners[cell - 1] !== owner) this.#edge(left, top, left, bottom);
-				if (x < size - 1 && owners[cell + 1] !== owner) this.#edge(right, top, right, bottom);
+				for (let x = 0; x < size; x++) {
+					const cell = y * size + x;
+					if (owners[cell] !== owner) continue;
+					const left = x * scale + inset;
+					const right = (x + 1) * scale - inset;
+					if (y > 0 && owners[cell - size] !== owner) this.#edge(left, top, right, top);
+					if (y < size - 1 && owners[cell + size] !== owner) this.#edge(left, bottom, right, bottom);
+					if (x > 0 && owners[cell - 1] !== owner) this.#edge(left, top, left, bottom);
+					if (x < size - 1 && owners[cell + 1] !== owner) this.#edge(right, top, right, bottom);
+				}
 			}
 			context.strokeStyle = lines[owner - 1];
 			context.stroke();

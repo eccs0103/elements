@@ -33,8 +33,6 @@ class Press {
 	get held(): boolean { return this.#held; }
 	get dragging(): boolean { return this.#dragging; }
 	get captured(): boolean { return this.#held || this.#dragging; }
-	get x(): number { return this.#x; }
-	get y(): number { return this.#y; }
 
 	strays(event: PointerEvent, threshold: number): boolean {
 		return hypot(event.clientX - this.#x, event.clientY - this.#y) > threshold;

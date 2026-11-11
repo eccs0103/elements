@@ -1,12 +1,13 @@
 "use strict";
 
 import "adaptive-extender/web";
-import { Law, Reach, type Element, type ElementType, type Reaction } from "../../playground/models/elements.js";
+import { type Element } from "../../playground/models/elements.js";
 import { Rules } from "../../playground/models/rules.js";
 import { Board } from "../../playground/services/board.js";
 import { Painter } from "../../playground/services/painter.js";
 import { PeriodicTable } from "../../playground/services/periodic-table.js";
 import { type DeckService } from "../../playground/services/deck-service.js";
+import { Sentence, type Phrase } from "../models/sentence.js";
 
 const { trunc } = Math;
 
@@ -36,7 +37,7 @@ class Demo {
 	play(element: Element, partner: Element | null): void {
 		this.#element = element;
 		this.#partner = partner;
-		this.#reset(element, performance.now());
+		this.#reset(element, partner, performance.now());
 		if (this.#frame === null) this.#request();
 	}
 
@@ -50,9 +51,8 @@ class Demo {
 		this.#frame = requestAnimationFrame(this.#advance.bind(this));
 	}
 
-	#reset(element: Element, time: number): void {
+	#reset(element: Element, partner: Element | null, time: number): void {
 		const size = Demo.#size;
-		const partner = this.#partner;
 		const board = this.#board = new Board(size, Demo.#seed);
 		this.#start = time;
 		this.#ticks = 0;
@@ -73,7 +73,7 @@ class Demo {
 		if (element === null) return;
 		let start = this.#start;
 		if (time - start > Demo.#seconds * 1000) {
-			this.#reset(element, time);
+			this.#reset(element, this.#partner, time);
 			start = time;
 		}
 		const board = this.#board;
@@ -91,7 +91,6 @@ class Demo {
 //#endregion
 //#region Element dialog
 export class ElementDialog {
-	static #crowd: number = 8;
 	#service: DeckService;
 	#rate: number;
 	#dialog: HTMLDialogElement;
@@ -122,10 +121,10 @@ export class ElementDialog {
 		this.#h2Name = dialog.getElement(HTMLHeadingElement, "h2.name");
 		this.#spanPhase = dialog.getElement(HTMLSpanElement, "span.phase");
 		this.#ulTraits = dialog.getElement(HTMLUListElement, "ul.traits");
-		this.#spanVersus = dialog.getElement(HTMLSpanElement, "span.versus");
+		this.#spanVersus = dialog.getElement(HTMLSpanElement, "span#versus");
 		const buttonOpen = this.#buttonOpen = dialog.getElement(HTMLButtonElement, "button.open");
-		this.#olActs = dialog.getElement(HTMLOListElement, "section.acts ol.rows");
-		this.#olThreats = dialog.getElement(HTMLOListElement, "section.threats ol.rows");
+		this.#olActs = dialog.getElement(HTMLOListElement, "ol#acts");
+		this.#olThreats = dialog.getElement(HTMLOListElement, "ol#threats");
 		const buttonToggle = this.#buttonToggle = dialog.getElement(HTMLButtonElement, "button.toggle");
 		this.#demo = new Demo(dialog.getElement(HTMLCanvasElement, "canvas.board"), this.#rate);
 		buttonBack.addEventListener("click", event => this.#back());
@@ -161,11 +160,22 @@ export class ElementDialog {
 		this.#h2Name.textContent = name;
 		this.#spanPhase.textContent = element.phase;
 		this.#traits(element);
-		const acts = this.#acts(element);
-		const threats = this.#threats(element);
+		const rate = this.#rate;
+		const acts = Sentence.acts(element, rate);
+		const threats = Sentence.threats(element, rate);
+		this.#list(this.#olActs, acts, "It does nothing by itself: it only holds its ground.");
+		this.#list(this.#olThreats, threats, "Nothing acts on it: only a drop can replace it.");
 		this.#offer(element);
 		this.#dialog.scrollTop = 0;
-		this.#watch(acts.find(other => !other.is(PeriodicTable.ground)) ?? threats.at(0) ?? null);
+		this.#watch(this.#suggest(acts, threats));
+	}
+
+	#suggest(acts: readonly Sentence[], threats: readonly Sentence[]): Element | null {
+		for (const sentence of acts) {
+			const target = sentence.subjects.find(other => !other.is(PeriodicTable.ground));
+			if (target !== undefined) return target;
+		}
+		return threats.at(0)?.subjects.at(0) ?? null;
 	}
 
 	#paint(spanTile: HTMLSpanElement, element: Element): void {
@@ -203,121 +213,36 @@ export class ElementDialog {
 		return liTrait;
 	}
 
-	#acts(element: Element): Element[] {
-		const olActs = this.#olActs;
-		const partners: Element[] = [];
-		olActs.replaceChildren();
-		for (const reaction of element.reactions) {
-			const targets = PeriodicTable.elements.filter(other => reaction.reaches(element, other));
-			partners.push(...targets);
-			olActs.appendChild(this.#act(element, reaction, targets));
+	#list(olRows: HTMLOListElement, sentences: readonly Sentence[], empty: string): void {
+		olRows.replaceChildren();
+		for (const sentence of sentences) {
+			olRows.appendChild(this.#row(sentence));
 		}
-		if (olActs.childElementCount === 0) olActs.appendChild(this.#empty("It does nothing by itself: it only holds its ground."));
-		return partners;
+		if (sentences.length === 0) olRows.appendChild(this.#empty(empty));
 	}
 
-	#act(element: Element, reaction: Reaction, targets: readonly Element[]): HTMLLIElement {
-		const { law, product, remains } = reaction;
-		const liRow = this.#row(reaction);
-		const pSentence = liRow.getElement(HTMLParagraphElement, "p.sentence");
-		switch (law) {
-		case Law.spread:
-			this.#text(pSentence, reaction.reach === Reach.surrounding ? "Grows in all 8 directions into" : "Grows into");
-			this.#chips(pSentence, targets);
-			this.#text(pSentence, this.#reach(element));
-			break;
-		case Law.convert:
-			this.#text(pSentence, "Turns");
-			this.#chips(pSentence, targets);
-			this.#text(pSentence, "into");
-			this.#chips(pSentence, [this.#resolve(product)]);
-			break;
-		case Law.ignite:
-			this.#text(pSentence, "Sets");
-			this.#chips(pSentence, targets);
-			this.#text(pSentence, "on fire, turning them into");
-			this.#chips(pSentence, [this.#resolve(product)]);
-			break;
-		case Law.cool:
-			this.#text(pSentence, "Turns");
-			this.#chips(pSentence, targets);
-			this.#text(pSentence, "into");
-			this.#chips(pSentence, [this.#resolve(product)]);
-			this.#text(pSentence, `${this.#uses(element)}, then becomes`);
-			this.#chips(pSentence, [this.#resolve(remains)]);
-			break;
-		case Law.destroy:
-			this.#text(pSentence, "Destroys");
-			this.#chips(pSentence, targets);
-			this.#text(pSentence, "into");
-			this.#chips(pSentence, [this.#resolve(product)]);
-			this.#text(pSentence, "and becomes");
-			this.#chips(pSentence, [this.#resolve(remains)]);
-			break;
-		case Law.burnout:
-			this.#text(pSentence, "Then becomes");
-			this.#chips(pSentence, [this.#resolve(remains)]);
-			break;
-		default: throw new TypeError(`Invalid '${law}' law`);
-		}
-		return liRow;
-	}
-
-	#threats(element: Element): Element[] {
-		const olThreats = this.#olThreats;
-		const enemies: Element[] = [];
-		olThreats.replaceChildren();
-		for (const other of PeriodicTable.elements) {
-			if (other.is(element)) continue;
-			for (const reaction of other.reactions) {
-				if (!reaction.reaches(other, element)) continue;
-				if (!enemies.includes(other)) enemies.push(other);
-				olThreats.appendChild(this.#threat(other, reaction));
-			}
-		}
-		if (olThreats.childElementCount === 0) olThreats.appendChild(this.#empty("Nothing acts on it: only a drop can replace it."));
-		return enemies;
-	}
-
-	#threat(other: Element, reaction: Reaction): HTMLLIElement {
-		const { law, product, remains } = reaction;
-		const liRow = this.#row(reaction);
-		const pSentence = liRow.getElement(HTMLParagraphElement, "p.sentence");
-		this.#chips(pSentence, [other]);
-		switch (law) {
-		case Law.spread:
-			this.#text(pSentence, "grows over it");
-			break;
-		case Law.convert:
-			this.#text(pSentence, "turns it into");
-			this.#chips(pSentence, [this.#resolve(product)]);
-			break;
-		case Law.ignite:
-			this.#text(pSentence, "sets it on fire, turning it into");
-			this.#chips(pSentence, [this.#resolve(product)]);
-			break;
-		case Law.cool:
-			this.#text(pSentence, "turns it into");
-			this.#chips(pSentence, [this.#resolve(product)]);
-			break;
-		case Law.destroy:
-			this.#text(pSentence, "destroys it into");
-			this.#chips(pSentence, [this.#resolve(product)]);
-			this.#text(pSentence, "and becomes");
-			this.#chips(pSentence, [this.#resolve(remains)]);
-			break;
-		default: throw new TypeError(`Invalid '${law}' law`);
-		}
-		return liRow;
-	}
-
-	#row(reaction: Reaction): HTMLLIElement {
+	#row(sentence: Sentence): HTMLLIElement {
 		const fragment = document.importNode(this.#templateRow.content, true);
 		const liRow = fragment.getElement(HTMLLIElement, "li.row");
-		const seconds = this.#seconds(reaction.interval);
-		liRow.getElement(HTMLSpanElement, "span.when").textContent = `${reaction.name} · ${reaction.law === Law.burnout ? "after" : "every"} ${seconds} s`;
-		liRow.getElement(HTMLSpanElement, "span.summary").textContent = reaction.description;
+		const pSentence = liRow.getElement(HTMLParagraphElement, "p");
+		liRow.getElement(HTMLElement, "header").textContent = sentence.when;
+		liRow.getElement(HTMLElement, "footer").textContent = sentence.summary;
+		for (const phrase of sentence.phrases) {
+			this.#phrase(pSentence, phrase);
+		}
 		return liRow;
+	}
+
+	#phrase(pSentence: HTMLParagraphElement, phrase: Phrase): void {
+		const { text, compact } = phrase;
+		if (text !== null) {
+			const spanText = document.createElement("span");
+			spanText.textContent = text;
+			pSentence.appendChild(spanText);
+		}
+		for (const element of phrase.elements) {
+			pSentence.appendChild(this.#chip(element, compact));
+		}
 	}
 
 	#empty(text: string): HTMLLIElement {
@@ -325,19 +250,6 @@ export class ElementDialog {
 		liEmpty.classList.add("description");
 		liEmpty.textContent = text;
 		return liEmpty;
-	}
-
-	#text(pSentence: HTMLParagraphElement, text: string): void {
-		const spanText = document.createElement("span");
-		spanText.textContent = text;
-		pSentence.appendChild(spanText);
-	}
-
-	#chips(pSentence: HTMLParagraphElement, elements: readonly Element[]): void {
-		const crowded = elements.length > ElementDialog.#crowd;
-		for (const element of elements) {
-			pSentence.appendChild(this.#chip(element, crowded));
-		}
 	}
 
 	#chip(element: Element, compact: boolean): HTMLButtonElement {
@@ -351,26 +263,6 @@ export class ElementDialog {
 		buttonChip.setAttribute("aria-label", `Watch ${name}`);
 		buttonChip.addEventListener("click", event => this.#watch(element));
 		return buttonChip;
-	}
-
-	#resolve(type: ElementType | null): Element {
-		if (type === null) throw new ReferenceError("The reaction has no resulting element");
-		return PeriodicTable.at(PeriodicTable.id(type));
-	}
-
-	#seconds(interval: number): string {
-		return String(Number(((interval + 1) / this.#rate).toFixed(2)));
-	}
-
-	#reach(element: Element): string {
-		const { budget } = element;
-		if (budget === 0) return "without limit";
-		return `up to ${budget - 1} cells away`;
-	}
-
-	#uses(element: Element): string {
-		const { budget } = element;
-		return `${budget + 1} times`;
 	}
 
 	#watch(partner: Element | null): void {

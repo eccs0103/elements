@@ -99,7 +99,8 @@ button.card {
 		block-size: calc(1.5 * var(--size-standart));
 	}
 
-	&.chosen {
+	&.chosen,
+	&.lifted {
 		opacity: 0.4;
 	}
 
@@ -111,10 +112,6 @@ button.card {
 
 	&.target {
 		outline: var(--size-separator) solid var(--color-highlight);
-	}
-
-	&.lifted {
-		opacity: 0.4;
 	}
 }
 
@@ -129,7 +126,6 @@ span.ghost {
 	block-size: var(--size-large-standart);
 	aspect-ratio: 1;
 	background-image: linear-gradient(135deg, var(--color), var(--faded, var(--color)));
-	background-color: var(--color);
 	opacity: 0.8;
 	pointer-events: none;
 	translate: calc(var(--x) - 50%) calc(var(--y) - 50%);
