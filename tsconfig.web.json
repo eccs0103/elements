@@ -12,6 +12,7 @@
 		"playground/view/tray.ts",
 		"playground/view/crosshair.ts",
 		"playground/view/peek.ts",
+		"playground/view/swatch.ts",
 		"arena/services/relay.ts",
 		"arena/services/client.ts",
 		"settings/**/*.ts"

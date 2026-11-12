@@ -51,6 +51,11 @@ export class Deck extends Model {
 		elements.splice(this.#slot(slot), 1);
 	}
 
+	toggle(element: Element): void {
+		if (this.holds(element)) return this.remove(element);
+		this.add(element);
+	}
+
 	place(slot: number, element: Element): void {
 		const { elements } = this;
 		if (slot >= elements.length) return this.add(element);

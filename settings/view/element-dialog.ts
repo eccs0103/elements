@@ -7,7 +7,8 @@ import { Board } from "../../playground/services/board.js";
 import { Painter } from "../../playground/services/painter.js";
 import { PeriodicTable } from "../../playground/services/periodic-table.js";
 import { type DeckService } from "../../playground/services/deck-service.js";
-import { Sentence, type Phrase } from "../models/sentence.js";
+import { Sentence, type Phrase } from "../../playground/models/sentence.js";
+import { Swatch } from "../../playground/view/swatch.js";
 
 const { trunc } = Math;
 
@@ -156,7 +157,7 @@ export class ElementDialog {
 		const element = this.#current();
 		const { name } = element;
 		this.#buttonBack.hidden = this.#history.length < 2;
-		this.#paint(this.#spanTile, element);
+		Swatch.paint(this.#spanTile, element);
 		this.#h2Name.textContent = name;
 		this.#spanPhase.textContent = element.phase;
 		this.#traits(element);
@@ -178,17 +179,9 @@ export class ElementDialog {
 		return threats.at(0)?.subjects.at(0) ?? null;
 	}
 
-	#paint(spanTile: HTMLSpanElement, element: Element): void {
-		const { style } = spanTile;
-		style.setProperty("--color", element.color.toString());
-		style.setProperty("--faded", element.tint(0).toString());
-	}
-
 	#traits(element: Element): void {
-		const ulTraits = this.#ulTraits;
 		const { heat } = element;
-		ulTraits.replaceChildren();
-		const liHeat = this.#trait("heat", `Heat ${heat > 0 ? "+" : ""}${heat}`);
+		const liHeat = Swatch.traits(this.#ulTraits, element);
 		const spanScale = document.createElement("span");
 		spanScale.classList.add("scale", "flex", "alt-center");
 		for (let step = -3; step <= 3; step++) {
@@ -199,18 +192,6 @@ export class ElementDialog {
 			spanScale.appendChild(spanDot);
 		}
 		liHeat.appendChild(spanScale);
-		ulTraits.appendChild(liHeat);
-		if (element.flammable) ulTraits.appendChild(this.#trait("flammable", "Flammable"));
-		if (element.conductive) ulTraits.appendChild(this.#trait("conductive", "Conducts"));
-	}
-
-	#trait(kind: string, text: string): HTMLLIElement {
-		const liTrait = document.createElement("li");
-		liTrait.classList.add("trait", "depth", "rounded", "flex", "alt-center", "with-gap", "small-gap", "with-padding", "small-padding", "font-smaller-2", kind);
-		const spanIcon = document.createElement("span");
-		spanIcon.classList.add("icon");
-		liTrait.append(spanIcon, document.createTextNode(text));
-		return liTrait;
 	}
 
 	#list(olRows: HTMLOListElement, sentences: readonly Sentence[], empty: string): void {
@@ -256,7 +237,7 @@ export class ElementDialog {
 		const fragment = document.importNode(this.#templateChip.content, true);
 		const buttonChip = fragment.getElement(HTMLButtonElement, "button.chip");
 		const { name } = element;
-		this.#paint(buttonChip.getElement(HTMLSpanElement, "span.tile"), element);
+		Swatch.paint(buttonChip.getElement(HTMLSpanElement, "span.tile"), element);
 		buttonChip.getElement(HTMLSpanElement, "span.name").textContent = name;
 		buttonChip.classList.toggle("compact", compact);
 		buttonChip.title = `Watch ${name} here`;
@@ -312,10 +293,8 @@ export class ElementDialog {
 	async #toggle(): Promise<void> {
 		const element = this.#current();
 		const service = this.#service;
-		const { content } = service;
 		try {
-			if (content.holds(element)) content.remove(element);
-			else content.add(element);
+			service.content.toggle(element);
 			await service.save();
 		} catch (reason) {
 			window.alert(Error.from(reason).message);

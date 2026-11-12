@@ -244,7 +244,7 @@ export class Board {
 		const chosen = candidates[this.#random.integer(found - 1)];
 		switch (law) {
 		case Law.spread: this.#spawn(chosen, kind, limited ? budget - 1 : null, owner); break;
-		case Law.ignite: this.#spawn(chosen, this.#require(product), null, owner); break;
+		case Law.ignite:
 		case Law.convert: this.#spawn(chosen, this.#require(product), null, owner); break;
 		case Law.cool: this.#cool(cell, chosen, this.#require(product), this.#require(remains)); break;
 		case Law.destroy: this.#spawn(chosen, this.#require(product), null, owner); this.#spawn(cell, this.#require(remains), null, owner); break;

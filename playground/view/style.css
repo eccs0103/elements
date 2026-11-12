@@ -92,31 +92,6 @@ section#peek {
 		list-style: none;
 	}
 
-	& li.trait span.icon {
-		inline-size: var(--size-small-standart);
-		block-size: var(--size-small-standart);
-	}
-
-	& li.trait.heat span.icon {
-		--url: url(../../assets/icons/temperature-half.svg);
-	}
-
-	& li.trait.flammable span.icon {
-		--url: url(../../assets/icons/fire.svg);
-	}
-
-	& li.trait.conductive span.icon {
-		--url: url(../../assets/icons/bolt.svg);
-	}
-
-	& span.tile {
-		display: inline-block;
-		flex-shrink: 0;
-		aspect-ratio: 1;
-		block-size: var(--size-standart);
-		background-image: linear-gradient(135deg, var(--color), var(--faded, var(--color)));
-	}
-
 	& span.chip span.tile {
 		block-size: var(--size-small-standart);
 	}

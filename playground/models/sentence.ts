@@ -1,8 +1,8 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Law, Reach, type Element, type ElementType, type Reaction } from "../../playground/models/elements.js";
-import { PeriodicTable } from "../../playground/services/periodic-table.js";
+import { Law, Reach, type Element, type ElementType, type Reaction } from "./elements.js";
+import { PeriodicTable } from "../services/periodic-table.js";
 
 //#region Phrase
 export class Phrase {

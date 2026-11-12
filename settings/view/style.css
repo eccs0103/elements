@@ -30,26 +30,12 @@ section.group > h4.phase {
 	text-transform: capitalize;
 }
 
-span.tile {
-	display: inline-block;
-	flex-shrink: 0;
-	aspect-ratio: 1;
-	block-size: var(--size-standart);
-	background-image: linear-gradient(135deg, var(--color), var(--faded, var(--color)));
-}
-
-span.icon.flammable,
-li.trait.flammable span.icon {
+span.icon.flammable {
 	--url: url(../../assets/icons/fire.svg);
 }
 
-span.icon.conductive,
-li.trait.conductive span.icon {
+span.icon.conductive {
 	--url: url(../../assets/icons/bolt.svg);
-}
-
-li.trait.heat span.icon {
-	--url: url(../../assets/icons/temperature-half.svg);
 }
 
 span.marks {
@@ -177,11 +163,6 @@ dialog#details {
 
 	& ul.traits {
 		list-style: none;
-	}
-
-	& li.trait span.icon {
-		inline-size: var(--size-small-standart);
-		block-size: var(--size-small-standart);
 	}
 
 	& span.scale {

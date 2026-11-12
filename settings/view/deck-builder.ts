@@ -6,6 +6,7 @@ import { Rules } from "../../playground/models/rules.js";
 import { type DeckService } from "../../playground/services/deck-service.js";
 import { PeriodicTable } from "../../playground/services/periodic-table.js";
 import { type ElementDialog } from "./element-dialog.js";
+import { Swatch } from "../../playground/view/swatch.js";
 
 const { hypot } = Math;
 
@@ -122,7 +123,7 @@ export class DeckBuilder {
 	#render(element: Element, templateCard: HTMLTemplateElement): DocumentFragment {
 		const fragment = document.importNode(templateCard.content, true);
 		const buttonCard = fragment.getElement(HTMLButtonElement, "button.card");
-		this.#paint(buttonCard, element);
+		Swatch.paint(buttonCard, element);
 		buttonCard.getElement(HTMLSpanElement, "span.name").textContent = element.name;
 		buttonCard.getElement(HTMLSpanElement, "span.icon.flammable").hidden = !element.flammable;
 		buttonCard.getElement(HTMLSpanElement, "span.icon.conductive").hidden = !element.conductive;
@@ -130,12 +131,6 @@ export class DeckBuilder {
 		this.#bind(buttonCard);
 		this.#cards.set(buttonCard, element);
 		return fragment;
-	}
-
-	#paint(button: HTMLButtonElement, element: Element): void {
-		const { style } = button;
-		style.setProperty("--color", element.color.toString());
-		style.setProperty("--faded", element.tint(0).toString());
 	}
 
 	#bind(button: HTMLButtonElement): void {
@@ -168,7 +163,7 @@ export class DeckBuilder {
 		const { name } = element;
 		buttonSlot.classList.remove("empty");
 		buttonSlot.title = `${name}: tap to remove, drag to move, hold for details`;
-		this.#paint(buttonSlot, element);
+		Swatch.paint(buttonSlot, element);
 		buttonSlot.getElement(HTMLSpanElement, "span.name").textContent = name;
 	}
 
@@ -330,9 +325,8 @@ export class DeckBuilder {
 	async #pick(element: Element): Promise<void> {
 		if (this.#consume()) return;
 		const { content } = this.#service;
-		if (content.holds(element)) content.remove(element);
-		else if (content.full) throw new RangeError(`The deck is full. Drag ${element.name} onto a slot to swap it in.`);
-		else content.add(element);
+		if (!content.holds(element) && content.full) throw new RangeError(`The deck is full. Drag ${element.name} onto a slot to swap it in.`);
+		content.toggle(element);
 		await this.#commit();
 	}
 

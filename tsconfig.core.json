@@ -10,13 +10,13 @@
 		"playground/models/rules.ts",
 		"playground/models/move.ts",
 		"playground/models/deck.ts",
+		"playground/models/sentence.ts",
 		"playground/services/periodic-table.ts",
 		"playground/services/board.ts",
 		"playground/services/hand.ts",
 		"playground/services/match.ts",
 		"playground/services/players.ts",
 		"arena/models/protocol.ts",
-		"arena/services/arena.ts",
-		"settings/models/sentence.ts"
+		"arena/services/arena.ts"
 	]
 }

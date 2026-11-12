@@ -5,8 +5,9 @@ import { Nullable } from "adaptive-extender/web";
 import { type Element } from "../models/elements.js";
 import { type Simulation } from "../services/simulation.js";
 import { type Ticket } from "../../arena/models/protocol.js";
-import { Phrase, Sentence } from "../../settings/models/sentence.js";
+import { Phrase, Sentence } from "../models/sentence.js";
 import { type Cell, type Crosshair } from "./crosshair.js";
+import { Swatch } from "./swatch.js";
 
 //#region Peek
 export class Peek {
@@ -95,10 +96,10 @@ export class Peek {
 	#fill(element: Element, holder: number | null, ticket: Ticket): void {
 		const { name, phase } = element;
 		const { rate } = ticket.rules;
-		this.#paint(this.#spanTile, element);
+		Swatch.paint(this.#spanTile, element);
 		this.#h3Title.textContent = name;
 		this.#spanAbout.textContent = `${phase} · ${this.#owner(holder, ticket)}`;
-		this.#traits(element);
+		Swatch.traits(this.#ulTraits, element);
 		this.#acts(Sentence.acts(element, rate));
 		this.#stoppers(Sentence.threats(element, rate));
 	}
@@ -107,29 +108,6 @@ export class Peek {
 		if (holder === null) return "Neutral";
 		if (holder === ticket.human) return "Yours";
 		return "Boss";
-	}
-
-	#paint(spanTile: HTMLSpanElement, element: Element): void {
-		const { style } = spanTile;
-		style.setProperty("--color", element.color.toString());
-		style.setProperty("--faded", element.tint(0).toString());
-	}
-
-	#traits(element: Element): void {
-		const ulTraits = this.#ulTraits;
-		const { heat } = element;
-		ulTraits.replaceChildren(this.#trait("heat", `Heat ${heat > 0 ? "+" : ""}${heat}`));
-		if (element.flammable) ulTraits.appendChild(this.#trait("flammable", "Flammable"));
-		if (element.conductive) ulTraits.appendChild(this.#trait("conductive", "Conducts"));
-	}
-
-	#trait(kind: string, text: string): HTMLLIElement {
-		const liTrait = document.createElement("li");
-		liTrait.classList.add("trait", "depth", "rounded", "flex", "alt-center", "with-gap", "small-gap", "with-padding", "small-padding", "font-smaller-2", kind);
-		const spanIcon = document.createElement("span");
-		spanIcon.classList.add("icon");
-		liTrait.append(spanIcon, document.createTextNode(text));
-		return liTrait;
 	}
 
 	#acts(sentences: readonly Sentence[]): void {
@@ -179,7 +157,7 @@ export class Peek {
 		const fragment = document.importNode(this.#templateChip.content, true);
 		const spanChip = fragment.getElement(HTMLSpanElement, "span.chip");
 		const { name } = element;
-		this.#paint(spanChip.getElement(HTMLSpanElement, "span.tile"), element);
+		Swatch.paint(spanChip.getElement(HTMLSpanElement, "span.tile"), element);
 		spanChip.getElement(HTMLSpanElement, "span.name").textContent = name;
 		spanChip.classList.toggle("compact", compact);
 		spanChip.title = name;
