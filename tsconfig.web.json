@@ -1,20 +1,23 @@
 {
 	"extends": "./tsconfig.base.json",
 	"compilerOptions": {
-		"lib": [ "DOM", "DOM.Iterable", "ES2025", "ESNext.Array", "ESNext.Collection" ]
+		"lib": [ "DOM", "DOM.Iterable", "ES2025", "ESNext.Array", "ESNext.Collection" ],
+		"jsx": "react-jsx"
 	},
 	"include": [
 		"environment/controllers/**/*.ts",
 		"environment/services/**/*.ts",
-		"playground/controllers/playground-controller.ts",
+		"playground/controllers/playground-controller.tsx",
 		"playground/services/simulation.ts",
 		"playground/services/deck-service.ts",
-		"playground/view/tray.ts",
+		"playground/view/playground-app.tsx",
+		"playground/view/tray.tsx",
 		"playground/view/crosshair.ts",
-		"playground/view/peek.ts",
-		"playground/view/swatch.ts",
+		"playground/view/peek.tsx",
+		"playground/view/swatch.tsx",
 		"arena/services/relay.ts",
 		"arena/services/client.ts",
-		"settings/**/*.ts"
+		"settings/**/*.ts",
+		"settings/**/*.tsx"
 	]
 }

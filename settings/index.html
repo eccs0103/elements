@@ -21,7 +21,7 @@
 	<link rel="stylesheet" href="../playground/view/layout.css">
 	<link rel="stylesheet" href="./view/style.css">
 	<script type="module" src="../environment/services/analytics-service.ts"></script>
-	<script type="module" src="./controllers/settings-controller.ts"></script>
+	<script type="module" src="./controllers/settings-controller.tsx"></script>
 </head>
 
 <body>
@@ -33,100 +33,7 @@
 			<span class="icon">Settings</span>
 		</a>
 	</nav>
-	<main class="flex main-center">
-		<div class="panel flex column with-gap with-padding large-padding">
-			<div class="layer rounded flex column with-padding large-padding">
-				<h3>General</h3>
-				<section class="option">
-					<p class="title">Color scheme</p>
-					<select id="scheme" class="value depth rounded with-padding flex" required>
-						<option value="system">System</option>
-						<option value="light">Light</option>
-						<option value="dark">Dark</option>
-					</select>
-					<dfn class="definition">External design of the page: color scheme, background and foreground, font.</dfn>
-				</section>
-			</div>
-			<div id="deck" class="layer rounded flex column with-padding large-padding">
-				<header class="layer flex column">
-					<h3 class="flex">Deck<span id="count" class="description"></span></h3>
-					<span id="hint" class="description"></span>
-					<ol id="slots" class="with-gap"></ol>
-				</header>
-				<div id="collection" class="flex column with-gap large-gap"></div>
-			</div>
-		</div>
-	</main>
-	<dialog id="details" class="layer rounded" aria-labelledby="details-name">
-		<div class="flex column with-gap large-gap with-padding large-padding">
-			<header class="flex alt-center with-gap">
-				<button type="button" class="back icon-button rounded flex center" title="Back" aria-label="Back">
-					<span class="icon"></span>
-				</button>
-				<span class="tile rounded"></span>
-				<div class="title flex column">
-					<h2 id="details-name" class="name"></h2>
-					<span class="phase description"></span>
-				</div>
-				<button type="button" class="close icon-button rounded flex center" title="Close" aria-label="Close">
-					<span class="icon"></span>
-				</button>
-			</header>
-			<ul class="traits flex wrap with-gap"></ul>
-			<figure class="demo flex column with-gap">
-				<canvas class="board depth rounded"></canvas>
-				<figcaption class="flex alt-center with-gap">
-					<span id="versus"></span>
-					<button type="button" class="open highlight">Open</button>
-				</figcaption>
-			</figure>
-			<section class="flex column with-gap">
-				<h3>What it does</h3>
-				<ol id="acts" class="rows flex column with-gap"></ol>
-			</section>
-			<section class="flex column with-gap">
-				<h3>What stops it</h3>
-				<ol id="threats" class="rows flex column with-gap"></ol>
-			</section>
-			<footer class="flex column with-gap">
-				<button type="button" class="toggle rounded with-padding"></button>
-			</footer>
-		</div>
-	</dialog>
-	<template id="slot">
-		<li>
-			<button type="button" class="card slot depth rounded flex column center with-padding">
-				<span class="tile rounded"></span>
-				<span class="name font-smaller-2"></span>
-			</button>
-		</li>
-	</template>
-	<template id="card">
-		<li>
-			<button type="button" class="card depth rounded flex column center with-padding">
-				<span class="tile rounded"></span>
-				<span class="name font-smaller-2"></span>
-				<span class="marks flex center with-gap small-gap">
-					<span class="icon flammable" title="Flammable"></span>
-					<span class="icon conductive" title="Conducts"></span>
-				</span>
-			</button>
-		</li>
-	</template>
-	<template id="row">
-		<li class="row flex column">
-			<header class="description font-smaller-3"></header>
-			<p class="flex wrap alt-center with-gap small-gap"></p>
-			<footer class="description font-smaller-3"></footer>
-		</li>
-	</template>
-	<template id="chip">
-		<button type="button" class="chip depth rounded flex alt-center with-gap small-gap">
-			<span class="tile rounded"></span>
-			<span class="name font-smaller-2"></span>
-		</button>
-	</template>
-	<span class="ghost rounded" hidden></span>
+	<div id="root" class="contents"></div>
 </body>
 
 </html>

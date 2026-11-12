@@ -21,7 +21,7 @@
 	<link rel="stylesheet" href="../playground/view/layout.css">
 	<link rel="stylesheet" href="./view/style.css">
 	<script type="module" src="../environment/services/analytics-service.ts"></script>
-	<script type="module" src="./controllers/playground-controller.ts"></script>
+	<script type="module" src="./controllers/playground-controller.tsx"></script>
 </head>
 
 <body>
@@ -33,45 +33,7 @@
 			<span class="icon">Settings</span>
 		</a>
 	</nav>
-	<main>
-		<div id="stage">
-			<canvas id="board"></canvas>
-			<div id="crosshair" hidden>
-				<span class="row"></span>
-				<span class="column"></span>
-				<span class="cell"></span>
-			</div>
-			<section id="peek" class="layer rounded flex column with-gap with-padding large-padding" hidden>
-				<header class="flex alt-center with-gap">
-					<span id="tile" class="tile rounded"></span>
-					<div class="flex column">
-						<h3 id="title"></h3>
-						<span id="about" class="description font-smaller-2"></span>
-					</div>
-				</header>
-				<ul id="traits" class="flex wrap with-gap small-gap"></ul>
-				<h4>Does</h4>
-				<ol id="acts" class="flex column with-gap"></ol>
-				<h4>Stopped by</h4>
-				<div id="stoppers" class="flex wrap alt-center with-gap small-gap"></div>
-			</section>
-			<div id="toolkit" class="flex">
-				<div id="hand" class="flex"></div>
-			</div>
-		</div>
-	</main>
-	<template id="line">
-		<li class="flex column">
-			<header class="description font-smaller-3"></header>
-			<p class="flex wrap alt-center with-gap small-gap"></p>
-		</li>
-	</template>
-	<template id="chip">
-		<span class="chip flex alt-center with-gap small-gap">
-			<span class="tile rounded"></span>
-			<span class="name font-smaller-2"></span>
-		</span>
-	</template>
+	<div id="root" class="contents"></div>
 </body>
 
 </html>
