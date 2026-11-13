@@ -92,12 +92,31 @@ section#peek {
 		list-style: none;
 	}
 
+	& > * {
+		flex-shrink: 0;
+	}
+
+	& ol#acts {
+		flex-shrink: 1;
+		min-block-size: 0;
+		overflow: hidden;
+		animation: clipped linear both;
+		animation-timeline: scroll(self);
+	}
+
 	& span.chip span.tile {
 		block-size: var(--size-small-standart);
 	}
 
 	& span.chip.compact span.name {
 		display: none;
+	}
+}
+
+@keyframes clipped {
+	from,
+	to {
+		mask-image: linear-gradient(to bottom, black calc(100% - var(--size-standart)), transparent);
 	}
 }
 

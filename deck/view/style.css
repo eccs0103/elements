@@ -2,7 +2,10 @@ div#deck > header {
 	position: sticky;
 	inset-block-start: 0;
 	z-index: 1;
-	padding-block-end: var(--size-gap);
+	margin: calc(-1 * var(--size-large-gap)) calc(-1 * var(--size-large-gap)) 0;
+	padding: var(--size-large-gap) var(--size-large-gap) var(--size-gap);
+	border-start-start-radius: inherit;
+	border-start-end-radius: inherit;
 
 	& > h3 {
 		justify-content: space-between;
@@ -83,6 +86,13 @@ button.card {
 
 	&.slot span.tile {
 		block-size: calc(1.5 * var(--size-standart));
+	}
+
+	& span.name {
+		max-inline-size: 100%;
+		text-align: center;
+		hyphens: auto;
+		overflow-wrap: break-word;
 	}
 
 	&.chosen,
