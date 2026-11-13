@@ -6,9 +6,18 @@ div#deck > header {
 	padding: var(--size-large-gap) var(--size-large-gap) var(--size-gap);
 	border-start-start-radius: inherit;
 	border-start-end-radius: inherit;
+	animation: stuck linear both;
+	animation-timeline: scroll(nearest);
+	animation-range: 0 var(--size-large-gap);
 
 	& > h3 {
 		justify-content: space-between;
+	}
+}
+
+@keyframes stuck {
+	to {
+		box-shadow: 0 var(--size-gap) var(--size-large-gap) calc(-1 * var(--size-small-gap)) var(--color-shadow);
 	}
 }
 
@@ -90,9 +99,9 @@ button.card {
 
 	& span.name {
 		max-inline-size: 100%;
-		text-align: center;
-		hyphens: auto;
-		overflow-wrap: break-word;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	&.chosen,

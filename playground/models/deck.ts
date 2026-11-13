@@ -41,6 +41,7 @@ export class Deck extends Model {
 		const { elements } = this;
 		if (elements.length >= this.capacity) throw new RangeError("The deck is full");
 		elements.push(element);
+		this.#sort();
 	}
 
 	remove(slot: number): void;
@@ -61,16 +62,7 @@ export class Deck extends Model {
 		if (slot >= elements.length) return this.add(element);
 		this.#admit(element);
 		elements[this.#slot(slot)] = element;
-	}
-
-	move(from: number, to: number): void {
-		const { elements } = this;
-		const slot = this.#slot(from);
-		if (to >= elements.length) {
-			elements.push(...elements.splice(slot, 1));
-			return;
-		}
-		elements.swap(slot, this.#slot(to));
+		this.#sort();
 	}
 
 	reconcile(): void {
@@ -81,6 +73,11 @@ export class Deck extends Model {
 			kept.push(element);
 		}
 		this.elements = kept.slice(0, this.capacity);
+		this.#sort();
+	}
+
+	#sort(): void {
+		this.elements.sort((element, other) => PeriodicTable.id(element) - PeriodicTable.id(other));
 	}
 
 	#admit(element: Element): void {

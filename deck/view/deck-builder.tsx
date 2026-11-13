@@ -159,8 +159,9 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 		const spot = find(x, y);
 		style.setProperty("--x", `${x}px`);
 		style.setProperty("--y", `${y}px`);
-		setLeaving(spot === null && press.slot !== null);
-		setTarget(spot);
+		const card = press.slot === null;
+		setLeaving(spot === null && !card);
+		setTarget(card ? spot : null);
 	};
 
 	const movable = (press: Press): boolean => {
@@ -212,8 +213,7 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 			if (spot !== null) content.place(spot, element);
 			return;
 		}
-		if (spot === null) return content.remove(slot);
-		content.move(slot, spot);
+		if (spot === null) content.remove(slot);
 	};
 
 	const release = async (event: PointerEvent<HTMLButtonElement>): Promise<void> => {
@@ -261,7 +261,7 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 		const empty = element === null ? " empty" : String.empty;
 		const marked = target === slot ? " target" : String.empty;
 		const pressed = element === null ? String.empty : gesture(slot, element);
-		const title = element === null ? "Empty slot: drop an element here" : `${element.name}: tap to remove, drag to move, hold for details`;
+		const title = element === null ? "Empty slot: drop an element here" : `${element.name}: tap or drag out to remove, hold for details`;
 		slots.push(
 			<li key={slot}>
 				<button type="button" ref={(buttonSlot) => { refSlots.current[slot] = buttonSlot; }} className={`card slot depth rounded flex column center with-padding${empty}${marked}${pressed}`} title={title} style={element === null ? undefined : Swatch.style(element)} onClick={event => void guard(tap(slot))} onPointerDown={event => begin(event, slot, element)} onPointerMove={follow} onPointerUp={event => void guard(release(event))} onPointerCancel={event => cancel()} onContextMenu={event => menu(event, element)}>
