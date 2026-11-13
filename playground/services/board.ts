@@ -1,14 +1,14 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Random } from "adaptive-extender/core";
 import { Law, Reach, type Element, type ElementType, type Reaction } from "../models/elements.js";
 import { PeriodicTable } from "./periodic-table.js";
 
-const { max } = Math;
+const { max, imul } = Math;
 
 //#region Neighbourhood
 class Neighbourhood {
+	// Each offset list reversed must equal its own negation: Board.#pick mirrors a pick by reversing the candidates.
 	static #orthogonal: Int8Array = Int8Array.of(0, -1, -1, 0, 1, 0, 0, 1);
 	static #surrounding: Int8Array = Int8Array.of(-1, -1, 0, -1, 1, -1, -1, 0, 1, 0, -1, 1, 0, 1, 1, 1);
 	#starts: Uint32Array;
@@ -79,7 +79,8 @@ export class Board {
 	#size: number;
 	#orthogonal: Neighbourhood;
 	#surrounding: Neighbourhood;
-	#random: Random;
+	#seed: number;
+	#tick: number = 0;
 	#kinds: Uint8Array;
 	#budgets: Uint8Array;
 	#tints: Uint8Array;
@@ -99,7 +100,7 @@ export class Board {
 		this.#size = size;
 		this.#orthogonal = Neighbourhood.orthogonal(size);
 		this.#surrounding = Neighbourhood.surrounding(size);
-		this.#random = new Random(seed);
+		this.#seed = seed;
 		this.#kinds = new Uint8Array(area);
 		this.#budgets = new Uint8Array(area);
 		this.#tints = new Uint8Array(area);
@@ -131,6 +132,7 @@ export class Board {
 		board.#progress.set(this.#progress);
 		board.#births.set(this.#births);
 		board.#reverse = this.#reverse;
+		board.#tick = this.#tick;
 		return board;
 	}
 
@@ -171,6 +173,7 @@ export class Board {
 			this.#execute(cell);
 		}
 		this.#reverse = !reverse;
+		this.#tick++;
 	}
 
 	#spawn(cell: number, kind: number, budget: number | null, owner: number): void {
@@ -208,7 +211,7 @@ export class Board {
 				steps[slot]++;
 				continue;
 			}
-			if (!this.#act(cell, kind, reaction, masks[slot])) continue;
+			if (!this.#act(cell, kind, reaction, masks[slot], slot)) continue;
 			steps[slot] = 0;
 			if (reaction.law === Law.ignite) this.#rekindle(reactions);
 		}
@@ -227,7 +230,7 @@ export class Board {
 		}
 	}
 
-	#act(cell: number, kind: number, reaction: Reaction, mask: Uint8Array): boolean {
+	#act(cell: number, kind: number, reaction: Reaction, mask: Uint8Array, slot: number): boolean {
 		const { law, product, remains } = reaction;
 		const owner = this.#owner;
 		if (law === Law.burnout) {
@@ -241,7 +244,7 @@ export class Board {
 		const budget = this.#budget;
 		const limited = Board.#capacities[kind] > 0;
 		if (law === Law.spread && limited && budget <= 1) return false;
-		const chosen = candidates[this.#random.integer(found - 1)];
+		const chosen = candidates[this.#pick(cell, slot, found)];
 		switch (law) {
 		case Law.spread: this.#spawn(chosen, kind, limited ? budget - 1 : null, owner); break;
 		case Law.ignite:
@@ -251,6 +254,20 @@ export class Board {
 		default: throw new TypeError(`Invalid '${law}' law`);
 		}
 		return true;
+	}
+
+	#pick(cell: number, slot: number, found: number): number {
+		const twin = this.#kinds.length - 1 - cell;
+		const mirrored = cell > twin;
+		const index = Board.#hash(this.#seed, this.#tick, mirrored ? twin : cell, slot) % found;
+		return mirrored ? found - 1 - index : index;
+	}
+
+	static #hash(seed: number, tick: number, cell: number, slot: number): number {
+		let value = seed ^ imul(tick, 0x9E3779B1) ^ imul(cell, 0x85EBCA77) ^ imul(slot, 0xC2B2AE3D);
+		value = imul(value ^ (value >>> 16), 0x85EBCA6B);
+		value = imul(value ^ (value >>> 13), 0xC2B2AE35);
+		return (value ^ (value >>> 16)) >>> 0;
 	}
 
 	#require(type: ElementType | null): number {

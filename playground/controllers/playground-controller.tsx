@@ -52,12 +52,9 @@ class PlaygroundController extends Controller {
 		const verdict = await arena.judge(report);
 		const { humanity, boss } = await arena.standing();
 		const { human } = ticket;
-		const { winner, scores } = verdict;
-		const mine = scores[human];
+		const mine = verdict.scores[human];
 		const theirs = verdict.against(human);
-		let outcome = "Draw";
-		if (winner === human) outcome = "You won";
-		else if (winner !== null) outcome = "The boss won";
+		const outcome = verdict.winner(human) === human ? "You won" : "The boss won";
 		if (!window.confirm(`${outcome} ${mine} : ${theirs}.\nHumanity ${humanity} : ${boss} Boss.\nPlay again?`)) return;
 		location.reload();
 	}

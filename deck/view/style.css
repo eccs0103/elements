@@ -15,6 +15,10 @@ div#deck > header {
 	}
 }
 
+button#fill span.icon {
+	--url: url(../../assets/icons/shuffle.svg);
+}
+
 @keyframes stuck {
 	to {
 		box-shadow: 0 var(--size-gap) var(--size-large-gap) calc(-1 * var(--size-small-gap)) var(--color-shadow);

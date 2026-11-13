@@ -9,6 +9,8 @@ import { Move } from "../../playground/models/move.js";
 import { Match } from "../../playground/services/match.js";
 import { Bot, type Player } from "../../playground/services/players.js";
 
+const { max } = Math;
+
 //#region Entry
 export interface EntryScheme {
 	deck: ElementScheme[];
@@ -78,7 +80,7 @@ export class Ticket extends Model {
 
 	match(): Match {
 		const decks = Iterator.range(0, Match.count).map(side => side === this.human ? this.deck : Deck.random(this.rules, this.seed + 5 + side).elements).toArray();
-		return new Match(this.rules, this.seed, decks);
+		return new Match(this.rules, this.seed, decks, this.human);
 	}
 
 	lineup(human: Player): Player[] {
@@ -142,10 +144,11 @@ export class Verdict extends Model {
 		return new Verdict(Iterator.range(0, Match.count).map(side => match.score(side)).toArray());
 	}
 
-	get winner(): number | null {
-		const [first, second] = this.scores;
-		if (first === second) return null;
-		return first > second ? 0 : 1;
+	winner(human: number): number {
+		const { scores } = this;
+		const mine = scores[human];
+		if (scores.every(score => score <= mine)) return human;
+		return scores.indexOf(max(...scores));
 	}
 
 	against(side: number): number {
@@ -172,9 +175,7 @@ export class Standing extends Model {
 	static get route(): string { return Standing.#route; }
 
 	count(verdict: Verdict, human: number): void {
-		const { winner } = verdict;
-		if (winner === null) return;
-		if (winner === human) this.humanity++;
+		if (verdict.winner(human) === human) this.humanity++;
 		else this.boss++;
 	}
 }

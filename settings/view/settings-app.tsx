@@ -26,6 +26,13 @@ export function SettingsApp({ settings }: SettingsAppProps): ReactElement {
 		}
 	};
 
+	const reset = (): void => {
+		if (!window.confirm("The settings will be reset to their defaults. Are you sure?")) return;
+		settings.reset();
+		settings.content.apply();
+		refresh();
+	};
+
 	return (
 		<main className="flex main-center">
 			<div className="panel flex column with-gap with-padding large-padding">
@@ -39,6 +46,17 @@ export function SettingsApp({ settings }: SettingsAppProps): ReactElement {
 							<option value={Scheme.dark}>Dark</option>
 						</select>
 						<dfn className="definition">External design of the page: color scheme, background and foreground, font.</dfn>
+					</section>
+				</div>
+				<div className="layer rounded flex column with-padding large-padding">
+					<h3>Advanced</h3>
+					<section className="option">
+						<p className="title">Reset settings</p>
+						<button id="reset" type="button" className="value rounded depth alert with-padding flex alt-center with-gap" title="Reset settings" onClick={event => reset()}>
+							<span className="icon in-line"></span>
+							<span>Reset</span>
+						</button>
+						<dfn className="definition">Reverting all configurations to their default states.</dfn>
 					</section>
 				</div>
 			</div>

@@ -1,6 +1,7 @@
 "use strict";
 
 import "adaptive-extender/web";
+import { Random } from "adaptive-extender/web";
 import { type CSSProperties, type MouseEvent, type PointerEvent, type ReactElement, type RefObject, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Phase, type Element } from "../../playground/models/elements.js";
@@ -11,6 +12,7 @@ import { Swatch } from "../../playground/view/swatch.js";
 
 const { body } = document;
 const { hypot } = Math;
+const random = Random.global;
 
 //#region Press
 class Press {
@@ -250,6 +252,11 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 		await commit();
 	};
 
+	const fill = async (): Promise<void> => {
+		content.fill(random);
+		await commit();
+	};
+
 	const gesture = (slot: number | null, element: Element): string => {
 		if (press === null || !press.is(slot, element)) return String.empty;
 		return press.classes;
@@ -276,7 +283,16 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 	return (
 		<div id="deck" ref={refDeck} className="layer rounded flex column with-padding large-padding">
 			<header className="layer flex column">
-				<h3 className="flex">Deck<span className="description">{`${elements.length} / ${capacity}`}</span></h3>
+				<h3 className="flex">
+					Deck
+					<span className="flex alt-center with-gap">
+						<button id="fill" type="button" className="depth rounded flex alt-center with-gap small-gap with-padding small-padding font-smaller-2" title="Fill the free places with random elements" disabled={content.full} onClick={event => void guard(fill())}>
+							<span className="icon in-line"></span>
+							<span>Autofill</span>
+						</button>
+						<span className="description">{`${elements.length} / ${capacity}`}</span>
+					</span>
+				</h3>
 				<span className="description">{`Tap to add or remove, drag to place, hold for details. In a match your hand holds ${hand} of these ${capacity} at random.`}</span>
 				<ol id="slots" className="with-gap">{slots}</ol>
 			</header>

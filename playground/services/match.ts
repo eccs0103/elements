@@ -65,20 +65,24 @@ export class Match {
 	#sides: readonly Side[];
 	#tick: number = 0;
 	#moves: Move[] = [];
+	#favoured: number;
+	#claims: Set<number> = new Set();
 
-	constructor(rules: Rules, seed: number, decks: readonly (readonly Element[])[]) {
+	constructor(rules: Rules, seed: number, decks: readonly (readonly Element[])[], favoured: number) {
 		const { size, hand, pause, rows } = rules;
 		const capacity = Deck.capacity(rules);
 		const count = Match.#count;
 		if (decks.length !== count) throw new RangeError(`A match needs ${count} decks, not ${decks.length}`);
 		if (decks.some(deck => deck.length !== capacity)) throw new RangeError(`A deck must hold exactly ${capacity} elements`);
 		if (decks.some(deck => deck.some(element => !PeriodicTable.places(element)))) throw new TypeError("A deck holds an element that can't be placed");
+		if (!Number.isInteger(favoured) || favoured < 0 || favoured >= count) throw new RangeError(`The favoured side ${favoured} does not exist`);
 		const [south, north] = decks;
 		this.#rules = rules;
+		this.#favoured = favoured;
 		this.#board = new Board(size, seed);
 		this.#sides = [
 			new Side(new Hand(south, hand, seed + 1), size - 1, rows, 1, pause),
-			new Side(new Hand(north, hand, seed + 2), 0, rows, 2, pause),
+			new Side(new Hand(north, hand, seed + 1), 0, rows, 2, pause),
 		];
 	}
 
@@ -139,8 +143,14 @@ export class Match {
 		const { tick, side, slot, x, y } = move;
 		if (tick !== this.#tick || !this.legal(side, slot, x, y)) return false;
 		const seat = this.#side(side);
-		this.#board.drop(seat.take(slot), x, y, seat.owner);
+		const board = this.#board;
+		const element = seat.take(slot);
+		const cell = y * board.size + x;
+		const claims = this.#claims;
 		this.#moves.push(move);
+		if (side === this.#favoured) claims.add(cell);
+		else if (claims.has(cell)) return true;
+		board.drop(element, x, y, seat.owner);
 		return true;
 	}
 
@@ -148,7 +158,9 @@ export class Match {
 		const sides = this.#sides;
 		if (players.length !== sides.length) throw new RangeError(`The match needs ${sides.length} players, got ${players.length}`);
 		if (this.finished) return;
-		for (let side = 0; side < sides.length; side++) {
+		const favoured = this.#favoured;
+		for (let index = 0; index < sides.length; index++) {
+			const side = (favoured + index) % sides.length;
 			const move = players[side].act(this, side);
 			if (move !== null) this.play(move);
 		}
@@ -156,6 +168,7 @@ export class Match {
 		for (const seat of sides) {
 			seat.cool();
 		}
+		this.#claims.clear();
 		this.#tick++;
 	}
 

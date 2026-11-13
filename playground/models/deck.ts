@@ -52,6 +52,12 @@ export class Deck extends Model {
 		elements.splice(this.#slot(slot), 1);
 	}
 
+	fill(random: Random): void {
+		const free = PeriodicTable.placeable.filter(element => !this.holds(element));
+		this.elements.push(...random.subarray(free, this.capacity - this.elements.length));
+		this.#sort();
+	}
+
 	toggle(element: Element): void {
 		if (this.holds(element)) return this.remove(element);
 		this.add(element);
