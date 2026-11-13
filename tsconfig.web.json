@@ -17,6 +17,8 @@
 		"playground/view/swatch.tsx",
 		"arena/services/relay.ts",
 		"arena/services/client.ts",
+		"deck/**/*.ts",
+		"deck/**/*.tsx",
 		"settings/**/*.ts",
 		"settings/**/*.tsx"
 	]

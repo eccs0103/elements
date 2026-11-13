@@ -6,12 +6,10 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { SettingsService } from "../services/settings-service.js";
 import { SettingsApp } from "../view/settings-app.js";
-import { DeckService } from "../../playground/services/deck-service.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
 
 const { body } = document;
 const settings = SettingsService.instance;
-const deck = DeckService.instance;
 
 //#region Settings controller
 class SettingsController extends Controller {
@@ -20,7 +18,7 @@ class SettingsController extends Controller {
 		settings.content.apply();
 
 		const divRoot = body.getElement(HTMLDivElement, "div#root");
-		createRoot(divRoot).render(<StrictMode><SettingsApp settings={settings} deck={deck} /></StrictMode>);
+		createRoot(divRoot).render(<StrictMode><SettingsApp settings={settings} /></StrictMode>);
 	}
 
 	async catch(error: Error): Promise<void> {

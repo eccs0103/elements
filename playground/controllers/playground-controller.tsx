@@ -33,8 +33,8 @@ class PlaygroundController extends Controller {
 	}
 
 	#complete(count: number, capacity: number): void {
-		if (!window.confirm(`Your deck holds ${count} of ${capacity} elements.\nOpen Settings to finish it?`)) return;
-		location.assign(new URI("../settings/", baseURI).href);
+		if (!window.confirm(`Your deck holds ${count} of ${capacity} elements.\nOpen the deck to finish it?`)) return;
+		location.assign(new URI("../deck/", baseURI).href);
 	}
 
 	async #guard(task: Promise<void>): Promise<void> {

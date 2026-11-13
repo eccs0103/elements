@@ -12,6 +12,7 @@ import { type VitePlugin } from "./environment/plugins/vite-plugin.js";
 export default defineConfig(async (env) => {
 	const root: URI = new URI(import.meta.url);
 	const inputs: URI[] = [
+		new URI("./deck/index.html", root),
 		new URI("./playground/index.html", root),
 		new URI("./settings/index.html", root),
 	];
