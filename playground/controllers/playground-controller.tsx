@@ -27,9 +27,11 @@ class PlaygroundController extends Controller {
 		const { content } = deck;
 		if (!content.full) return this.#complete(content.elements.length, content.capacity);
 
-		const ticket = await this.#arena.open(new Entry(content.elements));
+		const arena = this.#arena;
+		const ticket = await arena.open(new Entry(content.elements));
+		const standing = await arena.standing();
 		const divRoot = body.getElement(HTMLDivElement, "div#root");
-		createRoot(divRoot).render(<StrictMode><PlaygroundApp ticket={ticket} onFinish={simulation => void this.#guard(this.#judge(simulation))} /></StrictMode>);
+		createRoot(divRoot).render(<StrictMode><PlaygroundApp ticket={ticket} standing={standing} onFinish={simulation => void this.#guard(this.#judge(simulation))} /></StrictMode>);
 	}
 
 	#complete(count: number, capacity: number): void {

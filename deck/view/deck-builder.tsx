@@ -286,9 +286,9 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 				<h3 className="flex">
 					Deck
 					<span className="flex alt-center with-gap">
-						<button id="fill" type="button" className="depth rounded flex alt-center with-gap small-gap with-padding small-padding font-smaller-2" title="Fill the free places with random elements" disabled={content.full} onClick={event => void guard(fill())}>
+						<button id="fill" type="button" className="depth rounded flex alt-center with-padding small-padding font-smaller-2" title="Fill the free places with random elements" hidden={content.full} onClick={event => void guard(fill())}>
 							<span className="icon in-line"></span>
-							<span>Autofill</span>
+							<span className="with-inline-padding">Autofill</span>
 						</button>
 						<span className="description">{`${elements.length} / ${capacity}`}</span>
 					</span>

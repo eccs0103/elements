@@ -161,6 +161,7 @@ export class Verdict extends Model {
 export interface StandingScheme {
 	humanity: number;
 	boss: number;
+	version: number;
 }
 
 export class Standing extends Model {
@@ -171,6 +172,9 @@ export class Standing extends Model {
 
 	@Field(Number, { name: "boss" })
 	boss: number = 0;
+
+	@Field(Number, { name: "version" })
+	version: number = 0;
 
 	static get route(): string { return Standing.#route; }
 

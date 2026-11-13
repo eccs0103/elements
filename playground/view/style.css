@@ -59,6 +59,22 @@ div#crosshair {
 	}
 }
 
+section#intro {
+	grid-area: 1 / 1;
+	place-self: center;
+	max-inline-size: calc(100% - 2 * var(--size-large-gap));
+	text-align: center;
+	pointer-events: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+
+	& h2,
+	& p {
+		margin: 0;
+	}
+}
+
 section#peek {
 	position: absolute;
 	inset: var(--size-gap) 0 auto;

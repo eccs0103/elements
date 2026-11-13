@@ -43,6 +43,7 @@ export class Simulation extends EventTarget {
 	get inspected(): Element | null { return this.#inspected; }
 	get holder(): number | null { return this.#holder; }
 	get report(): Report | null { return this.#report; }
+	get launched(): boolean { return this.#engine.launched; }
 
 	launch(): void {
 		this.#engine.launched = true;
