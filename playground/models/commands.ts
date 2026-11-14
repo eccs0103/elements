@@ -229,6 +229,8 @@ export interface StatusCommandScheme extends CommandScheme {
 	charge: number;
 	inspected: ElementScheme | null;
 	holder: number | null;
+	tick: number;
+	scores: number[];
 }
 
 export class StatusCommand extends Command {
@@ -244,10 +246,16 @@ export class StatusCommand extends Command {
 	@Field(Nullable.Of(Number))
 	holder: number | null;
 
+	@Field(Number)
+	tick: number;
+
+	@Field(Array.Of(Number))
+	scores: number[];
+
 	constructor();
-	constructor(cards: Element[], charge: number, inspected: Element | null, holder: number | null);
-	constructor(cards?: Element[], charge?: number, inspected?: Element | null, holder?: number | null) {
-		if (cards === undefined || charge === undefined || inspected === undefined || holder === undefined) {
+	constructor(cards: Element[], charge: number, inspected: Element | null, holder: number | null, tick: number, scores: number[]);
+	constructor(cards?: Element[], charge?: number, inspected?: Element | null, holder?: number | null, tick?: number, scores?: number[]) {
+		if (cards === undefined || charge === undefined || inspected === undefined || holder === undefined || tick === undefined || scores === undefined) {
 			super();
 			return;
 		}
@@ -257,6 +265,8 @@ export class StatusCommand extends Command {
 		this.charge = charge;
 		this.inspected = inspected;
 		this.holder = holder;
+		this.tick = tick;
+		this.scores = scores;
 	}
 }
 //#endregion

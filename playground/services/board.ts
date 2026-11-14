@@ -90,7 +90,7 @@ export class Board {
 	#fresh: Uint8Array;
 	#reverse: boolean = false;
 	#candidates: Int32Array = new Int32Array(8);
-	#steps: Uint8Array = new Uint8Array(Board.#slots);
+	#steps: Uint16Array = new Uint16Array(Board.#slots);
 	#budget: number = 0;
 	#owner: number = 0;
 

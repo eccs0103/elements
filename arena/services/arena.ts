@@ -19,6 +19,7 @@ export interface Ledger {
 export class Arena {
 	static #seeds: number = 0x7FFFFFFF;
 	static #human: number = 0;
+	static #model: string = "Proxima";
 	#ledger: Ledger;
 
 	constructor(ledger: Ledger) {
@@ -28,7 +29,7 @@ export class Arena {
 	async open(entry: Entry): Promise<Ticket> {
 		const seeds = Arena.#seeds;
 		const id = `${random.integer(seeds).toString(36)}${random.integer(seeds).toString(36)}`;
-		const ticket = new Ticket(id, random.integer(seeds), new Rules(), Arena.#human, entry.deck);
+		const ticket = new Ticket(id, random.integer(seeds), new Rules(), Arena.#human, entry.deck, Arena.#model);
 		ticket.match();
 		await this.#ledger.save(ticket);
 		return ticket;

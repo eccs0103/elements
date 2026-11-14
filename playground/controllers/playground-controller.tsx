@@ -52,12 +52,12 @@ class PlaygroundController extends Controller {
 		if (ticket === null || report === null) return;
 		const arena = this.#arena;
 		const verdict = await arena.judge(report);
-		const { humanity, boss } = await arena.standing();
-		const { human } = ticket;
+		const { humanity, agent } = await arena.standing();
+		const { human, model } = ticket;
 		const mine = verdict.scores[human];
 		const theirs = verdict.against(human);
-		const outcome = verdict.winner(human) === human ? "You won" : "The boss won";
-		if (!window.confirm(`${outcome} ${mine} : ${theirs}.\nHumanity ${humanity} : ${boss} Boss.\nPlay again?`)) return;
+		const outcome = verdict.winner(human) === human ? "You won" : `${model} won`;
+		if (!window.confirm(`${outcome} ${mine} : ${theirs}.\nHumanity ${humanity} : ${agent} ${model}.\nPlay again?`)) return;
 		location.reload();
 	}
 

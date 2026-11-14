@@ -40,6 +40,7 @@ export interface TicketScheme {
 	rules: Rules;
 	human: number;
 	deck: ElementScheme[];
+	model: string;
 }
 
 export class Ticket extends Model {
@@ -60,10 +61,13 @@ export class Ticket extends Model {
 	@Field(Array.Of(Element), { name: "deck" })
 	deck: Element[];
 
+	@Field(String, { name: "model" })
+	model: string;
+
 	constructor();
-	constructor(id: string, seed: number, rules: Rules, human: number, deck: Element[]);
-	constructor(id?: string, seed?: number, rules?: Rules, human?: number, deck?: Element[]) {
-		if (id === undefined || seed === undefined || rules === undefined || human === undefined || deck === undefined) {
+	constructor(id: string, seed: number, rules: Rules, human: number, deck: Element[], model: string);
+	constructor(id?: string, seed?: number, rules?: Rules, human?: number, deck?: Element[], model?: string) {
+		if (id === undefined || seed === undefined || rules === undefined || human === undefined || deck === undefined || model === undefined) {
 			super();
 			return;
 		}
@@ -74,6 +78,7 @@ export class Ticket extends Model {
 		this.rules = rules;
 		this.human = human;
 		this.deck = deck;
+		this.model = model;
 	}
 
 	static get route(): string { return Ticket.#route; }
@@ -160,8 +165,7 @@ export class Verdict extends Model {
 //#region Standing
 export interface StandingScheme {
 	humanity: number;
-	boss: number;
-	version: number;
+	agent: number;
 }
 
 export class Standing extends Model {
@@ -170,17 +174,14 @@ export class Standing extends Model {
 	@Field(Number, { name: "humanity" })
 	humanity: number = 0;
 
-	@Field(Number, { name: "boss" })
-	boss: number = 0;
-
-	@Field(Number, { name: "version" })
-	version: number = 0;
+	@Field(Number, { name: "agent" })
+	agent: number = 0;
 
 	static get route(): string { return Standing.#route; }
 
 	count(verdict: Verdict, human: number): void {
 		if (verdict.winner(human) === human) this.humanity++;
-		else this.boss++;
+		else this.agent++;
 	}
 }
 //#endregion

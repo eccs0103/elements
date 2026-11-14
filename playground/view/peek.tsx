@@ -39,7 +39,7 @@ function PeekCard({ element, holder, ticket }: PeekCardProps): ReactElement {
 	const acts = useMemo(() => Sentence.acts(element, rate), [element, rate]);
 	const stoppers = useMemo(() => Array.from(new Set(Sentence.threats(element, rate).flatMap(sentence => sentence.subjects))), [element, rate]);
 	const { compact } = new Phrase(null, stoppers);
-	let owner = "Boss";
+	let owner = ticket.model;
 	if (holder === null) owner = "Neutral";
 	else if (holder === ticket.human) owner = "Yours";
 	return (

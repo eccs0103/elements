@@ -6,18 +6,20 @@ import { Simulation } from "../services/simulation.js";
 import { type Standing, type Ticket } from "../../arena/models/protocol.js";
 import { Crosshair } from "./crosshair.js";
 import { Peek } from "./peek.js";
+import { Scoreboard } from "./scoreboard.js";
 import { Tray } from "./tray.js";
 
 //#region Intro
 interface IntroProps {
 	simulation: Simulation | null;
 	standing: Standing;
-	seconds: number;
+	ticket: Ticket;
 }
 
-function Intro({ simulation, standing, seconds }: IntroProps): ReactElement {
+function Intro({ simulation, standing, ticket }: IntroProps): ReactElement {
 	const [launched, setLaunched] = useState<boolean>(false);
-	const { humanity, boss, version } = standing;
+	const { humanity, agent } = standing;
+	const { model, rules } = ticket;
 
 	useEffect(() => {
 		if (simulation === null) return;
@@ -28,8 +30,8 @@ function Intro({ simulation, standing, seconds }: IntroProps): ReactElement {
 
 	return (
 		<section id="intro" className="layer rounded flex column with-gap with-padding large-padding" hidden={launched}>
-			<h2>{`Humanity ${humanity} : ${boss} Boss v${version}`}</h2>
-			<p className="description">{`Drop elements to spread over the board: more cells after ${seconds} s wins.`}</p>
+			<h2>{`Humanity ${humanity} : ${agent} ${model}`}</h2>
+			<p className="description">{`Drop elements to spread over the board: more cells after ${rules.seconds} s wins.`}</p>
 			<p className="highlight">Drag a card to start the game</p>
 		</section>
 	);
@@ -64,13 +66,14 @@ export function PlaygroundApp({ ticket, standing, onFinish }: PlaygroundAppProps
 	return (
 		<main>
 			<div id="stage">
+				{simulation === null ? null : <Scoreboard simulation={simulation} ticket={ticket} />}
 				<canvas id="board" ref={refBoard} onContextMenu={event => event.preventDefault()}></canvas>
 				<div id="crosshair" ref={refCrosshair} hidden>
 					<span className="row"></span>
 					<span className="column"></span>
 					<span className="cell"></span>
 				</div>
-				<Intro simulation={simulation} standing={standing} seconds={ticket.rules.seconds} />
+				<Intro simulation={simulation} standing={standing} ticket={ticket} />
 				{simulation === null || crosshair === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} ticket={ticket} />}
 				<div id="toolkit" className="flex">
 					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} />}

@@ -11,8 +11,9 @@ div#stage {
 }
 
 canvas#board,
-div#crosshair {
-	grid-area: 1 / 1;
+div#crosshair,
+section#intro {
+	grid-area: board;
 }
 
 canvas#board {
@@ -60,11 +61,10 @@ div#crosshair {
 }
 
 section#intro {
-	grid-area: 1 / 1;
+	position: relative;
 	place-self: center;
 	max-inline-size: calc(100% - 2 * var(--size-large-gap));
 	text-align: center;
-	pointer-events: none;
 	-moz-user-select: none;
 	-webkit-user-select: none;
 	user-select: none;
@@ -136,7 +136,105 @@ section#peek {
 	}
 }
 
+@property --mine {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0;
+}
+
+@property --theirs {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0;
+}
+
+div#score {
+	--reach: calc(100% - 2 * var(--size-gap));
+	--weight: calc(1.5 * var(--size-separator));
+	--ours: var(--color-highlight);
+	--agent: var(--color-negative);
+	grid-area: score;
+	display: grid;
+	place-items: center;
+	font-variant-numeric: tabular-nums;
+
+	& div.rail {
+		display: grid;
+		place-items: center;
+		gap: var(--size-gap);
+		transition: --mine var(--time-reveal-duration), --theirs var(--time-reveal-duration);
+	}
+
+	& div.side {
+		display: grid;
+		justify-items: center;
+		line-height: 1;
+	}
+
+	& div.side.lead span.number {
+		font-weight: 800;
+	}
+
+	& span.name {
+		max-inline-size: 100%;
+		overflow: hidden;
+		white-space: nowrap;
+		color: var(--color-light-negative);
+		font-size: calc(3 * var(--size-standart) / 8);
+	}
+
+	& div.stack {
+		display: grid;
+		place-items: center;
+		inline-size: 100%;
+		block-size: 100%;
+
+		& > * {
+			grid-area: 1 / 1;
+		}
+	}
+
+	& span.line {
+		border-radius: var(--size-standart);
+		background-image: linear-gradient(var(--direction), var(--ours) calc(var(--mine) * 100%), var(--color-main) 0 calc((1 - var(--theirs)) * 100%), var(--agent) 0);
+	}
+
+	& span.timer {
+		box-shadow: 0 0 0 var(--size-separator) var(--color-heavy-main);
+		font-weight: 600;
+		line-height: 1;
+	}
+
+	& span.timer.alert {
+		animation: beat 1s ease-out infinite;
+	}
+}
+
+@keyframes beat {
+	from {
+		scale: 1.08;
+	}
+
+	40%,
+	to {
+		scale: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	div#score {
+		& div.rail {
+			transition: none;
+		}
+
+		& span.timer.alert {
+			animation: none;
+		}
+	}
+}
+
 div#toolkit {
+	grid-area: toolkit;
 	align-items: center;
 }
 
@@ -168,9 +266,24 @@ span.ghost {
 
 @media (orientation: portrait) {
 	div#stage {
-		--side: min(100cqi, 100cqb - var(--thickness));
+		--side: min(100cqi, 100cqb - 2 * var(--thickness));
+		grid-template-areas: "score" "board" "toolkit";
 		grid-template-columns: var(--side);
-		grid-template-rows: var(--side) var(--thickness);
+		grid-template-rows: var(--thickness) var(--side) var(--thickness);
+	}
+
+	div#score {
+		--direction: to right;
+
+		& div.rail {
+			grid-template-columns: var(--size-large-standart) 1fr var(--size-large-standart);
+			inline-size: var(--reach);
+		}
+
+		& span.line {
+			inline-size: 100%;
+			block-size: var(--weight);
+		}
 	}
 
 	div#toolkit,
@@ -185,9 +298,44 @@ span.ghost {
 
 @media (orientation: landscape) {
 	div#stage {
-		--side: min(100cqb, 100cqi - var(--thickness));
-		grid-template-columns: var(--side) var(--thickness);
+		--side: min(100cqb, 100cqi - 2 * var(--thickness));
+		grid-template-areas: "score board toolkit";
+		grid-template-columns: var(--thickness) var(--side) var(--thickness);
 		grid-template-rows: var(--side);
+	}
+
+	div#score {
+		--direction: to top;
+
+		& div.rail {
+			grid-template-rows: auto 1fr auto;
+			block-size: var(--reach);
+		}
+
+		& div.side.mine {
+			order: 3;
+		}
+
+		& div.stack {
+			order: 2;
+		}
+
+		& span.name {
+			display: none;
+		}
+
+		& span.number {
+			font-size: calc(3 * var(--size-standart) / 8);
+		}
+
+		& span.line {
+			inline-size: var(--weight);
+			block-size: 100%;
+		}
+
+		& span.timer {
+			padding-inline: var(--size-small-gap);
+		}
 	}
 
 	div#toolkit,

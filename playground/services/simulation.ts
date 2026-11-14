@@ -23,6 +23,8 @@ export class Simulation extends EventTarget {
 	#charge: number = 0;
 	#inspected: Element | null = null;
 	#holder: number | null = null;
+	#tick: number = 0;
+	#scores: readonly number[] = [];
 	#report: Report | null = null;
 
 	constructor(canvas: HTMLCanvasElement) {
@@ -44,6 +46,8 @@ export class Simulation extends EventTarget {
 	get holder(): number | null { return this.#holder; }
 	get report(): Report | null { return this.#report; }
 	get launched(): boolean { return this.#engine.launched; }
+	get tick(): number { return this.#tick; }
+	get scores(): readonly number[] { return this.#scores; }
 
 	launch(): void {
 		this.#engine.launched = true;
@@ -80,11 +84,13 @@ export class Simulation extends EventTarget {
 		const command = Command.import(event.data, "command");
 
 		if (command instanceof StatusCommand) {
-			const { cards, charge, inspected, holder } = command;
+			const { cards, charge, inspected, holder, tick, scores } = command;
 			this.#cards = cards;
 			this.#charge = charge;
 			this.#inspected = inspected;
 			this.#holder = holder;
+			this.#tick = tick;
+			this.#scores = scores;
 			this.dispatchEvent(new Event("update"));
 			return;
 		}

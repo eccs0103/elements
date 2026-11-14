@@ -8,7 +8,7 @@ import { Move } from "../models/move.js";
 import { type Match } from "../services/match.js";
 import { Human, type Player } from "../services/players.js";
 import { Painter } from "../services/painter.js";
-import { Report, type Ticket } from "../../arena/models/protocol.js";
+import { Report, Verdict, type Ticket } from "../../arena/models/protocol.js";
 
 //#region Session
 class Session {
@@ -51,7 +51,7 @@ class Session {
 		const { kinds } = match.board;
 		const inspected = Nullable.map(cell, cell => PeriodicTable.at(kinds[cell]));
 		const holder = Nullable.map(cell, match.holder.bind(match));
-		return new StatusCommand(Array.from(match.cards(human)), match.charge(human), inspected, holder);
+		return new StatusCommand(Array.from(match.cards(human)), match.charge(human), inspected, holder, match.tick, Verdict.of(match).scores);
 	}
 
 	report(): Report {
