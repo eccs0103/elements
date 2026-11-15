@@ -6,6 +6,8 @@
 	},
 	"include": [
 		"playground/controllers/simulation-worker.ts",
+		"playground/controllers/agent-worker.ts",
+		"playground/services/agent.ts",
 		"playground/models/commands.ts",
 		"playground/services/painter.ts",
 		"arena/services/client.ts"

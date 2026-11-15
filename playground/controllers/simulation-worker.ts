@@ -1,13 +1,14 @@
 "use strict";
 
 import "adaptive-extender/worker";
-import { Controller, Nullable } from "adaptive-extender/worker";
+import { Controller, Nullable, URI } from "adaptive-extender/worker";
 import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
 import { PeriodicTable } from "../services/periodic-table.js";
 import { Move } from "../models/move.js";
 import { Match } from "../services/match.js";
 import { Human, type Player } from "../services/players.js";
 import { Painter } from "../services/painter.js";
+import { Agent } from "../services/agent.js";
 import { Report, Verdict, type Ticket } from "../../arena/models/protocol.js";
 
 //#region Stage
@@ -26,11 +27,11 @@ class Session implements Stage {
 	#players: readonly Player[];
 	#zone: Uint8Array;
 
-	constructor(ticket: Ticket) {
+	constructor(ticket: Ticket, rival: Player) {
 		const match = this.#match = ticket.match();
 		const { size } = match.rules;
 		this.#ticket = ticket;
-		this.#players = ticket.lineup(new Human());
+		this.#players = ticket.lineup(new Human(), rival);
 		this.#zone = new Uint8Array(size * size);
 	}
 
@@ -111,6 +112,7 @@ class Lobby implements Stage {
 //#endregion
 //#region Simulation worker
 class SimulationWorker extends Controller {
+	#agent: Worker = new Worker(new URI("./agent-worker.js", self.location.href).href, { type: "module" });
 	#painter: Painter;
 	#stage: Stage | null = null;
 	#preview: boolean = false;
@@ -147,7 +149,7 @@ class SimulationWorker extends Controller {
 
 		if (command instanceof StartCommand) {
 			const { ticket } = command;
-			this.#stage = ticket.started ? new Session(ticket) : new Lobby(ticket);
+			this.#stage = ticket.started ? new Session(ticket, new Agent(this.#agent)) : new Lobby(ticket);
 			this.#refresh();
 			return;
 		}

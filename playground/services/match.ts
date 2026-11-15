@@ -109,6 +109,7 @@ export class Match {
 	get rules(): Rules { return this.#rules; }
 	get board(): Board { return this.#board; }
 	get tick(): number { return this.#tick; }
+	get favoured(): number { return this.#favoured; }
 	get finished(): boolean { return this.#tick >= this.#rules.length; }
 	get moves(): readonly Move[] { return this.#moves; }
 	get hash(): number {

@@ -121,6 +121,7 @@ export class Board {
 	}
 
 	get kinds(): ArrayLike<number> { return this.#kinds; }
+	get budgets(): ArrayLike<number> { return this.#budgets; }
 	get tints(): ArrayLike<number> { return this.#tints; }
 	get owners(): ArrayLike<number> { return this.#owners; }
 	get size(): number { return this.#size; }

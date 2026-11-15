@@ -137,9 +137,11 @@ export class Ticket extends Model {
 		return new Match(rules, seed, luck, decks, human);
 	}
 
-	lineup(human: Player): Player[] {
+	lineup(human: Player): Player[];
+	lineup(human: Player, rival: Player): Player[];
+	lineup(human: Player, rival?: Player): Player[] {
 		const seed = this.#seed();
-		return Iterator.range(0, Match.count).map(side => side === this.human ? human : Ticket.bot(seed, side)).toArray();
+		return Iterator.range(0, Match.count).map(side => side === this.human ? human : rival ?? Ticket.bot(seed, side)).toArray();
 	}
 
 	#seed(): number {

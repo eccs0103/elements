@@ -21,6 +21,7 @@ export default defineConfig(async (env) => {
 	];
 	const pathEntries: URI[] = [
 		new URI("./playground/controllers/simulation-worker.ts", root),
+		new URI("./playground/controllers/agent-worker.ts", root),
 	];
 	const output: URI = new URI("./dist/client", root);
 	const plugins: VitePlugin[] = [new CloudflareVitePlugin(), new ReactVitePlugin(), new ArenaVitePlugin()];
