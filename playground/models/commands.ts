@@ -3,7 +3,7 @@
 import "adaptive-extender/worker";
 import { Any, Deferred, Descendant, Field, Model, Nullable } from "adaptive-extender/worker";
 import { Element, type ElementScheme } from "./elements.js";
-import { Ticket, Report, Verdict } from "../../arena/models/protocol.js";
+import { Ticket, Report, Verdict, type TicketScheme, type ReportScheme, type VerdictScheme } from "../../arena/models/protocol.js";
 
 //#region Command
 export interface CommandDiscriminator extends InitializeCommandDiscriminator, StartCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator, PreviewCommandDiscriminator, InspectCommandDiscriminator, ResizeCommandDiscriminator, StatusCommandDiscriminator, FinishCommandDiscriminator {
@@ -63,7 +63,7 @@ export interface StartCommandDiscriminator {
 
 export interface StartCommandScheme extends CommandScheme {
 	$type: keyof StartCommandDiscriminator;
-	ticket: Ticket;
+	ticket: TicketScheme;
 }
 
 export class StartCommand extends Command {
@@ -230,7 +230,7 @@ export interface StatusCommandScheme extends CommandScheme {
 	inspected: ElementScheme | null;
 	holder: number | null;
 	tick: number;
-	tally: Verdict;
+	tally: VerdictScheme;
 }
 
 export class StatusCommand extends Command {
@@ -277,8 +277,8 @@ export interface FinishCommandDiscriminator {
 
 export interface FinishCommandScheme extends CommandScheme {
 	$type: keyof FinishCommandDiscriminator;
-	report: Report;
-	verdict: Verdict;
+	report: ReportScheme;
+	verdict: VerdictScheme;
 }
 
 export class FinishCommand extends Command {

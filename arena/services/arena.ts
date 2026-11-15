@@ -6,7 +6,6 @@ import { Rules } from "../../playground/models/rules.js";
 import { Ticket, type Entry, type Start, type Report, type Standing } from "../models/protocol.js";
 import { type Bucket } from "../models/bucket.js";
 import { type Visitor } from "../models/visitor.js";
-import { Referee } from "./referee.js";
 
 const { ceil } = Math;
 
@@ -49,7 +48,7 @@ export class Arena {
 
 	async open(entry: Entry, visitor: Visitor, now: number): Promise<Ticket> {
 		const ledger = this.#ledger;
-		const pending = await ledger.pending(visitor.user, now - Referee.idle);
+		const pending = await ledger.pending(visitor.user, now - Ticket.idle);
 		if (pending !== null) return await this.#renew(pending, entry.deck);
 		const ticket = new Ticket(crypto.randomUUID(), Arena.#number(), Arena.#number(), new Rules(), Arena.#human, entry.deck, Arena.#model);
 		ticket.match();
@@ -70,17 +69,14 @@ export class Arena {
 	}
 
 	async start(start: Start, visitor: Visitor, now: number): Promise<Ticket> {
-		const ticket = await this.#ledger.start(start.ticket, visitor.user, now - Referee.idle, now);
+		const ticket = await this.#ledger.start(start.ticket, visitor.user, now - Ticket.idle, now);
 		return ReferenceError.suppress(ticket, "The ticket is unknown, expired or already started");
 	}
 
 	async report(report: Report, visitor: Visitor, now: number): Promise<Standing> {
 		const ledger = this.#ledger;
-		const rules = new Rules();
-		const { moves } = report;
-		if (moves.length > rules.length / rules.pause + 1) throw new RangeError(`The report holds ${moves.length} moves, more than a match allows`);
-		if (moves.some(move => move.side !== Arena.#human)) throw new TypeError("The report holds moves of a side that is not human");
-		const since = now - Referee.deadline;
+		report.check(new Rules(), Arena.#human);
+		const since = now - Ticket.deadline;
 		if (!await ledger.report(report, visitor.user, since, now)) throw new ReferenceError("The match is unknown, not started, too late or already reported");
 		return await ledger.standing();
 	}
@@ -90,16 +86,11 @@ export class Arena {
 	}
 
 	async #renew(pending: Ticket, deck: Element[]): Promise<Ticket> {
-		if (Arena.#same(pending.deck, deck)) return pending.sealed();
-		const { id, seed, luck, rules, human, model } = pending;
-		const ticket = new Ticket(id, seed, luck, rules, human, deck, model);
+		if (pending.holds(deck)) return pending.sealed();
+		const ticket = pending.redeal(deck);
 		ticket.match();
 		await this.#ledger.renew(ticket);
 		return ticket.sealed();
-	}
-
-	static #same(deck: readonly Element[], other: readonly Element[]): boolean {
-		return deck.length === other.length && deck.every((element, index) => element.is(other[index]));
 	}
 
 	static #number(): number {

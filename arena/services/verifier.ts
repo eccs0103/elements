@@ -3,6 +3,7 @@
 import "adaptive-extender/node";
 import { Any, Field, Model, Nullable, URI } from "adaptive-extender/node";
 import { type VerifierEnvironment } from "../models/verifier-environment.js";
+import { Ticket, Standing } from "../models/protocol.js";
 import { Referee } from "./referee.js";
 
 //#region Remote database
@@ -35,7 +36,7 @@ class RemoteDatabase {
 		this.#token = token;
 	}
 
-	async query(sql: string, params: readonly (string | number | null)[]): Promise<unknown[]> {
+	async query(sql: string, params: readonly unknown[]): Promise<unknown[]> {
 		const response = await fetch(this.#endpoint.href, {
 			method: "POST",
 			headers: { ["Authorization"]: `Bearer ${this.#token}`, ["Content-Type"]: "application/json" },
@@ -70,21 +71,20 @@ export class Verifier {
 
 	async run(now: number): Promise<void> {
 		const database = this.#database;
-		let humanity = 0;
-		let agent = 0;
+		const standing = new Standing();
 		while (true) {
-			const rows = await database.query("SELECT id, ticket, moves FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND (reported IS NOT NULL OR started < ?1) LIMIT ?2", [now - Referee.deadline, Verifier.#page]);
+			const rows = await database.query("SELECT id, ticket, moves FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND (reported IS NOT NULL OR started < ?1) LIMIT ?2", [now - Ticket.deadline, Verifier.#page]);
 			if (rows.length === 0) break;
 			for (const row of rows) {
 				const { id, ticket, moves } = TicketRow.import(row, "row");
-				const { won, scores } = Referee.decide(ticket, moves);
-				await database.query("UPDATE tickets SET judged = ?2, won = ?3, scores = ?4 WHERE id = ?1 AND judged IS NULL", [id, now, Number(won), scores === null ? null : JSON.stringify(scores)]);
-				if (won) humanity++;
-				else agent++;
+				const ruling = Referee.decide(ticket, moves);
+				await database.query("UPDATE tickets SET judged = ?2, won = ?3, scores = ?4 WHERE id = ?1 AND judged IS NULL", [id, now, Number(ruling.won), ruling.record]);
+				ruling.count(standing);
 			}
 		}
-		await database.query("DELETE FROM tickets WHERE started IS NULL AND issued < ?1", [now - Referee.idle]);
+		await database.query("DELETE FROM tickets WHERE started IS NULL AND issued < ?1", [now - Ticket.idle]);
 		await database.query("DELETE FROM buckets WHERE updated < ?1", [now - Verifier.#hour]);
+		const { humanity, agent } = standing;
 		console.log(`Judged ${humanity + agent} matches: humanity ${humanity}, agent ${agent}`);
 	}
 }

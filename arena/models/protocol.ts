@@ -4,8 +4,8 @@ import "adaptive-extender/core";
 import { Model, Field, Nullable } from "adaptive-extender/core";
 import { Element, type ElementScheme } from "../../playground/models/elements.js";
 import { Deck } from "../../playground/models/deck.js";
-import { Rules } from "../../playground/models/rules.js";
-import { Move } from "../../playground/models/move.js";
+import { Rules, type RulesScheme } from "../../playground/models/rules.js";
+import { Move, type MoveScheme } from "../../playground/models/move.js";
 import { Match } from "../../playground/services/match.js";
 import { Hand } from "../../playground/services/hand.js";
 import { Bot, type Player } from "../../playground/services/players.js";
@@ -48,7 +48,7 @@ export interface TicketScheme {
 	id: string;
 	seed: number | null;
 	luck: number;
-	rules: Rules;
+	rules: RulesScheme;
 	human: number;
 	deck: ElementScheme[];
 	model: string;
@@ -56,6 +56,9 @@ export interface TicketScheme {
 
 export class Ticket extends Model {
 	static #route: string = "/api/tickets";
+	static #second: number = 1000;
+	static #idle: number = 600000;
+	static #slack: number = 15000;
 
 	@Field(String, { name: "id" })
 	id: string;
@@ -97,11 +100,30 @@ export class Ticket extends Model {
 	}
 
 	static get route(): string { return Ticket.#route; }
+	static get idle(): number { return Ticket.#idle; }
+	static get deadline(): number { return new Rules().seconds * Ticket.#second + Ticket.#slack; }
+
+	static draft(rules: Rules, seed: number, side: number): Deck {
+		return Deck.random(rules, seed + 5 + side);
+	}
+
+	static bot(seed: number, side: number): Bot {
+		return new Bot(seed + 3 + side);
+	}
 
 	get started(): boolean { return this.seed !== null; }
 
 	sealed(): Ticket {
 		return new Ticket(this.id, null, this.luck, this.rules, this.human, this.deck, this.model);
+	}
+
+	redeal(deck: Element[]): Ticket {
+		return new Ticket(this.id, this.seed, this.luck, this.rules, this.human, deck, this.model);
+	}
+
+	holds(deck: readonly Element[]): boolean {
+		const own = this.deck;
+		return own.length === deck.length && own.every((element, index) => element.is(deck[index]));
 	}
 
 	opening(): readonly Element[] {
@@ -111,13 +133,13 @@ export class Ticket extends Model {
 	match(): Match {
 		const { human, deck, rules, luck } = this;
 		const seed = this.#seed();
-		const decks = Iterator.range(0, Match.count).map(side => side === human ? deck : Deck.random(rules, seed + 5 + side).elements).toArray();
+		const decks = Iterator.range(0, Match.count).map(side => side === human ? deck : Ticket.draft(rules, seed, side).elements).toArray();
 		return new Match(rules, seed, luck, decks, human);
 	}
 
 	lineup(human: Player): Player[] {
 		const seed = this.#seed();
-		return Iterator.range(0, Match.count).map(side => side === this.human ? human : new Bot(seed + 3 + side)).toArray();
+		return Iterator.range(0, Match.count).map(side => side === this.human ? human : Ticket.bot(seed, side)).toArray();
 	}
 
 	#seed(): number {
@@ -154,7 +176,7 @@ export class Start extends Model {
 //#region Report
 export interface ReportScheme {
 	ticket: string;
-	moves: Move[];
+	moves: MoveScheme[];
 }
 
 export class Report extends Model {
@@ -180,6 +202,12 @@ export class Report extends Model {
 	}
 
 	static get route(): string { return Report.#route; }
+
+	check(rules: Rules, human: number): void {
+		const { moves } = this;
+		if (moves.length > rules.length / rules.pause + 1) throw new RangeError(`The report holds ${moves.length} moves, more than a match allows`);
+		if (moves.some(move => move.side !== human)) throw new TypeError("The report holds moves of a side that is not human");
+	}
 }
 //#endregion
 //#region Verdict
@@ -236,11 +264,6 @@ export class Standing extends Model {
 	agent: number = 0;
 
 	static get route(): string { return Standing.#route; }
-
-	count(verdict: Verdict, human: number): void {
-		if (verdict.winner(human) === human) this.humanity++;
-		else this.agent++;
-	}
 }
 //#endregion
 //#region Failure

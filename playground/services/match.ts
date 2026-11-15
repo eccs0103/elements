@@ -214,6 +214,18 @@ export class Match {
 		this.#tick++;
 	}
 
+	replay(moves: readonly Move[], players: readonly Player[]): void {
+		let index = 0;
+		while (!this.finished) {
+			while (index < moves.length && moves[index].tick === this.#tick) {
+				const move = moves[index++];
+				if (!this.play(move)) throw new TypeError(`The move at tick ${move.tick} is illegal`);
+			}
+			this.advance(players);
+		}
+		if (index !== moves.length) throw new TypeError(`Only ${index} of ${moves.length} moves fit the match`);
+	}
+
 	#side(side: number): Side {
 		const sides = this.#sides;
 		if (!Number.isInteger(side) || side < 0 || side >= sides.length) throw new RangeError(`The side ${side} does not exist`);
