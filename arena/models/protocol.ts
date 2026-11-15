@@ -19,6 +19,8 @@ export interface EntryScheme {
 }
 
 export class Entry extends Model {
+	static #action: string = "ticket";
+
 	@Field(Array.Of(Element), { name: "deck" })
 	deck: Element[];
 
@@ -37,6 +39,8 @@ export class Entry extends Model {
 		this.deck = deck;
 		this.token = token;
 	}
+
+	static get action(): string { return Entry.#action; }
 }
 //#endregion
 //#region Ticket

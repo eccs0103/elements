@@ -13,6 +13,5 @@ class HashWorker extends CloudflareWorker<Environment> {
 	}
 }
 
-export { Determinism };
 export default new HashWorker();
 //#endregion

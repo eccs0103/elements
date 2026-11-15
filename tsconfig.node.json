@@ -9,6 +9,7 @@
 		"vite.config.ts",
 		"environment/configs/**/*.ts",
 		"environment/plugins/**/*.ts",
+		"vitest.config.ts",
 		"tests/determinism.test.ts",
 		"arena/controllers/verify.ts",
 		"arena/services/verifier.ts",

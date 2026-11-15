@@ -3,6 +3,7 @@
 import "adaptive-extender/core";
 import { Field, Model, Optional } from "adaptive-extender/core";
 import { type ArenaEnvironment } from "../models/arena-environment.js";
+import { Entry } from "../models/protocol.js";
 import { type Gate } from "./arena.js";
 
 //#region Siteverify
@@ -18,7 +19,7 @@ class Siteverify extends Model {
 
 	passes(hostnames: readonly string[], action: string): boolean {
 		const { hostname } = this;
-		return this.success && hostname !== undefined && hostnames.includes(hostname) && (this.action ?? String.empty) === action;
+		return this.success && hostname !== undefined && hostnames.includes(hostname) && this.action === action;
 	}
 }
 //#endregion
@@ -34,12 +35,12 @@ export class Turnstile implements Gate {
 	}
 
 	async admit(token: string, address: string): Promise<void> {
-		const { secret, hostnames, action } = this.#environment;
+		const { secret, hostnames } = this.#environment;
 		if (String.isEmpty(token) || token.length > Turnstile.#limit || hostnames.length === 0) throw new TypeError("The bot check did not pass");
 		const body = new URLSearchParams({ secret, response: token, remoteip: address });
 		const response = await fetch(Turnstile.#endpoint, { method: "POST", body, signal: AbortSignal.timeout(Turnstile.#timeout) });
 		if (!response.ok) throw new TypeError("The bot check did not answer");
-		if (!Siteverify.import(await response.json(), "siteverify").passes(hostnames, action)) throw new TypeError("The bot check did not pass");
+		if (!Siteverify.import(await response.json(), "siteverify").passes(hostnames, Entry.action)) throw new TypeError("The bot check did not pass");
 	}
 }
 //#endregion

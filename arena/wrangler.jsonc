@@ -8,8 +8,7 @@
 		{ "pattern": "elements.eccs.dev/api/*", "zone_name": "eccs.dev" }
 	],
 	"vars": {
-		"TURNSTILE_HOSTNAMES": ["elements.eccs.dev"],
-		"TURNSTILE_ACTION": "ticket"
+		"TURNSTILE_HOSTNAMES": ["elements.eccs.dev"]
 	},
 	"d1_databases": [
 		{ "binding": "LEDGER", "database_name": "elements", "migrations_dir": "migrations" }

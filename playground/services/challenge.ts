@@ -1,6 +1,7 @@
 "use strict";
 
 import "adaptive-extender/web";
+import { Entry } from "../../arena/models/protocol.js";
 
 //#region Challenge
 interface TurnstileOptions {
@@ -24,7 +25,6 @@ declare global {
 
 export class Challenge {
 	static #sitekey: string = "0x4AAAAAAGBet7ZYe7rBg5A8";
-	static #action: string = "ticket";
 	#container: HTMLElement;
 	#script: HTMLScriptElement;
 
@@ -39,7 +39,7 @@ export class Challenge {
 		return await new Promise<string>((resolve, reject) => {
 			const widget = turnstile.render(container, {
 				sitekey: Challenge.#sitekey,
-				action: Challenge.#action,
+				action: Entry.action,
 				appearance: "interaction-only",
 				callback(token: string): void {
 					turnstile.remove(widget);
