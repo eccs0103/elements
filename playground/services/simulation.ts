@@ -4,7 +4,7 @@ import "adaptive-extender/web";
 import { StaticEngine, URI } from "adaptive-extender/web";
 import { type Element } from "../models/elements.js";
 import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
-import { type Ticket, type Report } from "../../arena/models/protocol.js";
+import { type Ticket, type Report, type Verdict } from "../../arena/models/protocol.js";
 
 const { baseURI } = document;
 const { round } = Math;
@@ -12,6 +12,7 @@ const { round } = Math;
 //#region Simulation
 export interface SimulationEventMap {
 	"update": Event;
+	"launch": Event;
 	"finish": Event;
 }
 
@@ -26,6 +27,8 @@ export class Simulation extends EventTarget {
 	#tick: number = 0;
 	#scores: readonly number[] = [];
 	#report: Report | null = null;
+	#verdict: Verdict | null = null;
+	#drops: DropCommand[] = [];
 
 	constructor(canvas: HTMLCanvasElement) {
 		super();
@@ -45,23 +48,39 @@ export class Simulation extends EventTarget {
 	get inspected(): Element | null { return this.#inspected; }
 	get holder(): number | null { return this.#holder; }
 	get report(): Report | null { return this.#report; }
+	get verdict(): Verdict | null { return this.#verdict; }
 	get launched(): boolean { return this.#engine.launched; }
 	get tick(): number { return this.#tick; }
 	get scores(): readonly number[] { return this.#scores; }
 
 	launch(): void {
-		this.#engine.launched = true;
+		const engine = this.#engine;
+		if (engine.launched) return;
+		engine.launched = true;
+		this.dispatchEvent(new Event("launch"));
 	}
 
 	start(ticket: Ticket): void {
+		const worker = this.#worker;
 		this.#ticket = ticket;
 		this.#report = null;
+		this.#verdict = null;
 		this.#engine.limit = ticket.rules.rate;
-		this.#worker.postMessage(Command.export(new StartCommand(ticket)));
+		worker.postMessage(Command.export(new StartCommand(ticket)));
+		if (!ticket.started) return;
+		for (const drop of this.#drops.splice(0)) {
+			worker.postMessage(Command.export(drop));
+		}
 	}
 
 	drop(slot: number, x: number, y: number): void {
-		this.#worker.postMessage(Command.export(new DropCommand(slot, x, y)));
+		const drop = new DropCommand(slot, x, y);
+		const ticket = this.#ticket;
+		if (ticket === null || !ticket.started) {
+			this.#drops.push(drop);
+			return;
+		}
+		this.#worker.postMessage(Command.export(drop));
 	}
 
 	preview(active: boolean): void {
@@ -97,6 +116,7 @@ export class Simulation extends EventTarget {
 
 		if (command instanceof FinishCommand) {
 			this.#report = command.report;
+			this.#verdict = command.verdict;
 			this.#engine.launched = false;
 			this.dispatchEvent(new Event("finish"));
 			return;

@@ -3,8 +3,10 @@
 import "adaptive-extender/core";
 import { Law, Reach, type Element, type ElementType, type Reaction } from "../models/elements.js";
 import { PeriodicTable } from "./periodic-table.js";
+import { Dice } from "./dice.js";
+import { type Digest } from "./digest.js";
 
-const { max, imul } = Math;
+const { max } = Math;
 
 //#region Neighbourhood
 class Neighbourhood {
@@ -123,8 +125,8 @@ export class Board {
 	get owners(): ArrayLike<number> { return this.#owners; }
 	get size(): number { return this.#size; }
 
-	clone(seed: number): Board {
-		const board = new Board(this.#size, seed);
+	clone(): Board {
+		const board = new Board(this.#size, this.#seed);
 		board.#kinds.set(this.#kinds);
 		board.#budgets.set(this.#budgets);
 		board.#tints.set(this.#tints);
@@ -134,6 +136,18 @@ export class Board {
 		board.#reverse = this.#reverse;
 		board.#tick = this.#tick;
 		return board;
+	}
+
+	feed(digest: Digest): void {
+		digest.add(this.#seed);
+		digest.add(this.#tick);
+		digest.add(Number(this.#reverse));
+		digest.addAll(this.#kinds);
+		digest.addAll(this.#budgets);
+		digest.addAll(this.#tints);
+		digest.addAll(this.#owners);
+		digest.addAll(this.#progress);
+		digest.addAll(this.#births);
 	}
 
 	drop(element: Element, x: number, y: number, owner: number): void {
@@ -259,15 +273,8 @@ export class Board {
 	#pick(cell: number, slot: number, found: number): number {
 		const twin = this.#kinds.length - 1 - cell;
 		const mirrored = cell > twin;
-		const index = Board.#hash(this.#seed, this.#tick, mirrored ? twin : cell, slot) % found;
+		const index = Dice.roll(this.#seed, this.#tick, mirrored ? twin : cell, slot) % found;
 		return mirrored ? found - 1 - index : index;
-	}
-
-	static #hash(seed: number, tick: number, cell: number, slot: number): number {
-		let value = seed ^ imul(tick, 0x9E3779B1) ^ imul(cell, 0x85EBCA77) ^ imul(slot, 0xC2B2AE3D);
-		value = imul(value ^ (value >>> 16), 0x85EBCA6B);
-		value = imul(value ^ (value >>> 13), 0xC2B2AE35);
-		return (value ^ (value >>> 16)) >>> 0;
 	}
 
 	#require(type: ElementType | null): number {

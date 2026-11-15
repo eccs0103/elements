@@ -47,12 +47,24 @@ export class Painter {
 		const { size } = board;
 		if (this.#cells.canvas.width !== size) this.#prepare(size);
 		this.#fill(board);
+		this.#present();
+		if (zone !== null) this.#dim(zone, size);
+		this.#outline(board);
+	}
+
+	ground(size: number): void {
+		const { ground } = PeriodicTable;
+		if (this.#cells.canvas.width !== size) this.#prepare(size);
+		this.#pixels.fill(Painter.#palette[PeriodicTable.id(ground) * Painter.#stride + ground.budget]);
+		this.#cells.putImageData(this.#image, 0, 0);
+		this.#present();
+	}
+
+	#present(): void {
 		const context = this.#context;
 		const { width, height } = context.canvas;
 		context.imageSmoothingEnabled = false;
 		context.drawImage(this.#cells.canvas, 0, 0, width, height);
-		if (zone !== null) this.#dim(zone, size);
-		this.#outline(board);
 	}
 
 	#dim(zone: Uint8Array, size: number): void {

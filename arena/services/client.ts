@@ -2,7 +2,7 @@
 
 import "adaptive-extender/web";
 import { URI } from "adaptive-extender/web";
-import { Entry, Ticket, Report, Verdict, Standing } from "../models/protocol.js";
+import { Entry, Ticket, Start, Report, Standing, Failure } from "../models/protocol.js";
 
 //#region Arena client
 export interface Server {
@@ -22,8 +22,12 @@ export class ArenaClient {
 		return Ticket.import(await this.#send("POST", Ticket.route, Entry.export(entry)), "ticket");
 	}
 
-	async judge(report: Report): Promise<Verdict> {
-		return Verdict.import(await this.#send("POST", Verdict.route, Report.export(report)), "verdict");
+	async start(start: Start): Promise<Ticket> {
+		return Ticket.import(await this.#send("POST", Start.route, Start.export(start)), "ticket");
+	}
+
+	async report(report: Report): Promise<Standing> {
+		return Standing.import(await this.#send("POST", Report.route, Report.export(report)), "standing");
 	}
 
 	async standing(): Promise<Standing> {
@@ -35,7 +39,7 @@ export class ArenaClient {
 		const request = new Request(new URI(route, this.#origin).href, { method, body: content, headers: { ["Content-Type"]: "application/json" } });
 		const response = await this.#server.fetch(request);
 		const payload = await response.json();
-		if (!response.ok) throw new Error(`The arena answered ${response.status}: ${JSON.stringify(payload)}`);
+		if (!response.ok) throw new Error(Failure.import(payload, "failure").error);
 		return payload;
 	}
 }

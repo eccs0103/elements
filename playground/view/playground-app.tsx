@@ -41,10 +41,11 @@ function Intro({ simulation, standing, ticket }: IntroProps): ReactElement {
 export interface PlaygroundAppProps {
 	ticket: Ticket;
 	standing: Standing;
+	onLaunch(simulation: Simulation): void;
 	onFinish(simulation: Simulation): void;
 }
 
-export function PlaygroundApp({ ticket, standing, onFinish }: PlaygroundAppProps): ReactElement {
+export function PlaygroundApp({ ticket, standing, onLaunch, onFinish }: PlaygroundAppProps): ReactElement {
 	const [simulation, setSimulation] = useState<Simulation | null>(null);
 	const [crosshair, setCrosshair] = useState<Crosshair | null>(null);
 	const refBoard: RefObject<HTMLCanvasElement | null> = useRef(null);
@@ -57,11 +58,12 @@ export function PlaygroundApp({ ticket, standing, onFinish }: PlaygroundAppProps
 		if (canvasBoard === null || divCrosshair === null) return;
 		if (refSimulation.current !== null) return;
 		const created = refSimulation.current = new Simulation(canvasBoard);
+		created.addEventListener("launch", event => onLaunch(created));
 		created.addEventListener("finish", event => onFinish(created));
 		created.start(ticket);
 		setSimulation(created);
 		setCrosshair(new Crosshair(divCrosshair, canvasBoard, created));
-	}, [ticket, onFinish]);
+	}, [ticket, onLaunch, onFinish]);
 
 	return (
 		<main>

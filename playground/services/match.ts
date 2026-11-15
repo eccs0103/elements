@@ -8,6 +8,7 @@ import { type Move } from "../models/move.js";
 import { Deck } from "../models/deck.js";
 import { Board } from "./board.js";
 import { Hand } from "./hand.js";
+import { Digest } from "./digest.js";
 import { type Player } from "./players.js";
 
 const { abs } = Math;
@@ -46,6 +47,17 @@ class Side {
 		return abs(y - this.#edge) < this.#depth || board.touches(this.#owner, x, y);
 	}
 
+	clone(): Side {
+		const side = new Side(this.#hand.clone(), this.#edge, this.#depth, this.#owner, this.#pause);
+		side.#wait = this.#wait;
+		return side;
+	}
+
+	feed(digest: Digest): void {
+		this.#hand.feed(digest);
+		digest.add(this.#wait);
+	}
+
 	take(slot: number): Element {
 		this.#wait = this.#pause;
 		return this.#hand.play(slot);
@@ -61,6 +73,9 @@ class Side {
 export class Match {
 	static #count: number = 2;
 	#rules: Rules;
+	#seed: number;
+	#luck: number;
+	#decks: readonly (readonly Element[])[];
 	#board: Board;
 	#sides: readonly Side[];
 	#tick: number = 0;
@@ -68,7 +83,7 @@ export class Match {
 	#favoured: number;
 	#claims: Set<number> = new Set();
 
-	constructor(rules: Rules, seed: number, decks: readonly (readonly Element[])[], favoured: number) {
+	constructor(rules: Rules, seed: number, luck: number, decks: readonly (readonly Element[])[], favoured: number) {
 		const { size, hand, pause, rows } = rules;
 		const capacity = Deck.capacity(rules);
 		const count = Match.#count;
@@ -78,11 +93,14 @@ export class Match {
 		if (!Number.isInteger(favoured) || favoured < 0 || favoured >= count) throw new RangeError(`The favoured side ${favoured} does not exist`);
 		const [south, north] = decks;
 		this.#rules = rules;
+		this.#seed = seed;
+		this.#luck = luck;
+		this.#decks = decks;
 		this.#favoured = favoured;
 		this.#board = new Board(size, seed);
 		this.#sides = [
-			new Side(new Hand(south, hand, seed + 1), size - 1, rows, 1, pause),
-			new Side(new Hand(north, hand, seed + 1), 0, rows, 2, pause),
+			new Side(new Hand(south, hand, luck), size - 1, rows, 1, pause),
+			new Side(new Hand(north, hand, luck), 0, rows, 2, pause),
 		];
 	}
 
@@ -93,6 +111,24 @@ export class Match {
 	get tick(): number { return this.#tick; }
 	get finished(): boolean { return this.#tick >= this.#rules.length; }
 	get moves(): readonly Move[] { return this.#moves; }
+	get hash(): number {
+		const digest = new Digest();
+		digest.add(this.#tick);
+		this.#board.feed(digest);
+		for (const seat of this.#sides) {
+			seat.feed(digest);
+		}
+		return digest.value;
+	}
+
+	clone(): Match {
+		const match = new Match(this.#rules, this.#seed, this.#luck, this.#decks, this.#favoured);
+		match.#board = this.#board.clone();
+		match.#sides = this.#sides.map(seat => seat.clone());
+		match.#tick = this.#tick;
+		match.#moves = [...this.#moves];
+		return match;
+	}
 
 	cards(side: number): readonly Element[] {
 		return this.#side(side).cards;
@@ -155,14 +191,20 @@ export class Match {
 	}
 
 	advance(players: readonly Player[]): void {
+		this.step(players.map((player, side) => player.act(this, side)));
+	}
+
+	step(drops: readonly (Move | null)[]): void {
 		const sides = this.#sides;
-		if (players.length !== sides.length) throw new RangeError(`The match needs ${sides.length} players, got ${players.length}`);
+		if (drops.length !== sides.length) throw new RangeError(`The match needs ${sides.length} drops, got ${drops.length}`);
 		if (this.finished) return;
 		const favoured = this.#favoured;
 		for (let index = 0; index < sides.length; index++) {
 			const side = (favoured + index) % sides.length;
-			const move = players[side].act(this, side);
-			if (move !== null) this.play(move);
+			const drop = drops[side];
+			if (drop === null) continue;
+			if (drop.side !== side) throw new TypeError(`The drop of side ${side} is marked for side ${drop.side}`);
+			this.play(drop);
 		}
 		this.#board.step();
 		for (const seat of sides) {

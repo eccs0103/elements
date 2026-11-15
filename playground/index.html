@@ -21,6 +21,7 @@
 	<link rel="stylesheet" href="../playground/view/layout.css">
 	<link rel="stylesheet" href="./view/style.css">
 	<script type="module" src="../environment/services/analytics-service.ts"></script>
+	<script id="challenge" src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 	<script type="module" src="./controllers/playground-controller.tsx"></script>
 </head>
 
@@ -36,6 +37,7 @@
 			<span class="icon">Settings</span>
 		</a>
 	</nav>
+	<div id="gate"></div>
 	<div id="root" class="contents"></div>
 </body>
 

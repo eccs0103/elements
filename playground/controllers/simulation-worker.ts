@@ -5,7 +5,7 @@ import { Controller, Nullable } from "adaptive-extender/worker";
 import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
 import { PeriodicTable } from "../services/periodic-table.js";
 import { Move } from "../models/move.js";
-import { type Match } from "../services/match.js";
+import { Match } from "../services/match.js";
 import { Human, type Player } from "../services/players.js";
 import { Painter } from "../services/painter.js";
 import { Report, Verdict, type Ticket } from "../../arena/models/protocol.js";
@@ -60,10 +60,28 @@ class Session {
 	}
 }
 //#endregion
+//#region Lobby
+class Lobby {
+	#ticket: Ticket;
+
+	constructor(ticket: Ticket) {
+		this.#ticket = ticket;
+	}
+
+	get size(): number { return this.#ticket.rules.size; }
+
+	status(cell: number | null): StatusCommand {
+		const inspected = Nullable.map(cell, cell => PeriodicTable.ground);
+		const scores = Iterator.range(0, Match.count).map(side => 0).toArray();
+		return new StatusCommand(Array.from(this.#ticket.opening()), 1, inspected, null, 0, scores);
+	}
+}
+//#endregion
 //#region Simulation worker
 class SimulationWorker extends Controller {
 	#painter: Painter;
 	#session: Session | null = null;
+	#lobby: Lobby | null = null;
 	#preview: boolean = false;
 	#inspected: number | null = null;
 
@@ -76,13 +94,36 @@ class SimulationWorker extends Controller {
 		self.postMessage(Command.export(session.status(this.#inspected)));
 	}
 
+	#welcome(lobby: Lobby): void {
+		this.#painter.ground(lobby.size);
+		this.#greet(lobby);
+	}
+
+	#greet(lobby: Lobby): void {
+		self.postMessage(Command.export(lobby.status(this.#inspected)));
+	}
+
+	#describe(): void {
+		const session = this.#session;
+		if (session !== null) return this.#report(session);
+		const lobby = this.#lobby;
+		if (lobby !== null) this.#greet(lobby);
+	}
+
+	#refresh(): void {
+		const session = this.#session;
+		if (session !== null) return this.#paint(session);
+		const lobby = this.#lobby;
+		if (lobby !== null) this.#welcome(lobby);
+	}
+
 	#tick(session: Session): void {
 		const { match } = session;
 		if (match.finished) return;
 		session.advance();
 		this.#paint(session);
 		if (!match.finished) return;
-		self.postMessage(Command.export(new FinishCommand(session.report())));
+		self.postMessage(Command.export(new FinishCommand(session.report(), Verdict.of(match))));
 	}
 
 	#onMessage(event: MessageEvent): void {
@@ -94,32 +135,34 @@ class SimulationWorker extends Controller {
 		}
 
 		if (command instanceof StartCommand) {
-			const session = this.#session = new Session(command.ticket);
-			this.#paint(session);
+			const { ticket } = command;
+			const started = ticket.started;
+			this.#lobby = started ? null : new Lobby(ticket);
+			this.#session = started ? new Session(ticket) : null;
+			this.#refresh();
 			return;
 		}
 
-		const session = this.#session;
-
 		if (command instanceof PreviewCommand) {
 			this.#preview = command.active;
-			if (session !== null) this.#paint(session);
+			this.#refresh();
 			return;
 		}
 
 		if (command instanceof InspectCommand) {
 			this.#inspected = command.cell;
-			if (session !== null) this.#report(session);
+			this.#describe();
 			return;
 		}
 
 		if (command instanceof ResizeCommand) {
 			const { width, height } = command;
 			this.#painter.resize(width, height);
-			if (session !== null) this.#paint(session);
+			this.#refresh();
 			return;
 		}
 
+		const session = this.#session;
 		if (session === null) return;
 
 		if (command instanceof TickCommand) {

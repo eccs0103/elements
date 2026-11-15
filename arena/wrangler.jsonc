@@ -1,0 +1,20 @@
+{
+	"$schema": "../node_modules/wrangler/config-schema.json",
+	"name": "elements-arena",
+	"compatibility_date": "2026-07-16",
+	"main": "controllers/arena-worker.ts",
+	"workers_dev": false,
+	"routes": [
+		{ "pattern": "elements.eccs.dev/api/*", "zone_name": "eccs.dev" }
+	],
+	"vars": {
+		"TURNSTILE_HOSTNAMES": "elements.eccs.dev",
+		"TURNSTILE_ACTION": "ticket"
+	},
+	"d1_databases": [
+		{ "binding": "LEDGER", "database_name": "elements", "migrations_dir": "migrations" }
+	],
+	"observability": {
+		"enabled": true
+	}
+}

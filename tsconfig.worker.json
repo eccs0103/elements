@@ -7,10 +7,6 @@
 	"include": [
 		"playground/controllers/simulation-worker.ts",
 		"playground/models/commands.ts",
-		"playground/services/painter.ts",
-		"arena/controllers/server-worker.ts",
-		"arena/models/envelopes.ts",
-		"arena/services/ledger.ts",
-		"arena/services/router.ts"
+		"playground/services/painter.ts"
 	]
 }

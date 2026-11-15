@@ -3,7 +3,7 @@
 import "adaptive-extender/worker";
 import { Any, Deferred, Descendant, Field, Model, Nullable } from "adaptive-extender/worker";
 import { Element, type ElementScheme } from "./elements.js";
-import { Ticket, Report } from "../../arena/models/protocol.js";
+import { Ticket, Report, Verdict } from "../../arena/models/protocol.js";
 
 //#region Command
 export interface CommandDiscriminator extends InitializeCommandDiscriminator, StartCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator, PreviewCommandDiscriminator, InspectCommandDiscriminator, ResizeCommandDiscriminator, StatusCommandDiscriminator, FinishCommandDiscriminator {
@@ -278,22 +278,27 @@ export interface FinishCommandDiscriminator {
 export interface FinishCommandScheme extends CommandScheme {
 	$type: keyof FinishCommandDiscriminator;
 	report: Report;
+	verdict: Verdict;
 }
 
 export class FinishCommand extends Command {
 	@Field(Report)
 	report: Report;
 
+	@Field(Verdict)
+	verdict: Verdict;
+
 	constructor();
-	constructor(report: Report);
-	constructor(report?: Report) {
-		if (report === undefined) {
+	constructor(report: Report, verdict: Verdict);
+	constructor(report?: Report, verdict?: Verdict) {
+		if (report === undefined || verdict === undefined) {
 			super();
 			return;
 		}
 
 		super();
 		this.report = report;
+		this.verdict = verdict;
 	}
 }
 //#endregion

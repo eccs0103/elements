@@ -6,6 +6,13 @@
 		"skipLibCheck": true
 	},
 	"include": [
-		"environment/workers/**/*.ts"
+		"environment/workers/**/*.ts",
+		"arena/controllers/arena-worker.ts",
+		"arena/controllers/referee-worker.ts",
+		"arena/services/arena.ts",
+		"arena/services/ledger.ts",
+		"arena/services/router.ts",
+		"arena/services/turnstile.ts",
+		"tests/hash-worker.ts"
 	]
 }

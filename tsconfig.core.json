@@ -12,11 +12,16 @@
 		"playground/models/deck.ts",
 		"playground/models/sentence.ts",
 		"playground/services/periodic-table.ts",
+		"playground/services/dice.ts",
+		"playground/services/digest.ts",
 		"playground/services/board.ts",
 		"playground/services/hand.ts",
 		"playground/services/match.ts",
 		"playground/services/players.ts",
 		"arena/models/protocol.ts",
-		"arena/services/arena.ts"
+		"arena/models/bucket.ts",
+		"arena/models/visitor.ts",
+		"arena/services/referee.ts",
+		"tests/determinism.ts"
 	]
 }
