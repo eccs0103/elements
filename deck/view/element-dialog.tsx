@@ -44,7 +44,7 @@ class Demo {
 			const target = sentence.subjects.find(other => !other.is(PeriodicTable.ground));
 			if (target !== undefined) return target;
 		}
-		return Sentence.threats(element, rate).at(0)?.subjects.at(0) ?? null;
+		return Demo.partner(Sentence.threats(element, rate).at(0)?.subjects.at(0) ?? null);
 	}
 
 	static partner(partner: Element | null): Element | null {
@@ -167,7 +167,7 @@ export function ElementDialog({ deck, element, onClose, onChange }: ElementDialo
 		setOrigin(element);
 		if (element !== null) {
 			setHistory([element]);
-			setPartner(Demo.partner(Demo.suggest(element, rate)));
+			setPartner(Demo.suggest(element, rate));
 		}
 	}
 
@@ -207,14 +207,14 @@ export function ElementDialog({ deck, element, onClose, onChange }: ElementDialo
 	const follow = (): void => {
 		if (partner === null) return;
 		setHistory([...history, partner]);
-		setPartner(Demo.partner(Demo.suggest(partner, rate)));
+		setPartner(Demo.suggest(partner, rate));
 	};
 
 	const back = (): void => {
 		if (history.length < 2) return;
 		const previous = history.slice(0, -1);
 		setHistory(previous);
-		setPartner(Demo.partner(Demo.suggest(previous[previous.length - 1], rate)));
+		setPartner(Demo.suggest(previous[previous.length - 1], rate));
 	};
 
 	const close = (): void => {

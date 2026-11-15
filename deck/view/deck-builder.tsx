@@ -101,10 +101,14 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 	const groups = useMemo(() => Object.values(Phase).map(phase => PeriodicTable.placeable.filter(element => element.phase === phase)).filter(group => group.length > 0), []);
 	const press = refPress.current;
 
-	const cancel = (): void => {
+	const disarm = (): void => {
 		const timer = refTimer.current;
 		if (timer !== null) clearTimeout(timer);
 		refTimer.current = null;
+	};
+
+	const cancel = (): void => {
+		disarm();
 		refPress.current = null;
 		setTarget(null);
 		refresh();
@@ -188,9 +192,7 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 	};
 
 	const lift = (press: Press): void => {
-		const timer = refTimer.current;
-		if (timer !== null) clearTimeout(timer);
-		refTimer.current = null;
+		disarm();
 		press.drag();
 		refresh();
 	};
