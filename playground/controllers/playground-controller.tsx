@@ -23,7 +23,7 @@ class PlaygroundController extends Controller {
 
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
-		settings.content.apply();
+		settings.apply();
 		const { content } = deck;
 		if (!content.full) return this.#complete(content.elements.length, content.capacity);
 

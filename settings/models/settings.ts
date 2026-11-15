@@ -1,7 +1,7 @@
 "use strict";
 
-import "adaptive-extender/web";
-import { Model, Field, Enum } from "adaptive-extender/web";
+import "adaptive-extender/core";
+import { Model, Field, Enum } from "adaptive-extender/core";
 
 //#region Settings
 export enum Scheme {
@@ -17,10 +17,5 @@ export interface SettingsScheme {
 export class Settings extends Model {
 	@Field(Enum.Of(Scheme), { name: "scheme" })
 	scheme: Scheme = Scheme.system;
-
-	apply(): void {
-		const metaScheme = document.head.getElement(HTMLMetaElement, "meta[name=\"color-scheme\"]");
-		metaScheme.content = this.scheme;
-	}
 }
 //#endregion

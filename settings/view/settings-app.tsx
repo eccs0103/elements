@@ -17,7 +17,7 @@ export function SettingsApp({ settings }: SettingsAppProps): ReactElement {
 
 	const rescheme = async (value: string): Promise<void> => {
 		content.scheme = Enum.Of(Scheme).import(value, "scheme");
-		content.apply();
+		settings.apply();
 		refresh();
 		try {
 			await settings.save();
@@ -29,7 +29,7 @@ export function SettingsApp({ settings }: SettingsAppProps): ReactElement {
 	const reset = (): void => {
 		if (!window.confirm("The settings will be reset to their defaults. Are you sure?")) return;
 		settings.reset();
-		settings.content.apply();
+		settings.apply();
 		refresh();
 	};
 

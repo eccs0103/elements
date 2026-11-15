@@ -44,5 +44,10 @@ export class SettingsService {
 	reset(): void {
 		this.#cell.reset();
 	}
+
+	apply(): void {
+		const metaScheme = document.head.getElement(HTMLMetaElement, "meta[name=\"color-scheme\"]");
+		metaScheme.content = this.#cell.content.scheme;
+	}
 }
 //#endregion

@@ -17,7 +17,7 @@ const deck = DeckService.instance;
 class DeckController extends Controller {
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
-		settings.content.apply();
+		settings.apply();
 
 		const divRoot = body.getElement(HTMLDivElement, "div#root");
 		createRoot(divRoot).render(<StrictMode><DeckApp deck={deck} /></StrictMode>);

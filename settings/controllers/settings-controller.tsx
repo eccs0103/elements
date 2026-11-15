@@ -15,7 +15,7 @@ const settings = SettingsService.instance;
 class SettingsController extends Controller {
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
-		settings.content.apply();
+		settings.apply();
 
 		const divRoot = body.getElement(HTMLDivElement, "div#root");
 		createRoot(divRoot).render(<StrictMode><SettingsApp settings={settings} /></StrictMode>);
