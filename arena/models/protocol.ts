@@ -117,9 +117,7 @@ export class Ticket extends Model {
 	}
 
 	#seed(): number {
-		const { seed } = this;
-		if (seed === null) throw new ReferenceError(`The ticket '${this.id}' has not started yet`);
-		return seed;
+		return ReferenceError.suppress(this.seed, `The ticket '${this.id}' has not started yet`);
 	}
 }
 //#endregion

@@ -19,7 +19,7 @@ export class Hand {
 		if (!Number.isInteger(size) || size <= 0 || size > deck.length) throw new RangeError(`The hand size ${size} must be between 1 and the deck size ${deck.length}`);
 		this.#deck = deck;
 		this.#seed = seed;
-		this.#ages = deck.map(element => 0);
+		this.#ages = new Array<number>(deck.length).fill(0);
 		const cards = this.#cards;
 		for (let slot = 0; slot < size; slot++) {
 			cards.push(this.#draw());

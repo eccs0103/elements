@@ -46,8 +46,7 @@ export class D1Ledger implements Ledger {
 
 	async wait(bucket: Bucket, now: number): Promise<number> {
 		const updated = await this.#database.prepare("SELECT updated FROM buckets WHERE key = ?1").bind(bucket.key).first<number>("updated");
-		if (updated === null) throw new ReferenceError(`The bucket '${bucket.key}' is missing`);
-		return bucket.wait(updated, now);
+		return bucket.wait(ReferenceError.suppress(updated, `The bucket '${bucket.key}' is missing`), now);
 	}
 
 	async save(ticket: Ticket, user: string, now: number): Promise<void> {

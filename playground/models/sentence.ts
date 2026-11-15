@@ -1,7 +1,7 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Law, Reach, type Element, type ElementType, type Reaction } from "./elements.js";
+import { Law, Reach, type Element, type Reaction } from "./elements.js";
 import { PeriodicTable } from "../services/periodic-table.js";
 
 //#region Phrase
@@ -55,37 +55,46 @@ export class Sentence {
 		return sentences;
 	}
 
+	static stoppers(element: Element, rate: number): Phrase {
+		return new Phrase(null, Array.from(new Set(Sentence.threats(element, rate).flatMap(sentence => sentence.subjects))));
+	}
+
 	static #act(element: Element, reaction: Reaction, targets: readonly Element[]): Phrase[] {
-		const { law, product, remains } = reaction;
-		const resolve = Sentence.#resolve.bind(Sentence);
+		const { law } = reaction;
+		const product = Sentence.#product.bind(Sentence, reaction);
+		const remains = Sentence.#remains.bind(Sentence, reaction);
 		switch (law) {
 		case Law.spread: return [new Phrase(reaction.reach === Reach.surrounding ? "Grows in all 8 directions into" : "Grows into", targets), new Phrase(Sentence.#reach(element), [])];
-		case Law.convert: return [new Phrase("Turns", targets), new Phrase("into", [resolve(product)])];
-		case Law.ignite: return [new Phrase("Sets", targets), new Phrase("on fire, turning them into", [resolve(product)])];
-		case Law.cool: return [new Phrase("Turns", targets), new Phrase("into", [resolve(product)]), new Phrase(`${element.budget + 1} times, then becomes`, [resolve(remains)])];
-		case Law.destroy: return [new Phrase("Destroys", targets), new Phrase("into", [resolve(product)]), new Phrase("and becomes", [resolve(remains)])];
-		case Law.burnout: return [new Phrase("Then becomes", [resolve(remains)])];
+		case Law.convert: return [new Phrase("Turns", targets), new Phrase("into", [product()])];
+		case Law.ignite: return [new Phrase("Sets", targets), new Phrase("on fire, turning them into", [product()])];
+		case Law.cool: return [new Phrase("Turns", targets), new Phrase("into", [product()]), new Phrase(`${element.budget + 1} times, then becomes`, [remains()])];
+		case Law.destroy: return [new Phrase("Destroys", targets), new Phrase("into", [product()]), new Phrase("and becomes", [remains()])];
+		case Law.burnout: return [new Phrase("Then becomes", [remains()])];
 		default: throw new TypeError(`Invalid '${law}' law`);
 		}
 	}
 
 	static #threat(other: Element, reaction: Reaction): Phrase[] {
-		const { law, product, remains } = reaction;
+		const { law } = reaction;
 		const subject = new Phrase(null, [other]);
-		const resolve = Sentence.#resolve.bind(Sentence);
+		const product = Sentence.#product.bind(Sentence, reaction);
+		const remains = Sentence.#remains.bind(Sentence, reaction);
 		switch (law) {
 		case Law.spread: return [subject, new Phrase("grows over it", [])];
-		case Law.convert: return [subject, new Phrase("turns it into", [resolve(product)])];
-		case Law.ignite: return [subject, new Phrase("sets it on fire, turning it into", [resolve(product)])];
-		case Law.cool: return [subject, new Phrase("turns it into", [resolve(product)])];
-		case Law.destroy: return [subject, new Phrase("destroys it into", [resolve(product)]), new Phrase("and becomes", [resolve(remains)])];
+		case Law.convert: return [subject, new Phrase("turns it into", [product()])];
+		case Law.ignite: return [subject, new Phrase("sets it on fire, turning it into", [product()])];
+		case Law.cool: return [subject, new Phrase("turns it into", [product()])];
+		case Law.destroy: return [subject, new Phrase("destroys it into", [product()]), new Phrase("and becomes", [remains()])];
 		default: throw new TypeError(`Invalid '${law}' law`);
 		}
 	}
 
-	static #resolve(type: ElementType | null): Element {
-		if (type === null) throw new ReferenceError("The reaction has no resulting element");
-		return PeriodicTable.of(type);
+	static #product(reaction: Reaction): Element {
+		return PeriodicTable.of(reaction.yields());
+	}
+
+	static #remains(reaction: Reaction): Element {
+		return PeriodicTable.of(reaction.leaves());
 	}
 
 	static #reach(element: Element): string {

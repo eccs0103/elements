@@ -136,6 +136,14 @@ export class Reaction {
 	get product(): ElementType | null { return this.#product; }
 	get remains(): ElementType | null { return this.#remains; }
 
+	yields(): ElementType {
+		return ReferenceError.suppress(this.#product, "The reaction has no resulting element");
+	}
+
+	leaves(): ElementType {
+		return ReferenceError.suppress(this.#remains, "The reaction has no resulting element");
+	}
+
 	reaches(actor: Element, other: Element): boolean {
 		const target = this.#target;
 		if (target === null || !target.matches(other)) return false;

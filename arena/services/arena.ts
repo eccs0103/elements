@@ -71,8 +71,7 @@ export class Arena {
 
 	async start(start: Start, visitor: Visitor, now: number): Promise<Ticket> {
 		const ticket = await this.#ledger.start(start.ticket, visitor.user, now - Referee.idle, now);
-		if (ticket === null) throw new ReferenceError("The ticket is unknown, expired or already started");
-		return ticket;
+		return ReferenceError.suppress(ticket, "The ticket is unknown, expired or already started");
 	}
 
 	async report(report: Report, visitor: Visitor, now: number): Promise<Standing> {

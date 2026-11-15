@@ -46,9 +46,7 @@ export class ArenaRouter {
 	}
 
 	static #address(request: Request): string {
-		const address = request.headers.get("CF-Connecting-IP");
-		if (address === null) throw new ReferenceError("The request carries no client address");
-		return address;
+		return ReferenceError.suppress(request.headers.get("CF-Connecting-IP"), "The request carries no client address");
 	}
 }
 //#endregion

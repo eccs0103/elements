@@ -1,7 +1,7 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Law, Reach, type Element, type ElementType, type Reaction } from "../models/elements.js";
+import { Law, Reach, type Element, type Reaction } from "../models/elements.js";
 import { PeriodicTable } from "./periodic-table.js";
 import { Dice } from "./dice.js";
 import { type Digest } from "./digest.js";
@@ -245,7 +245,7 @@ export class Board {
 	}
 
 	#act(cell: number, kind: number, reaction: Reaction, mask: Uint8Array, slot: number): boolean {
-		const { law, product, remains } = reaction;
+		const { law, remains } = reaction;
 		const owner = this.#owner;
 		if (law === Law.burnout) {
 			if (remains !== null) this.#spawn(cell, PeriodicTable.id(remains), null, owner);
@@ -262,9 +262,9 @@ export class Board {
 		switch (law) {
 		case Law.spread: this.#spawn(chosen, kind, limited ? budget - 1 : null, owner); break;
 		case Law.ignite:
-		case Law.convert: this.#spawn(chosen, this.#require(product), null, owner); break;
-		case Law.cool: this.#cool(cell, chosen, this.#require(product), this.#require(remains)); break;
-		case Law.destroy: this.#spawn(chosen, this.#require(product), null, owner); this.#spawn(cell, this.#require(remains), null, owner); break;
+		case Law.convert: this.#spawn(chosen, Board.#product(reaction), null, owner); break;
+		case Law.cool: this.#cool(cell, chosen, Board.#product(reaction), Board.#remains(reaction)); break;
+		case Law.destroy: this.#spawn(chosen, Board.#product(reaction), null, owner); this.#spawn(cell, Board.#remains(reaction), null, owner); break;
 		default: throw new TypeError(`Invalid '${law}' law`);
 		}
 		return true;
@@ -277,9 +277,12 @@ export class Board {
 		return mirrored ? found - 1 - index : index;
 	}
 
-	#require(type: ElementType | null): number {
-		if (type === null) throw new ReferenceError("The reaction has no resulting element");
-		return PeriodicTable.id(type);
+	static #product(reaction: Reaction): number {
+		return PeriodicTable.id(reaction.yields());
+	}
+
+	static #remains(reaction: Reaction): number {
+		return PeriodicTable.id(reaction.leaves());
 	}
 
 	#cool(cell: number, target: number, product: number, remains: number): void {

@@ -10,6 +10,8 @@
 		"environment/configs/**/*.ts",
 		"environment/plugins/**/*.ts",
 		"tests/determinism.test.ts",
-		"arena/controllers/verify.ts"
+		"arena/controllers/verify.ts",
+		"arena/services/verifier.ts",
+		"arena/vite.config.ts"
 	]
 }

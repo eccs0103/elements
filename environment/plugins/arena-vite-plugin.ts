@@ -39,13 +39,13 @@ export class ArenaVitePlugin extends VitePlugin {
 	async #forward(request: Connect.IncomingMessage, response: ServerResponse, next: Connect.NextFunction): Promise<void> {
 		try {
 			const { method, headers, originalUrl } = request;
-			if (originalUrl === undefined) throw new ReferenceError("The request has no address");
+			const address = ReferenceError.suppress(originalUrl, "The request has no address");
 			const body = method === "GET" || method === "HEAD" ? null : await ArenaVitePlugin.#read(request);
 			const forwarded = new Headers();
 			for (const [name, value] of Object.entries(headers)) {
 				if (typeof value === "string") forwarded.set(name, value);
 			}
-			const answer = await fetch(new URI(originalUrl, ArenaVitePlugin.#target).href, { method, headers: forwarded, body });
+			const answer = await fetch(new URI(address, ArenaVitePlugin.#target).href, { method, headers: forwarded, body });
 			response.statusCode = answer.status;
 			for (const [name, value] of answer.headers) {
 				if (ArenaVitePlugin.#skipped.includes(name)) continue;

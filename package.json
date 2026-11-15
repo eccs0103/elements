@@ -15,7 +15,7 @@
 		"preview": "npm run build && vite preview",
 		"deploy": "vite build && wrangler deploy",
 		"test": "node --test tests/determinism.test.ts",
-		"verify": "node arena/controllers/verify.ts"
+		"verify": "vite build --config arena/vite.config.ts && node dist/verifier/verify.js"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.66.0",

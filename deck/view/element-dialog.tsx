@@ -1,6 +1,7 @@
 "use strict";
 
 import "adaptive-extender/web";
+import { StaticEngine } from "adaptive-extender/web";
 import { type CSSProperties, Fragment, type MouseEvent, type ReactElement, type RefObject, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { type Element } from "../../playground/models/elements.js";
 import { Rules } from "../../playground/models/rules.js";
@@ -20,19 +21,21 @@ class Demo {
 	static #seconds: number = 5;
 	static #seed: number = 1;
 	#painter: Painter;
-	#rate: number;
+	#engine: StaticEngine = new StaticEngine({ launch: false });
+	#length: number;
 	#board: Board;
 	#element: Element | null = null;
 	#partner: Element | null = null;
-	#start: number = 0;
 	#ticks: number = 0;
-	#frame: number | null = null;
 
 	constructor(canvas: HTMLCanvasElement, rate: number) {
 		const painter = this.#painter = new Painter(canvas.transferControlToOffscreen());
 		const resolution = Demo.#resolution;
+		const engine = this.#engine;
 		painter.resize(resolution, resolution);
-		this.#rate = rate;
+		engine.limit = rate;
+		engine.addEventListener("trigger", this.#advance.bind(this));
+		this.#length = rate * Demo.#seconds;
 		this.#board = new Board(Demo.#size, Demo.#seed);
 	}
 
@@ -52,25 +55,23 @@ class Demo {
 	play(element: Element, partner: Element | null): void {
 		this.#element = element;
 		this.#partner = partner;
-		this.#reset(element, partner, performance.now());
-		if (this.#frame === null) this.#request();
+		this.#reset(element, partner);
+		this.#engine.launched = true;
 	}
 
 	stop(): void {
-		const frame = this.#frame;
-		if (frame !== null) cancelAnimationFrame(frame);
-		this.#frame = null;
+		this.#engine.launched = false;
 	}
 
-	#request(): void {
-		this.#frame = requestAnimationFrame(this.#advance.bind(this));
-	}
-
-	#reset(element: Element, partner: Element | null, time: number): void {
-		const size = Demo.#size;
-		const board = this.#board = new Board(size, Demo.#seed);
-		this.#start = time;
+	#reset(element: Element, partner: Element | null): void {
+		const board = this.#board = new Board(Demo.#size, Demo.#seed);
 		this.#ticks = 0;
+		this.#drop(board, element, partner);
+		this.#painter.paint(board, null);
+	}
+
+	#drop(board: Board, element: Element, partner: Element | null): void {
+		const size = Demo.#size;
 		const middle = trunc(size / 2);
 		if (partner === null) return board.drop(element, middle, middle, 1);
 		for (let y = 1; y < size; y += 3) {
@@ -83,24 +84,14 @@ class Demo {
 		}
 	}
 
-	#advance(time: number): void {
+	#advance(event: Event): void {
 		const element = this.#element;
 		if (element === null) return;
-		let start = this.#start;
-		if (time - start > Demo.#seconds * 1000) {
-			this.#reset(element, this.#partner, time);
-			start = time;
-		}
+		if (this.#ticks >= this.#length) return this.#reset(element, this.#partner);
 		const board = this.#board;
-		const due = trunc((time - start) / 1000 * this.#rate);
-		let ticks = this.#ticks;
-		while (ticks < due) {
-			board.step();
-			ticks++;
-		}
-		this.#ticks = ticks;
+		board.step();
+		this.#ticks++;
 		this.#painter.paint(board, null);
-		this.#request();
 	}
 }
 //#endregion

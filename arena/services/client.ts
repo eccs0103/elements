@@ -1,7 +1,7 @@
 "use strict";
 
-import "adaptive-extender/web";
-import { URI } from "adaptive-extender/web";
+import "adaptive-extender/worker";
+import { URI } from "adaptive-extender/worker";
 import { Entry, Ticket, Start, Report, Standing, Failure } from "../models/protocol.js";
 
 //#region Arena client

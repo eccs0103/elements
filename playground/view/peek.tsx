@@ -6,7 +6,7 @@ import { Fragment, type ReactElement, type RefObject, useEffect, useMemo, useRef
 import { type Element } from "../models/elements.js";
 import { type Simulation } from "../services/simulation.js";
 import { type Ticket } from "../../arena/models/protocol.js";
-import { Phrase, Sentence } from "../models/sentence.js";
+import { Sentence } from "../models/sentence.js";
 import { type Cell, type Crosshair } from "./crosshair.js";
 import { Swatch, Traits } from "./swatch.js";
 
@@ -19,7 +19,7 @@ interface ChipProps {
 function Chip({ element, compact }: ChipProps): ReactElement {
 	const { name } = element;
 	return (
-		<span className={`chip flex alt-center with-gap small-gap${compact ? " compact" : ""}`} title={name}>
+		<span className={`chip flex alt-center with-gap small-gap${compact ? " compact" : String.empty}`} title={name}>
 			<span className="tile rounded" style={Swatch.style(element)}></span>
 			<span className="name font-smaller-2">{name}</span>
 		</span>
@@ -37,8 +37,7 @@ function PeekCard({ element, holder, ticket }: PeekCardProps): ReactElement {
 	const { name, phase } = element;
 	const { rate } = ticket.rules;
 	const acts = useMemo(() => Sentence.acts(element, rate), [element, rate]);
-	const stoppers = useMemo(() => Array.from(new Set(Sentence.threats(element, rate).flatMap(sentence => sentence.subjects))), [element, rate]);
-	const { compact } = new Phrase(null, stoppers);
+	const stoppers = useMemo(() => Sentence.stoppers(element, rate), [element, rate]);
 	let owner = ticket.model;
 	if (holder === null) owner = "Neutral";
 	else if (holder === ticket.human) owner = "Yours";
@@ -73,8 +72,8 @@ function PeekCard({ element, holder, ticket }: PeekCardProps): ReactElement {
 			</ol>
 			<h4>Stopped by</h4>
 			<div className="flex wrap alt-center with-gap small-gap">
-				{stoppers.map(other => <Chip key={other.name} element={other} compact={compact} />)}
-				{stoppers.length === 0 ? <span className="description">Nothing: only a drop can replace it.</span> : null}
+				{stoppers.elements.map(other => <Chip key={other.name} element={other} compact={stoppers.compact} />)}
+				{stoppers.elements.length === 0 ? <span className="description">Nothing: only a drop can replace it.</span> : null}
 			</div>
 		</>
 	);
@@ -153,7 +152,7 @@ export function Peek({ board, crosshair, simulation, ticket }: PeekProps): React
 	}, [board, crosshair, simulation]);
 
 	return (
-		<section id="peek" className={`layer rounded flex column with-gap with-padding large-padding${bottom ? " bottom" : ""}`} hidden={!pressed || !present || shown === null}>
+		<section id="peek" className={`layer rounded flex column with-gap with-padding large-padding${bottom ? " bottom" : String.empty}`} hidden={!pressed || !present || shown === null}>
 			{shown === null ? null : <PeekCard element={shown} holder={holder} ticket={ticket} />}
 		</section>
 	);

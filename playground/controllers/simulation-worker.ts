@@ -10,8 +10,17 @@ import { Human, type Player } from "../services/players.js";
 import { Painter } from "../services/painter.js";
 import { Report, Verdict, type Ticket } from "../../arena/models/protocol.js";
 
+//#region Stage
+interface Stage {
+	paint(painter: Painter, preview: boolean): void;
+	status(cell: number | null): StatusCommand;
+	play(slot: number, x: number, y: number): boolean;
+	advance(): boolean;
+	finish(): FinishCommand | null;
+}
+//#endregion
 //#region Session
-class Session {
+class Session implements Stage {
 	#ticket: Ticket;
 	#match: Match;
 	#players: readonly Player[];
@@ -25,24 +34,8 @@ class Session {
 		this.#zone = new Uint8Array(size * size);
 	}
 
-	get match(): Match { return this.#match; }
-
-	advance(): void {
-		this.#match.advance(this.#players);
-	}
-
-	play(slot: number, x: number, y: number): boolean {
-		const match = this.#match;
-		return match.play(new Move(match.tick, this.#ticket.human, slot, x, y));
-	}
-
-	zone(): Uint8Array {
-		const zone = this.#zone;
-		zone.fill(0);
-		for (const cell of this.#match.cells(this.#ticket.human, 0)) {
-			zone[cell] = 1;
-		}
-		return zone;
+	paint(painter: Painter, preview: boolean): void {
+		painter.paint(this.#match.board, preview ? this.#mark() : null);
 	}
 
 	status(cell: number | null): StatusCommand {
@@ -51,79 +44,97 @@ class Session {
 		const { kinds } = match.board;
 		const inspected = Nullable.map(cell, cell => PeriodicTable.at(kinds[cell]));
 		const holder = Nullable.map(cell, match.holder.bind(match));
-		return new StatusCommand(Array.from(match.cards(human)), match.charge(human), inspected, holder, match.tick, Verdict.of(match).scores);
+		return new StatusCommand(Array.from(match.cards(human)), match.charge(human), inspected, holder, match.tick, Verdict.of(match));
 	}
 
-	report(): Report {
+	play(slot: number, x: number, y: number): boolean {
+		const match = this.#match;
+		return match.play(new Move(match.tick, this.#ticket.human, slot, x, y));
+	}
+
+	advance(): boolean {
+		const match = this.#match;
+		if (match.finished) return false;
+		match.advance(this.#players);
+		return true;
+	}
+
+	finish(): FinishCommand | null {
+		const match = this.#match;
+		if (!match.finished) return null;
 		const { id, human } = this.#ticket;
-		return new Report(id, this.#match.moves.filter(move => move.side === human));
+		return new FinishCommand(new Report(id, match.moves.filter(move => move.side === human)), Verdict.of(match));
+	}
+
+	#mark(): Uint8Array {
+		const zone = this.#zone;
+		zone.fill(0);
+		for (const cell of this.#match.cells(this.#ticket.human, 0)) {
+			zone[cell] = 1;
+		}
+		return zone;
 	}
 }
 //#endregion
 //#region Lobby
-class Lobby {
+class Lobby implements Stage {
 	#ticket: Ticket;
 
 	constructor(ticket: Ticket) {
 		this.#ticket = ticket;
 	}
 
-	get size(): number { return this.#ticket.rules.size; }
+	paint(painter: Painter, preview: boolean): void {
+		void preview;
+		painter.ground(this.#ticket.rules.size);
+	}
 
 	status(cell: number | null): StatusCommand {
 		const inspected = Nullable.map(cell, cell => PeriodicTable.ground);
-		const scores = Iterator.range(0, Match.count).map(side => 0).toArray();
-		return new StatusCommand(Array.from(this.#ticket.opening()), 1, inspected, null, 0, scores);
+		const tally = new Verdict(new Array<number>(Match.count).fill(0));
+		return new StatusCommand(Array.from(this.#ticket.opening()), 1, inspected, null, 0, tally);
+	}
+
+	play(slot: number, x: number, y: number): boolean {
+		void slot, x, y;
+		return false;
+	}
+
+	advance(): boolean {
+		return false;
+	}
+
+	finish(): FinishCommand | null {
+		return null;
 	}
 }
 //#endregion
 //#region Simulation worker
 class SimulationWorker extends Controller {
 	#painter: Painter;
-	#session: Session | null = null;
-	#lobby: Lobby | null = null;
+	#stage: Stage | null = null;
 	#preview: boolean = false;
 	#inspected: number | null = null;
 
-	#paint(session: Session): void {
-		this.#painter.paint(session.match.board, this.#preview ? session.zone() : null);
-		this.#report(session);
-	}
-
-	#report(session: Session): void {
-		self.postMessage(Command.export(session.status(this.#inspected)));
-	}
-
-	#welcome(lobby: Lobby): void {
-		this.#painter.ground(lobby.size);
-		this.#greet(lobby);
-	}
-
-	#greet(lobby: Lobby): void {
-		self.postMessage(Command.export(lobby.status(this.#inspected)));
+	#refresh(): void {
+		const stage = this.#stage;
+		if (stage === null) return;
+		stage.paint(this.#painter, this.#preview);
+		this.#describe();
 	}
 
 	#describe(): void {
-		const session = this.#session;
-		if (session !== null) return this.#report(session);
-		const lobby = this.#lobby;
-		if (lobby !== null) this.#greet(lobby);
+		const stage = this.#stage;
+		if (stage === null) return;
+		self.postMessage(Command.export(stage.status(this.#inspected)));
 	}
 
-	#refresh(): void {
-		const session = this.#session;
-		if (session !== null) return this.#paint(session);
-		const lobby = this.#lobby;
-		if (lobby !== null) this.#welcome(lobby);
-	}
-
-	#tick(session: Session): void {
-		const { match } = session;
-		if (match.finished) return;
-		session.advance();
-		this.#paint(session);
-		if (!match.finished) return;
-		self.postMessage(Command.export(new FinishCommand(session.report(), Verdict.of(match))));
+	#tick(): void {
+		const stage = this.#stage;
+		if (stage === null || !stage.advance()) return;
+		this.#refresh();
+		const finish = stage.finish();
+		if (finish !== null) self.postMessage(Command.export(finish));
 	}
 
 	#onMessage(event: MessageEvent): void {
@@ -136,9 +147,7 @@ class SimulationWorker extends Controller {
 
 		if (command instanceof StartCommand) {
 			const { ticket } = command;
-			const started = ticket.started;
-			this.#lobby = started ? null : new Lobby(ticket);
-			this.#session = started ? new Session(ticket) : null;
+			this.#stage = ticket.started ? new Session(ticket) : new Lobby(ticket);
 			this.#refresh();
 			return;
 		}
@@ -162,17 +171,15 @@ class SimulationWorker extends Controller {
 			return;
 		}
 
-		const session = this.#session;
-		if (session === null) return;
-
 		if (command instanceof TickCommand) {
-			this.#tick(session);
+			this.#tick();
 			return;
 		}
 
 		if (command instanceof DropCommand) {
+			const stage = this.#stage;
 			const { slot, x, y } = command;
-			if (session.play(slot, x, y)) this.#paint(session);
+			if (stage !== null && stage.play(slot, x, y)) this.#refresh();
 			return;
 		}
 	}

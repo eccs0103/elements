@@ -23,12 +23,12 @@ export function Scoreboard({ simulation, ticket }: ScoreboardProps): ReactElemen
 	useEffect(() => {
 		const update = (event: Event): void => {
 			const divRail = refRail.current;
-			const { tick, scores } = simulation;
+			const { tick, tally } = simulation;
 			setLeft(ceil((rules.length - tick) / rules.rate));
-			if (divRail === null || scores.length === 0) return;
+			if (divRail === null || tally === null) return;
 			const area = rules.size ** 2;
-			const owned = scores[human] / area;
-			const rival = scores.reduce((sum, score) => sum + score, 0) / area - owned;
+			const owned = tally.scores[human] / area;
+			const rival = tally.against(human) / area;
 			divRail.style.setProperty("--mine", `${owned}`);
 			divRail.style.setProperty("--theirs", `${rival}`);
 			setMine(round(owned * 100));

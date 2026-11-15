@@ -45,7 +45,7 @@ export class Painter {
 
 	paint(board: Board, zone: Uint8Array | null): void {
 		const { size } = board;
-		if (this.#cells.canvas.width !== size) this.#prepare(size);
+		this.#fit(size);
 		this.#fill(board);
 		this.#present();
 		if (zone !== null) this.#dim(zone, size);
@@ -54,7 +54,7 @@ export class Painter {
 
 	ground(size: number): void {
 		const { ground } = PeriodicTable;
-		if (this.#cells.canvas.width !== size) this.#prepare(size);
+		this.#fit(size);
 		this.#pixels.fill(Painter.#palette[PeriodicTable.id(ground) * Painter.#stride + ground.budget]);
 		this.#cells.putImageData(this.#image, 0, 0);
 		this.#present();
@@ -83,6 +83,10 @@ export class Painter {
 		}
 		context.fillStyle = Painter.#shade;
 		context.fill();
+	}
+
+	#fit(size: number): void {
+		if (this.#cells.canvas.width !== size) this.#prepare(size);
 	}
 
 	#prepare(size: number): void {

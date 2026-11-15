@@ -25,7 +25,7 @@ export class Simulation extends EventTarget {
 	#inspected: Element | null = null;
 	#holder: number | null = null;
 	#tick: number = 0;
-	#scores: readonly number[] = [];
+	#tally: Verdict | null = null;
 	#report: Report | null = null;
 	#verdict: Verdict | null = null;
 	#drops: DropCommand[] = [];
@@ -51,7 +51,7 @@ export class Simulation extends EventTarget {
 	get verdict(): Verdict | null { return this.#verdict; }
 	get launched(): boolean { return this.#engine.launched; }
 	get tick(): number { return this.#tick; }
-	get scores(): readonly number[] { return this.#scores; }
+	get tally(): Verdict | null { return this.#tally; }
 
 	launch(): void {
 		const engine = this.#engine;
@@ -103,13 +103,13 @@ export class Simulation extends EventTarget {
 		const command = Command.import(event.data, "command");
 
 		if (command instanceof StatusCommand) {
-			const { cards, charge, inspected, holder, tick, scores } = command;
+			const { cards, charge, inspected, holder, tick, tally } = command;
 			this.#cards = cards;
 			this.#charge = charge;
 			this.#inspected = inspected;
 			this.#holder = holder;
 			this.#tick = tick;
-			this.#scores = scores;
+			this.#tally = tally;
 			this.dispatchEvent(new Event("update"));
 			return;
 		}

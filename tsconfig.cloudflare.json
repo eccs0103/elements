@@ -8,7 +8,6 @@
 	"include": [
 		"environment/workers/**/*.ts",
 		"arena/controllers/arena-worker.ts",
-		"arena/controllers/referee-worker.ts",
 		"arena/services/arena.ts",
 		"arena/services/ledger.ts",
 		"arena/services/router.ts",

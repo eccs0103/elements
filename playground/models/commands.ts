@@ -230,7 +230,7 @@ export interface StatusCommandScheme extends CommandScheme {
 	inspected: ElementScheme | null;
 	holder: number | null;
 	tick: number;
-	scores: number[];
+	tally: Verdict;
 }
 
 export class StatusCommand extends Command {
@@ -249,13 +249,13 @@ export class StatusCommand extends Command {
 	@Field(Number)
 	tick: number;
 
-	@Field(Array.Of(Number))
-	scores: number[];
+	@Field(Verdict)
+	tally: Verdict;
 
 	constructor();
-	constructor(cards: Element[], charge: number, inspected: Element | null, holder: number | null, tick: number, scores: number[]);
-	constructor(cards?: Element[], charge?: number, inspected?: Element | null, holder?: number | null, tick?: number, scores?: number[]) {
-		if (cards === undefined || charge === undefined || inspected === undefined || holder === undefined || tick === undefined || scores === undefined) {
+	constructor(cards: Element[], charge: number, inspected: Element | null, holder: number | null, tick: number, tally: Verdict);
+	constructor(cards?: Element[], charge?: number, inspected?: Element | null, holder?: number | null, tick?: number, tally?: Verdict) {
+		if (cards === undefined || charge === undefined || inspected === undefined || holder === undefined || tick === undefined || tally === undefined) {
 			super();
 			return;
 		}
@@ -266,7 +266,7 @@ export class StatusCommand extends Command {
 		this.inspected = inspected;
 		this.holder = holder;
 		this.tick = tick;
-		this.scores = scores;
+		this.tally = tally;
 	}
 }
 //#endregion

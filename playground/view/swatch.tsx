@@ -42,7 +42,7 @@ export function Traits({ element, children }: TraitsProps): ReactElement {
 	const { heat, flammable, conductive } = element;
 	return (
 		<>
-			<Trait kind="heat" text={`Heat ${heat > 0 ? "+" : ""}${heat}`}>{children}</Trait>
+			<Trait kind="heat" text={`Heat ${heat > 0 ? "+" : String.empty}${heat}`}>{children}</Trait>
 			{flammable ? <Trait kind="flammable" text="Flammable" /> : null}
 			{conductive ? <Trait kind="conductive" text="Conducts" /> : null}
 		</>

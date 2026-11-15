@@ -1,6 +1,0 @@
-{
-	"$schema": "../node_modules/wrangler/config-schema.json",
-	"name": "elements-referee",
-	"compatibility_date": "2026-07-16",
-	"main": "controllers/referee-worker.ts"
-}

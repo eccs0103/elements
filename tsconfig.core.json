@@ -21,7 +21,10 @@
 		"arena/models/protocol.ts",
 		"arena/models/bucket.ts",
 		"arena/models/visitor.ts",
+		"arena/models/arena-environment.ts",
+		"arena/models/verifier-environment.ts",
 		"arena/services/referee.ts",
+		"settings/models/settings.ts",
 		"tests/determinism.ts"
 	]
 }

@@ -18,12 +18,12 @@ interface Turnstile {
 
 declare global {
 	interface Window {
-		turnstile?: Turnstile;
+		turnstile: Turnstile | undefined;
 	}
 }
 
 export class Challenge {
-	static #sitekey: string = "1x00000000000000000000AA";
+	static #sitekey: string = "0x4AAAAAAGBet7ZYe7rBg5A8";
 	static #action: string = "ticket";
 	#container: HTMLElement;
 	#script: HTMLScriptElement;
@@ -56,14 +56,12 @@ export class Challenge {
 		const script = this.#script;
 		// The script element's id must never be "turnstile": named access would make window.turnstile that element.
 		if (window.turnstile === undefined) {
-			await new Promise<void>((resolve, reject) => {
-				script.addEventListener("load", event => resolve(), { once: true });
-				script.addEventListener("error", event => reject(new Error("The bot check could not load")), { once: true });
+			await Promise.withSignal((signal, resolve, reject) => {
+				script.addEventListener("load", event => resolve(), { signal });
+				script.addEventListener("error", event => reject(new Error("The bot check could not load")), { signal });
 			});
 		}
-		const { turnstile } = window;
-		if (turnstile === undefined) throw new ReferenceError("The bot check loaded without its API");
-		return turnstile;
+		return ReferenceError.suppress(window.turnstile, "The bot check loaded without its API");
 	}
 }
 //#endregion
