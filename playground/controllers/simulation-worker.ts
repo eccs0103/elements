@@ -9,6 +9,7 @@ import { Match } from "../services/match.js";
 import { Human, type Player } from "../services/players.js";
 import { Painter } from "../services/painter.js";
 import { Agent } from "../services/agent.js";
+import { AgentCommand, LoadCommand } from "../models/agent-commands.js";
 import { Rules } from "../models/rules.js";
 import { Report, Verdict, type Ticket } from "../../arena/models/protocol.js";
 
@@ -155,7 +156,9 @@ class SimulationWorker extends Controller {
 		const command = Command.import(event.data, "command");
 
 		if (command instanceof InitializeCommand) {
-			this.#painter = new Painter(command.canvas);
+			const { canvas, weights } = command;
+			this.#painter = new Painter(canvas);
+			this.#agent.postMessage(AgentCommand.export(new LoadCommand(weights)));
 			return;
 		}
 

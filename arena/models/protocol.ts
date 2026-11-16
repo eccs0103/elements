@@ -51,7 +51,6 @@ export interface TicketScheme {
 	rules: RulesScheme;
 	human: number;
 	deck: ElementScheme[];
-	model: string;
 }
 
 export class Ticket extends Model {
@@ -60,7 +59,6 @@ export class Ticket extends Model {
 	static #idle: number = 600000;
 	static #slack: number = 15000;
 	static #human: number = 0;
-	static #model: string = "Proxima";
 
 	@Field(String, { name: "id" })
 	id: string;
@@ -80,13 +78,10 @@ export class Ticket extends Model {
 	@Field(Array.Of(Element), { name: "deck" })
 	deck: Element[];
 
-	@Field(String, { name: "model" })
-	model: string;
-
 	constructor();
-	constructor(id: string, seed: number | null, luck: number, rules: Rules, human: number, deck: Element[], model: string);
-	constructor(id?: string, seed?: number | null, luck?: number, rules?: Rules, human?: number, deck?: Element[], model?: string) {
-		if (id === undefined || seed === undefined || luck === undefined || rules === undefined || human === undefined || deck === undefined || model === undefined) {
+	constructor(id: string, seed: number | null, luck: number, rules: Rules, human: number, deck: Element[]);
+	constructor(id?: string, seed?: number | null, luck?: number, rules?: Rules, human?: number, deck?: Element[]) {
+		if (id === undefined || seed === undefined || luck === undefined || rules === undefined || human === undefined || deck === undefined) {
 			super();
 			return;
 		}
@@ -98,7 +93,6 @@ export class Ticket extends Model {
 		this.rules = rules;
 		this.human = human;
 		this.deck = deck;
-		this.model = model;
 	}
 
 	static get route(): string { return Ticket.#route; }
@@ -107,7 +101,7 @@ export class Ticket extends Model {
 	static get human(): number { return Ticket.#human; }
 
 	static deal(id: string, seed: number, luck: number, deck: Element[]): Ticket {
-		return new Ticket(id, seed, luck, new Rules(), Ticket.#human, deck, Ticket.#model);
+		return new Ticket(id, seed, luck, new Rules(), Ticket.#human, deck);
 	}
 
 	static draft(rules: Rules, seed: number, side: number): Deck {
@@ -121,11 +115,11 @@ export class Ticket extends Model {
 	get started(): boolean { return this.seed !== null; }
 
 	sealed(): Ticket {
-		return new Ticket(this.id, null, this.luck, this.rules, this.human, this.deck, this.model);
+		return new Ticket(this.id, null, this.luck, this.rules, this.human, this.deck);
 	}
 
 	redeal(deck: Element[]): Ticket {
-		return new Ticket(this.id, this.seed, this.luck, this.rules, this.human, deck, this.model);
+		return new Ticket(this.id, this.seed, this.luck, this.rules, this.human, deck);
 	}
 
 	holds(deck: readonly Element[]): boolean {

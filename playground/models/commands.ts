@@ -1,7 +1,7 @@
 "use strict";
 
 import "adaptive-extender/worker";
-import { Any, Deferred, Descendant, Field, Model, Nullable } from "adaptive-extender/worker";
+import { Any, Deferred, Descendant, Field, Model, Nullable, URI } from "adaptive-extender/worker";
 import { Element, type ElementScheme } from "./elements.js";
 import { Ticket, Report, Verdict, type TicketScheme, type ReportScheme, type VerdictScheme } from "../../arena/models/protocol.js";
 
@@ -37,22 +37,27 @@ export interface InitializeCommandDiscriminator {
 export interface InitializeCommandScheme extends CommandScheme {
 	$type: keyof InitializeCommandDiscriminator;
 	canvas: OffscreenCanvas;
+	weights: string;
 }
 
 export class InitializeCommand extends Command {
 	@Field(Any.ByReference(OffscreenCanvas))
 	canvas: OffscreenCanvas;
 
+	@Field(URI)
+	weights: URI;
+
 	constructor();
-	constructor(canvas: OffscreenCanvas);
-	constructor(canvas?: OffscreenCanvas) {
-		if (canvas === undefined) {
+	constructor(canvas: OffscreenCanvas, weights: URI);
+	constructor(canvas?: OffscreenCanvas, weights?: URI) {
+		if (canvas === undefined || weights === undefined) {
 			super();
 			return;
 		}
 
 		super();
 		this.canvas = canvas;
+		this.weights = weights;
 	}
 }
 //#endregion

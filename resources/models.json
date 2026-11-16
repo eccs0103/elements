@@ -1,0 +1,9 @@
+{
+	"models": [
+		{
+			"folder": "data/agent-self-play",
+			"name": "Capella s1",
+			"description": "Learned only by playing against itself: 163,840 matches."
+		}
+	]
+}

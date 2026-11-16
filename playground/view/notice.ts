@@ -3,6 +3,7 @@
 import "adaptive-extender/web";
 import { Nullable, URI } from "adaptive-extender/web";
 import { type Allowance, type Standing, type Ticket, type Verdict } from "../../arena/models/protocol.js";
+import { type AgentModel } from "../models/agent-catalog.js";
 
 const { baseURI } = document;
 const { ceil, trunc } = Math;
@@ -40,32 +41,32 @@ export class Notice {
 		return notice;
 	}
 
-	static ready(standing: Standing, ticket: Ticket, allowance: Allowance | null): Notice {
-		const notice = new Notice(Notice.#score(standing, ticket), Notice.#rules(ticket));
+	static ready(standing: Standing, ticket: Ticket, model: AgentModel, allowance: Allowance | null): Notice {
+		const notice = new Notice(Notice.#score(standing, model), Notice.#rules(ticket));
 		notice.#note = Nullable.map(allowance, Notice.#rest.bind(Notice));
 		notice.#hint = "Drag a card to start the game";
 		notice.#playable = true;
 		return notice;
 	}
 
-	static practice(ticket: Ticket): Notice {
-		const notice = new Notice(`Practice against ${ticket.model}`, Notice.#rules(ticket));
+	static practice(ticket: Ticket, model: AgentModel): Notice {
+		const notice = new Notice(`Practice against ${model.name}`, Notice.#rules(ticket));
 		notice.#note = "Free and unlimited, nothing is counted";
 		notice.#hint = "Drag a card to start the game";
 		notice.#playable = true;
 		return notice;
 	}
 
-	static judging(verdict: Verdict, ticket: Ticket): Notice {
-		const notice = new Notice(Notice.#outcome(verdict, ticket), "The match is over");
+	static judging(verdict: Verdict, ticket: Ticket, model: AgentModel): Notice {
+		const notice = new Notice(Notice.#outcome(verdict, ticket, model), "The match is over");
 		notice.#hint = "Saving the result…";
 		notice.#busy = true;
 		notice.#action = "Play again";
 		return notice;
 	}
 
-	static outcome(verdict: Verdict, ticket: Ticket, standing: Standing, allowance: Allowance | null): Notice {
-		const notice = new Notice(Notice.#outcome(verdict, ticket), Notice.#score(standing, ticket));
+	static outcome(verdict: Verdict, ticket: Ticket, model: AgentModel, standing: Standing, allowance: Allowance | null): Notice {
+		const notice = new Notice(Notice.#outcome(verdict, ticket, model), Notice.#score(standing, model));
 		notice.#action = "Play again";
 		if (allowance === null) return notice;
 		if (allowance.left > 0) {
@@ -77,14 +78,14 @@ export class Notice {
 		return notice;
 	}
 
-	static practiced(verdict: Verdict, ticket: Ticket): Notice {
-		const notice = new Notice(Notice.#outcome(verdict, ticket), "Practice match, not counted");
+	static practiced(verdict: Verdict, ticket: Ticket, model: AgentModel): Notice {
+		const notice = new Notice(Notice.#outcome(verdict, ticket, model), "Practice match, not counted");
 		notice.#action = "Play again";
 		return notice;
 	}
 
-	static uncounted(verdict: Verdict, ticket: Ticket, reason: Error): Notice {
-		const notice = new Notice(Notice.#outcome(verdict, ticket), `The arena did not count this match: ${reason.message}`);
+	static uncounted(verdict: Verdict, ticket: Ticket, model: AgentModel, reason: Error): Notice {
+		const notice = new Notice(Notice.#outcome(verdict, ticket, model), `The arena did not count this match: ${reason.message}`);
 		notice.#action = "Play again";
 		return notice;
 	}
@@ -139,13 +140,13 @@ export class Notice {
 		return `Drop elements to spread over the board: more cells after ${ticket.rules.seconds} s wins.`;
 	}
 
-	static #score(standing: Standing, ticket: Ticket): string {
-		return `Humanity ${standing.humanity} : ${standing.agent} ${ticket.model}`;
+	static #score(standing: Standing, model: AgentModel): string {
+		return `Humanity ${standing.humanity} : ${standing.agent} ${model.name}`;
 	}
 
-	static #outcome(verdict: Verdict, ticket: Ticket): string {
-		const { human, model } = ticket;
-		const winner = verdict.winner(human) === human ? "You won" : `${model} won`;
+	static #outcome(verdict: Verdict, ticket: Ticket, model: AgentModel): string {
+		const { human } = ticket;
+		const winner = verdict.winner(human) === human ? "You won" : `${model.name} won`;
 		return `${winner} ${verdict.scores[human]} : ${verdict.against(human)}`;
 	}
 

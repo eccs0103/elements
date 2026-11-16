@@ -1,17 +1,18 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Deferred, Descendant, Field, Model } from "adaptive-extender/core";
+import { Deferred, Descendant, Field, Model, URI } from "adaptive-extender/core";
 import { Observation, type ObservationScheme } from "./observation.js";
 
 //#region Agent command
-export interface AgentCommandDiscriminator extends DecideCommandDiscriminator, DecisionCommandDiscriminator {
+export interface AgentCommandDiscriminator extends LoadCommandDiscriminator, DecideCommandDiscriminator, DecisionCommandDiscriminator {
 }
 
 export interface AgentCommandScheme {
 	$type: keyof AgentCommandDiscriminator;
 }
 
+@Descendant(Deferred(_ => LoadCommand))
 @Descendant(Deferred(_ => DecideCommand))
 @Descendant(Deferred(_ => DecisionCommand))
 export abstract class AgentCommand extends Model {
@@ -72,6 +73,33 @@ export class DecisionCommand extends AgentCommand {
 
 		super();
 		this.action = action;
+	}
+}
+//#endregion
+//#region Load command
+export interface LoadCommandDiscriminator {
+	"LoadCommand": LoadCommand;
+}
+
+export interface LoadCommandScheme extends AgentCommandScheme {
+	$type: keyof LoadCommandDiscriminator;
+	source: string;
+}
+
+export class LoadCommand extends AgentCommand {
+	@Field(URI)
+	source: URI;
+
+	constructor();
+	constructor(source: URI);
+	constructor(source?: URI) {
+		if (source === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.source = source;
 	}
 }
 //#endregion

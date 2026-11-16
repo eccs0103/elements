@@ -1,10 +1,12 @@
 "use strict";
 
 import "adaptive-extender/web";
+import { type URI } from "adaptive-extender/web";
 import { type ReactElement, type RefObject, useEffect, useRef, useState } from "react";
 import { Simulation } from "../services/simulation.js";
 import { type Ticket } from "../../arena/models/protocol.js";
 import { Mode } from "../../settings/models/settings.js";
+import { type AgentModel } from "../models/agent-catalog.js";
 import { Crosshair } from "./crosshair.js";
 import { type Notice } from "./notice.js";
 import { Peek } from "./peek.js";
@@ -106,6 +108,8 @@ function BoardNotice({ mode, online, arena, practice, playing, switchable, onSwi
 //#endregion
 //#region Playground app
 export interface PlaygroundAppProps {
+	model: AgentModel;
+	weights: URI;
 	ticket: Ticket | null;
 	mode: Mode;
 	online: boolean | null;
@@ -120,7 +124,7 @@ export interface PlaygroundAppProps {
 	onFinish(simulation: Simulation): void;
 }
 
-export function PlaygroundApp({ ticket, mode, online, arena, practice, playing, switchable, ready, onSwitch, onAgain, onLaunch, onFinish }: PlaygroundAppProps): ReactElement {
+export function PlaygroundApp({ model, weights, ticket, mode, online, arena, practice, playing, switchable, ready, onSwitch, onAgain, onLaunch, onFinish }: PlaygroundAppProps): ReactElement {
 	const [simulation, setSimulation] = useState<Simulation | null>(null);
 	const [crosshair, setCrosshair] = useState<Crosshair | null>(null);
 	const refBoard: RefObject<HTMLCanvasElement | null> = useRef(null);
@@ -132,12 +136,12 @@ export function PlaygroundApp({ ticket, mode, online, arena, practice, playing, 
 		const divCrosshair = refCrosshair.current;
 		if (canvasBoard === null || divCrosshair === null) return;
 		if (refSimulation.current !== null) return;
-		const created = refSimulation.current = new Simulation(canvasBoard);
+		const created = refSimulation.current = new Simulation(canvasBoard, weights);
 		created.addEventListener("launch", event => onLaunch(created));
 		created.addEventListener("finish", event => onFinish(created));
 		setSimulation(created);
 		setCrosshair(new Crosshair(divCrosshair, canvasBoard, created));
-	}, [onLaunch, onFinish]);
+	}, [weights, onLaunch, onFinish]);
 
 	useEffect(() => {
 		if (simulation === null || ticket === null) return;
@@ -147,7 +151,7 @@ export function PlaygroundApp({ ticket, mode, online, arena, practice, playing, 
 	return (
 		<main>
 			<div id="stage">
-				{simulation === null || ticket === null ? null : <Scoreboard simulation={simulation} ticket={ticket} />}
+				{simulation === null || ticket === null ? null : <Scoreboard simulation={simulation} ticket={ticket} model={model} />}
 				<canvas id="board" ref={refBoard} onContextMenu={event => event.preventDefault()}></canvas>
 				<div id="crosshair" ref={refCrosshair} hidden>
 					<span className="row"></span>
@@ -155,7 +159,7 @@ export function PlaygroundApp({ ticket, mode, online, arena, practice, playing, 
 					<span className="cell"></span>
 				</div>
 				<BoardNotice mode={mode} online={online} arena={arena} practice={practice} playing={playing} switchable={switchable} onSwitch={onSwitch} onAgain={onAgain} />
-				{simulation === null || crosshair === null || ticket === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} ticket={ticket} />}
+				{simulation === null || crosshair === null || ticket === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} ticket={ticket} model={model} />}
 				<div id="toolkit" className="flex" inert={!ready && !playing}>
 					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} />}
 				</div>

@@ -30,14 +30,14 @@ export class Simulation extends EventTarget {
 	#verdict: Verdict | null = null;
 	#drops: DropCommand[] = [];
 
-	constructor(canvas: HTMLCanvasElement) {
+	constructor(canvas: HTMLCanvasElement, weights: URI) {
 		super();
 		const engine = this.#engine;
 		const worker = this.#worker;
 		engine.addEventListener("trigger", event => worker.postMessage(Command.export(new TickCommand())));
 		worker.addEventListener("message", this.#onMessage.bind(this));
 		const offscreen = canvas.transferControlToOffscreen();
-		worker.postMessage(Command.export(new InitializeCommand(offscreen)), [offscreen]);
+		worker.postMessage(Command.export(new InitializeCommand(offscreen, weights)), [offscreen]);
 		new ResizeObserver(entries => this.#resize(canvas)).observe(canvas);
 		this.#resize(canvas);
 	}

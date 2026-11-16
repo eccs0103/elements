@@ -15,6 +15,7 @@
 		"playground/models/weights.ts",
 		"playground/models/observation.ts",
 		"playground/models/agent-commands.ts",
+		"playground/models/agent-catalog.ts",
 		"playground/services/periodic-table.ts",
 		"playground/services/dice.ts",
 		"playground/services/digest.ts",
