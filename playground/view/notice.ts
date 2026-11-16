@@ -3,7 +3,6 @@
 import "adaptive-extender/web";
 import { URI } from "adaptive-extender/web";
 import { type Allowance, type Standing, type Ticket, type Verdict } from "../../arena/models/protocol.js";
-import { type AgentModel } from "../models/agent-catalog.js";
 
 const { baseURI } = document;
 const { ceil, trunc } = Math;
@@ -11,9 +10,14 @@ const { ceil, trunc } = Math;
 //#region Notice
 export class Notice {
 	static #second: number = 1000;
+	static #counted: string = "Matches here count for Humanity";
+	static #uncounted: string = "Practice, not counted";
+	static #review: string = "Counts after review";
+	static #start: string = "Drag a card to start";
+	static #loading: string = "Loading the match…";
+	static #again: string = "Play again";
 	#title: string;
 	#description: string;
-	#note: string | null = null;
 	#hint: string | null = null;
 	#deadline: number | null = null;
 	#busy: boolean = false;
@@ -27,85 +31,90 @@ export class Notice {
 	}
 
 	static connecting(): Notice {
-		const notice = new Notice("Arena", "Matches here count for Humanity against the agent.");
-		notice.#hint = "Connecting to the arena…";
+		const notice = new Notice("Arena", Notice.#counted);
+		notice.#hint = "Connecting…";
 		notice.#busy = true;
 		return notice;
 	}
 
 	static loading(): Notice {
-		const notice = new Notice("Your rival is getting ready", "Loading the match takes a few seconds");
-		notice.#hint = "Loading the match…";
+		const notice = new Notice("Arena", Notice.#counted);
+		notice.#hint = Notice.#loading;
+		notice.#busy = true;
+		return notice;
+	}
+
+	static preparing(): Notice {
+		const notice = new Notice("Practice", Notice.#uncounted);
+		notice.#hint = Notice.#loading;
 		notice.#busy = true;
 		return notice;
 	}
 
 	static ready(standing: Standing, ticket: Ticket): Notice {
-		const notice = new Notice(Notice.#score(standing, ticket.model), Notice.#rules(ticket));
-		notice.#hint = "Drag a card to start the game";
+		const notice = new Notice(`Humanity ${standing.humanity} : ${standing.agent} ${ticket.model.name}`, Notice.#rules(ticket));
+		notice.#hint = Notice.#start;
 		notice.#playable = true;
 		return notice;
 	}
 
 	static practice(ticket: Ticket): Notice {
-		const notice = new Notice(`Practice against ${ticket.model.name}`, Notice.#rules(ticket));
-		notice.#hint = "Drag a card to start the game";
+		const notice = new Notice(`Practice vs ${ticket.model.name}`, Notice.#rules(ticket));
+		notice.#hint = Notice.#start;
 		notice.#playable = true;
 		return notice;
 	}
 
 	static judging(verdict: Verdict, ticket: Ticket): Notice {
-		const notice = new Notice(Notice.#outcome(verdict, ticket), "The match is over");
-		notice.#hint = "Saving the result…";
+		const notice = new Notice(Notice.#outcome(verdict, ticket), Notice.#review);
+		notice.#hint = "Saving…";
 		notice.#busy = true;
-		notice.#action = "Play again";
+		notice.#action = Notice.#again;
 		return notice;
 	}
 
-	static outcome(verdict: Verdict, ticket: Ticket, standing: Standing, allowance: Allowance | null): Notice {
-		const notice = new Notice(Notice.#outcome(verdict, ticket), Notice.#score(standing, ticket.model));
-		notice.#action = "Play again";
+	static outcome(verdict: Verdict, ticket: Ticket, allowance: Allowance | null): Notice {
+		const notice = new Notice(Notice.#outcome(verdict, ticket), Notice.#review);
+		notice.#action = Notice.#again;
 		if (allowance === null || allowance.left > 0) return notice;
-		notice.#note = "No matches left for now";
 		notice.#deadline = Date.now() + allowance.wait;
 		return notice;
 	}
 
 	static practiced(verdict: Verdict, ticket: Ticket): Notice {
-		const notice = new Notice(Notice.#outcome(verdict, ticket), "Practice match, not counted");
-		notice.#action = "Play again";
+		const notice = new Notice(Notice.#outcome(verdict, ticket), Notice.#uncounted);
+		notice.#action = Notice.#again;
 		return notice;
 	}
 
 	static uncounted(verdict: Verdict, ticket: Ticket, reason: Error): Notice {
-		const notice = new Notice(Notice.#outcome(verdict, ticket), `The arena did not count this match: ${reason.message}`);
-		notice.#action = "Play again";
+		const notice = new Notice(Notice.#outcome(verdict, ticket), `Not counted: ${reason.message}`);
+		notice.#action = Notice.#again;
 		return notice;
 	}
 
 	static shortage(allowance: Allowance): Notice {
-		const notice = new Notice("No matches left", "Matches come back one by one over time. Practice is open meanwhile.");
+		const notice = new Notice("No matches left", "Practice is open meanwhile");
 		notice.#deadline = Date.now() + allowance.wait;
 		notice.#action = "Play";
 		return notice;
 	}
 
 	static unfinished(count: number, capacity: number): Notice {
-		const notice = new Notice("Your deck is not ready", `It holds ${count} of ${capacity} elements. Fill it to play.`);
+		const notice = new Notice("Deck not ready", `${count} of ${capacity} elements`);
 		notice.#action = "Open the deck";
 		notice.#target = new URI("../deck/", baseURI);
 		return notice;
 	}
 
 	static trouble(reason: Error): Notice {
-		const notice = new Notice("The match could not start", reason.message);
+		const notice = new Notice("Match could not start", reason.message);
 		notice.#action = "Try again";
 		return notice;
 	}
 
 	get title(): string { return this.#title; }
 	get description(): string { return this.#description; }
-	get note(): string | null { return this.#note; }
 	get deadline(): number | null { return this.#deadline; }
 	get busy(): boolean { return this.#busy; }
 	get playable(): boolean { return this.#playable; }
@@ -130,11 +139,7 @@ export class Notice {
 	}
 
 	static #rules(ticket: Ticket): string {
-		return `Drop elements to spread over the board: more cells after ${ticket.rules.seconds} s wins.`;
-	}
-
-	static #score(standing: Standing, model: AgentModel): string {
-		return `Humanity ${standing.humanity} : ${standing.agent} ${model.name}`;
+		return `Most cells after ${ticket.rules.seconds} s wins`;
 	}
 
 	static #outcome(verdict: Verdict, ticket: Ticket): string {

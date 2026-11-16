@@ -42,10 +42,10 @@ function Tickets({ online, allowance }: TicketsProps): ReactElement {
 	const { left, capacity } = allowance;
 	const minutes = deadline === null ? 0 : ceil(max(0, deadline - now) / 60000);
 	return (
-		<span className="tickets flex" title={`${left} of ${capacity} matches left`}>
+		<span className="tickets flex font-smaller-1" title={`${left} of ${capacity} matches left`}>
 			<span>{left}</span>
 			<span className="icon in-line ticket"></span>
-			<span className="description" hidden={deadline === null}>· refill in {minutes}m</span>
+			<span hidden={deadline === null}>+1 in {minutes}m</span>
 		</span>
 	);
 }
@@ -86,7 +86,7 @@ interface NoticeSideProps {
 
 function NoticeSide({ notice, shown, onAgain }: NoticeSideProps): ReactElement {
 	const [now, setNow] = useState<number>(Date.now);
-	const { deadline, target, note, action } = notice;
+	const { deadline, target, action } = notice;
 
 	useEffect(() => {
 		setNow(Date.now());
@@ -105,7 +105,6 @@ function NoticeSide({ notice, shown, onAgain }: NoticeSideProps): ReactElement {
 		<article className="flex column with-gap" inert={!shown} aria-hidden={!shown} aria-busy={notice.busy}>
 			<h2>{notice.title}</h2>
 			<p className="description">{notice.description}</p>
-			<p className="note" aria-hidden={note === null}>{note}</p>
 			<footer>
 				<p className="highlight" hidden={action !== null}>{notice.hint}</p>
 				<a className="depth rounded with-padding" role="button" href={target?.href} hidden={target === null}>{action}</a>

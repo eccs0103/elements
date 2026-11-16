@@ -28,7 +28,7 @@ canvas#board {
 	user-select: none;
 }
 
-div#stage:has(section#notice:not([hidden])) canvas#board {
+div#stage:has(section#notice:not([hidden])) canvas#board:not(:hover, :active) {
 	filter: blur(var(--size-small-gap));
 }
 
@@ -79,14 +79,6 @@ section#notice {
 	& h2,
 	& p {
 		margin: 0;
-	}
-
-	& p.note {
-		min-block-size: 1lh;
-	}
-
-	& p.note[aria-hidden="true"] {
-		visibility: hidden;
 	}
 
 	& footer {
@@ -195,11 +187,6 @@ fieldset#mode {
 
 	& span.ticket {
 		--url: url(../../assets/icons/ticket.svg);
-	}
-
-	& input:checked + label span.description {
-		color: inherit;
-		opacity: 0.8;
 	}
 }
 

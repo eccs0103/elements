@@ -30,7 +30,7 @@ class Duel {
 	#online: boolean | null = null;
 	#allowance: Allowance | null = null;
 	#arena: Notice = Notice.connecting();
-	#practice: Notice = Notice.loading();
+	#practice: Notice = Notice.preparing();
 	#playing: boolean = false;
 	#finished: boolean = false;
 	#opening: boolean = false;
@@ -196,9 +196,9 @@ class Duel {
 
 	async #judge(ticket: Ticket, report: Report, verdict: Verdict): Promise<void> {
 		try {
-			const standing = await this.#client.report(report);
+			await this.#client.report(report);
 			const allowance = this.#allowance = await this.#tickets();
-			this.#arena = Notice.outcome(verdict, ticket, standing, allowance);
+			this.#arena = Notice.outcome(verdict, ticket, allowance);
 		} catch (reason) {
 			this.#arena = Notice.uncounted(verdict, ticket, Error.from(reason));
 		}

@@ -140,6 +140,10 @@ describe("Arena", () => {
 		const spent = await arena.allowance(visitor, now + 2);
 		expect([spent.left, spent.capacity]).toEqual([2, 3]);
 		await expect(arena.start(new Start(lobby.id, 12345), visitor, now + 3)).rejects.toThrow(ReferenceError);
+		const reloaded = await arena.open(entry, visitor, model, now + 4);
+		expect(reloaded.id).not.toBe(lobby.id);
+		const kept = await arena.allowance(visitor, now + 4);
+		expect(kept.left).toBe(2);
 		for (let index = 0; index < 2; index++) {
 			const next = await arena.open(entry, visitor, model, now + 10 + index);
 			await arena.start(new Start(next.id, index), visitor, now + 10 + index);
