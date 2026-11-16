@@ -17,13 +17,20 @@ export class Notice {
 	#hint: string | null = null;
 	#deadline: number | null = null;
 	#busy: boolean = false;
-	#hidden: boolean = false;
+	#playable: boolean = false;
 	#action: string | null = null;
 	#target: URI | null = null;
 
 	constructor(title: string, description: string) {
 		this.#title = title;
 		this.#description = description;
+	}
+
+	static connecting(): Notice {
+		const notice = new Notice("Arena", "Matches here count for Humanity against the agent.");
+		notice.#hint = "Connecting to the arena…";
+		notice.#busy = true;
+		return notice;
 	}
 
 	static loading(): Notice {
@@ -34,15 +41,18 @@ export class Notice {
 	}
 
 	static ready(standing: Standing, ticket: Ticket, allowance: Allowance | null): Notice {
-		const notice = new Notice(Notice.#score(standing, ticket), `Drop elements to spread over the board: more cells after ${ticket.rules.seconds} s wins.`);
+		const notice = new Notice(Notice.#score(standing, ticket), Notice.#rules(ticket));
 		notice.#note = Nullable.map(allowance, Notice.#rest.bind(Notice));
 		notice.#hint = "Drag a card to start the game";
+		notice.#playable = true;
 		return notice;
 	}
 
-	static playing(): Notice {
-		const notice = new Notice(String.empty, String.empty);
-		notice.#hidden = true;
+	static practice(ticket: Ticket): Notice {
+		const notice = new Notice(`Practice against ${ticket.model}`, Notice.#rules(ticket));
+		notice.#note = "Free and unlimited, nothing is counted";
+		notice.#hint = "Drag a card to start the game";
+		notice.#playable = true;
 		return notice;
 	}
 
@@ -50,12 +60,13 @@ export class Notice {
 		const notice = new Notice(Notice.#outcome(verdict, ticket), "The match is over");
 		notice.#hint = "Saving the result…";
 		notice.#busy = true;
+		notice.#action = "Play again";
 		return notice;
 	}
 
 	static outcome(verdict: Verdict, ticket: Ticket, standing: Standing, allowance: Allowance | null): Notice {
 		const notice = new Notice(Notice.#outcome(verdict, ticket), Notice.#score(standing, ticket));
-		notice.#again("Play again");
+		notice.#action = "Play again";
 		if (allowance === null) return notice;
 		if (allowance.left > 0) {
 			notice.#note = `${Notice.#matches(allowance.left)} left`;
@@ -66,16 +77,22 @@ export class Notice {
 		return notice;
 	}
 
+	static practiced(verdict: Verdict, ticket: Ticket): Notice {
+		const notice = new Notice(Notice.#outcome(verdict, ticket), "Practice match, not counted");
+		notice.#action = "Play again";
+		return notice;
+	}
+
 	static uncounted(verdict: Verdict, ticket: Ticket, reason: Error): Notice {
 		const notice = new Notice(Notice.#outcome(verdict, ticket), `The arena did not count this match: ${reason.message}`);
-		notice.#again("Play again");
+		notice.#action = "Play again";
 		return notice;
 	}
 
 	static shortage(allowance: Allowance): Notice {
-		const notice = new Notice("No matches left", "Matches come back one by one over time.");
+		const notice = new Notice("No matches left", "Matches come back one by one over time. Practice is open meanwhile.");
 		notice.#deadline = Date.now() + allowance.wait;
-		notice.#again("Play");
+		notice.#action = "Play";
 		return notice;
 	}
 
@@ -88,7 +105,7 @@ export class Notice {
 
 	static trouble(reason: Error): Notice {
 		const notice = new Notice("The match could not start", reason.message);
-		notice.#again("Try again");
+		notice.#action = "Try again";
 		return notice;
 	}
 
@@ -97,26 +114,29 @@ export class Notice {
 	get note(): string | null { return this.#note; }
 	get deadline(): number | null { return this.#deadline; }
 	get busy(): boolean { return this.#busy; }
-	get hidden(): boolean { return this.#hidden; }
+	get playable(): boolean { return this.#playable; }
 	get action(): string | null { return this.#action; }
 	get target(): URI | null { return this.#target; }
+	get hint(): string | null { return this.#hint; }
 
-	line(now: number): string | null {
+	caption(now: number): string | null {
+		const action = this.#action;
+		if (action === null) return null;
+		if (this.#busy) return this.#hint ?? action;
 		const deadline = this.#deadline;
-		if (deadline === null) return this.#hint;
-		if (now >= deadline) return "A new match is ready";
+		if (deadline === null || now >= deadline) return action;
 		const left = ceil((deadline - now) / Notice.#second);
-		return `Next match in ${trunc(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+		return `${action} in ${trunc(left / 60)}:${String(left % 60).padStart(2, "0")}`;
 	}
 
 	locked(now: number): boolean {
+		if (this.#busy) return true;
 		const deadline = this.#deadline;
 		return deadline !== null && now < deadline;
 	}
 
-	#again(action: string): void {
-		this.#action = action;
-		this.#target = new URI("./", baseURI);
+	static #rules(ticket: Ticket): string {
+		return `Drop elements to spread over the board: more cells after ${ticket.rules.seconds} s wins.`;
 	}
 
 	static #score(standing: Standing, ticket: Ticket): string {

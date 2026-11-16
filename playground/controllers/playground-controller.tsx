@@ -5,14 +5,14 @@ import { Controller, URI } from "adaptive-extender/web";
 import { StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { SettingsService } from "../../settings/services/settings-service.js";
+import { Mode } from "../../settings/models/settings.js";
 import { DeckService } from "../services/deck-service.js";
 import { type Simulation } from "../services/simulation.js";
 import { Challenge } from "../services/challenge.js";
 import { PlaygroundApp } from "../view/playground-app.js";
 import { Notice } from "../view/notice.js";
 import { ArenaClient } from "../../arena/services/client.js";
-import { Entry, Start, Shortage, type Allowance, type Report, type Standing, type Ticket, type Verdict } from "../../arena/models/protocol.js";
-import { type Element } from "../models/elements.js";
+import { Entry, Start, Shortage, Ticket, type Allowance, type Report, type Verdict } from "../../arena/models/protocol.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
 
 const { baseURI, body, head } = document;
@@ -21,46 +21,136 @@ const deck = DeckService.instance;
 
 //#region Playground controller
 class PlaygroundController extends Controller {
-	#arena: ArenaClient = new ArenaClient(globalThis, new URI("/", baseURI));
+	#client: ArenaClient = new ArenaClient(globalThis, new URI("/", baseURI));
 	#root: Root = createRoot(body.getElement(HTMLDivElement, "div#root"));
+	#mode: Mode = settings.content.mode;
+	#online: boolean | null = null;
+	#arena: Notice = Notice.connecting();
+	#practice: Notice = Notice.loading();
+	#playing: boolean = false;
+	#opening: boolean = false;
+	#switchable: boolean = true;
+	#lobby: Ticket | null = null;
+	#drill: Ticket | null = null;
 	#ticket: Ticket | null = null;
 
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
 		settings.apply();
 		const { content } = deck;
-		if (!content.full) return this.#show(Notice.unfinished(content.elements.length, content.capacity));
-		this.#show(Notice.loading());
-		try {
-			const [ticket, standing] = await Promise.all([this.#open(content.elements), this.#arena.standing()]);
-			const allowance = await this.#allowance();
-			this.#ticket = ticket;
-			this.#show(Notice.ready(standing, ticket, allowance));
-		} catch (reason) {
-			this.#show(await this.#refusal(Error.from(reason)));
+		if (!content.full) {
+			this.#switchable = false;
+			this.#arena = this.#practice = Notice.unfinished(content.elements.length, content.capacity);
+			return this.#show();
 		}
+		const drill = this.#deal();
+		if (this.#mode === Mode.practice) this.#ticket = drill;
+		this.#show();
+		await this.#connect();
 	}
 
-	#show(notice: Notice): void {
-		this.#root.render(<StrictMode><PlaygroundApp ticket={this.#ticket} notice={notice} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} /></StrictMode>);
+	#show(): void {
+		const mode = this.#mode;
+		const notice = mode === Mode.arena ? this.#arena : this.#practice;
+		this.#root.render(
+			<StrictMode>
+				<PlaygroundApp ticket={this.#ticket} mode={mode} online={this.#online} arena={this.#arena} practice={this.#practice} playing={this.#playing} switchable={this.#switchable} ready={notice.playable} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} />
+			</StrictMode>
+		);
 	}
 
-	async #open(elements: Element[]): Promise<Ticket> {
+	#deal(): Ticket {
+		const ticket = this.#drill = Ticket.deal(crypto.randomUUID(), PlaygroundController.#number(), PlaygroundController.#number(), deck.content.elements);
+		this.#practice = Notice.practice(ticket);
+		return ticket;
+	}
+
+	async #connect(): Promise<void> {
+		this.#online = null;
+		this.#show();
+		try {
+			await this.#client.standing();
+		} catch (reason) {
+			console.error(`The arena is offline:\n${Error.from(reason)}`);
+			this.#online = false;
+			if (this.#mode === Mode.arena) {
+				this.#mode = Mode.practice;
+				this.#ticket = this.#drill ?? this.#deal();
+			}
+			return this.#show();
+		}
+		this.#online = true;
+		this.#show();
+		if (this.#mode === Mode.arena) await this.#enter();
+	}
+
+	async #switch(mode: Mode): Promise<void> {
+		if (mode === this.#mode || this.#playing) return;
+		if (mode === Mode.arena && this.#online !== true) return;
+		this.#mode = mode;
+		settings.content.mode = mode;
+		if (mode === Mode.practice) {
+			this.#ticket = this.#drill ?? this.#deal();
+			this.#show();
+		} else {
+			void this.#enter();
+		}
+		await settings.save();
+	}
+
+	async #enter(): Promise<void> {
+		const lobby = this.#lobby;
+		if (lobby !== null) {
+			this.#ticket = lobby;
+			return this.#show();
+		}
+		if (this.#opening) return this.#show();
+		this.#opening = true;
+		this.#arena = Notice.loading();
+		this.#show();
+		try {
+			const client = this.#client;
+			const [ticket, standing] = await Promise.all([this.#open(), client.standing()]);
+			const allowance = await this.#allowance();
+			this.#lobby = ticket;
+			this.#arena = Notice.ready(standing, ticket, allowance);
+			if (this.#mode === Mode.arena) this.#ticket = ticket;
+		} catch (reason) {
+			this.#arena = await this.#refusal(Error.from(reason));
+		}
+		this.#opening = false;
+		this.#show();
+	}
+
+	async #open(): Promise<Ticket> {
 		const challenge = new Challenge(body.getElement(HTMLDivElement, "div#gate"), head.getElement(HTMLScriptElement, "script#challenge"));
-		return await this.#arena.open(new Entry(elements, await challenge.token()));
+		return await this.#client.open(new Entry(deck.content.elements, await challenge.token()));
 	}
 
 	async #refusal(error: Error): Promise<Notice> {
 		if (!(error instanceof Shortage)) return Notice.trouble(error);
 		try {
-			return Notice.shortage(await this.#arena.allowance());
+			return Notice.shortage(await this.#client.allowance());
 		} catch (reason) {
 			return Notice.trouble(Error.from(reason));
 		}
 	}
 
+	async #again(): Promise<void> {
+		if (this.#mode === Mode.arena) return await this.#enter();
+		this.#ticket = this.#deal();
+		this.#show();
+		if (this.#online === false) await this.#connect();
+	}
+
 	#launch(simulation: Simulation): void {
-		this.#show(Notice.playing());
+		this.#playing = true;
+		this.#show();
+		if (this.#mode === Mode.practice) {
+			this.#drill = null;
+			return;
+		}
+		this.#lobby = null;
 		void this.#start(simulation);
 	}
 
@@ -68,33 +158,41 @@ class PlaygroundController extends Controller {
 		const { ticket } = simulation;
 		if (ticket === null) return;
 		try {
-			simulation.start(await this.#arena.start(new Start(ticket.id)));
+			simulation.start(await this.#client.start(new Start(ticket.id)));
 		} catch (reason) {
-			this.#show(Notice.trouble(Error.from(reason)));
+			this.#playing = false;
+			this.#arena = Notice.trouble(Error.from(reason));
+			this.#show();
 		}
 	}
 
 	#finish(simulation: Simulation): void {
 		const { ticket, report, verdict } = simulation;
 		if (ticket === null || report === null || verdict === null) return;
-		this.#show(Notice.judging(verdict, ticket));
+		this.#playing = false;
+		if (this.#mode === Mode.practice) {
+			this.#practice = Notice.practiced(verdict, ticket);
+			return this.#show();
+		}
+		this.#arena = Notice.judging(verdict, ticket);
+		this.#show();
 		void this.#judge(ticket, report, verdict);
 	}
 
 	async #judge(ticket: Ticket, report: Report, verdict: Verdict): Promise<void> {
-		const arena = this.#arena;
-		let standing: Standing;
+		const client = this.#client;
 		try {
-			standing = await arena.report(report);
+			const standing = await client.report(report);
+			this.#arena = Notice.outcome(verdict, ticket, standing, await this.#allowance());
 		} catch (reason) {
-			return this.#show(Notice.uncounted(verdict, ticket, Error.from(reason)));
+			this.#arena = Notice.uncounted(verdict, ticket, Error.from(reason));
 		}
-		this.#show(Notice.outcome(verdict, ticket, standing, await this.#allowance()));
+		this.#show();
 	}
 
 	async #allowance(): Promise<Allowance | null> {
 		try {
-			return await this.#arena.allowance();
+			return await this.#client.allowance();
 		} catch (reason) {
 			console.error(`The allowance did not load:\n${Error.from(reason)}`);
 			return null;
@@ -103,6 +201,11 @@ class PlaygroundController extends Controller {
 
 	async catch(error: Error): Promise<void> {
 		window.alert(error.message);
+	}
+
+	static #number(): number {
+		const [value] = crypto.getRandomValues(new Uint32Array(1));
+		return value >>> 1;
 	}
 }
 //#endregion

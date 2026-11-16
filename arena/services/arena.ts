@@ -26,8 +26,6 @@ export interface Ledger {
 }
 
 export class Arena {
-	static #human: number = 0;
-	static #model: string = "Proxima";
 	#ledger: Ledger;
 	#gate: Gate;
 
@@ -40,7 +38,7 @@ export class Arena {
 		const ledger = this.#ledger;
 		const pending = await ledger.pending(visitor.user, now - Ticket.idle);
 		if (pending !== null) return await this.#renew(pending, entry.deck);
-		const ticket = new Ticket(crypto.randomUUID(), Arena.#number(), Arena.#number(), new Rules(), Arena.#human, entry.deck, Arena.#model);
+		const ticket = Ticket.deal(crypto.randomUUID(), Arena.#number(), Arena.#number(), entry.deck);
 		ticket.match();
 		await this.#gate.admit(entry.token, visitor.address);
 		const taken: Bucket[] = [];
@@ -65,7 +63,7 @@ export class Arena {
 
 	async report(report: Report, visitor: Visitor, now: number): Promise<Standing> {
 		const ledger = this.#ledger;
-		report.check(new Rules(), Arena.#human);
+		report.check(new Rules(), Ticket.human);
 		const since = now - Ticket.deadline;
 		if (!await ledger.report(report, visitor.user, since, now)) throw new ReferenceError("The match is unknown, not started, too late or already reported");
 		return await ledger.standing();

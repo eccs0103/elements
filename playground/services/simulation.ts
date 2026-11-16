@@ -55,17 +55,19 @@ export class Simulation extends EventTarget {
 
 	launch(): void {
 		const engine = this.#engine;
-		if (engine.launched) return;
+		if (engine.launched || this.#verdict !== null) return;
 		engine.launched = true;
 		this.dispatchEvent(new Event("launch"));
 	}
 
 	start(ticket: Ticket): void {
 		const worker = this.#worker;
+		const engine = this.#engine;
+		if (!ticket.started || ticket.id !== this.#ticket?.id) engine.launched = false;
 		this.#ticket = ticket;
 		this.#report = null;
 		this.#verdict = null;
-		this.#engine.limit = ticket.rules.rate;
+		engine.limit = ticket.rules.rate;
 		worker.postMessage(Command.export(new StartCommand(ticket)));
 		if (!ticket.started) return;
 		for (const drop of this.#drops.splice(0)) {

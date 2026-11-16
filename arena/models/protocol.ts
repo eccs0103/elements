@@ -59,6 +59,8 @@ export class Ticket extends Model {
 	static #second: number = 1000;
 	static #idle: number = 600000;
 	static #slack: number = 15000;
+	static #human: number = 0;
+	static #model: string = "Proxima";
 
 	@Field(String, { name: "id" })
 	id: string;
@@ -102,6 +104,11 @@ export class Ticket extends Model {
 	static get route(): string { return Ticket.#route; }
 	static get idle(): number { return Ticket.#idle; }
 	static get deadline(): number { return new Rules().seconds * Ticket.#second + Ticket.#slack; }
+	static get human(): number { return Ticket.#human; }
+
+	static deal(id: string, seed: number, luck: number, deck: Element[]): Ticket {
+		return new Ticket(id, seed, luck, new Rules(), Ticket.#human, deck, Ticket.#model);
+	}
 
 	static draft(rules: Rules, seed: number, side: number): Deck {
 		return Deck.random(rules, seed + 5 + side);
