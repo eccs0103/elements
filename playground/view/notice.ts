@@ -25,8 +25,6 @@ export class Notice {
 	#playable: boolean = false;
 	#action: string | null = null;
 	#target: URI | null = null;
-	#standing: Standing | null = null;
-	#rival: string | null = null;
 
 	constructor(title: string, description: string) {
 		this.#title = title;
@@ -46,15 +44,14 @@ export class Notice {
 	}
 
 	static ready(standing: Standing, ticket: Ticket): Notice {
-		const { name } = ticket.model;
-		const notice = new Notice(`Humanity ${standing.humanity} : ${standing.agent} ${name}`, Notice.#rules(ticket)).#plays(Notice.#start);
-		notice.#standing = standing;
-		notice.#rival = name;
-		return notice;
+		const { humanity, agent, reviewHumanity, reviewAgent } = standing;
+		const reviewed = reviewHumanity < 1 && reviewAgent < 1;
+		const description = reviewed ? Notice.#rules(ticket) : `In review +${reviewHumanity} : +${reviewAgent}`;
+		return new Notice(`Humanity - ${humanity} : ${agent} - ${ticket.model.name}`, description).#plays(Notice.#start);
 	}
 
 	static practice(ticket: Ticket): Notice {
-		return new Notice(`Practice vs ${ticket.model.name}`, Notice.#rules(ticket)).#plays(Notice.#start);
+		return new Notice(`Practice against ${ticket.model.name}`, Notice.#rules(ticket)).#plays(Notice.#start);
 	}
 
 	static shortage(allowance: Allowance): Notice {
@@ -93,8 +90,6 @@ export class Notice {
 	get playable(): boolean { return this.#playable; }
 	get action(): string | null { return this.#action; }
 	get target(): URI | null { return this.#target; }
-	get standing(): Standing | null { return this.#standing; }
-	get rival(): string | null { return this.#rival; }
 
 	saving(): Notice {
 		return this.#copy().#loads("Saving…");
