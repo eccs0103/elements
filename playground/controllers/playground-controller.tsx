@@ -32,12 +32,12 @@ class Duel {
 	#arena: Notice = Notice.connecting();
 	#practice: Notice = Notice.preparing();
 	#playing: boolean = false;
-	#finished: boolean = false;
 	#opening: boolean = false;
 	#switchable: boolean = true;
 	#lobby: Ticket | null = null;
 	#drill: Ticket | null = null;
 	#refill: number | null = null;
+	#last: Notice | null = null;
 
 	constructor(catalog: URI) {
 		this.#catalog = catalog;
@@ -79,7 +79,6 @@ class Duel {
 		const model = ReferenceError.suppress(this.#model, "The agent catalog has not loaded yet");
 		const drill = this.#drill = Ticket.deal(crypto.randomUUID(), Duel.#number(), Duel.#number(), deck.content.elements, model);
 		this.#practice = Notice.practice(drill);
-		this.#finished = false;
 	}
 
 	async #connect(): Promise<void> {
@@ -104,7 +103,6 @@ class Duel {
 		if (mode === Mode.arena && this.#online !== true) return;
 		this.#mode = mode;
 		settings.content.mode = mode;
-		if (this.#finished) this.#deal();
 		this.#show();
 		if (mode === Mode.arena) void this.#enter();
 		await settings.save();
@@ -113,18 +111,24 @@ class Duel {
 	async #enter(): Promise<void> {
 		if (this.#lobby !== null || this.#opening) return this.#show();
 		this.#opening = true;
-		this.#arena = Notice.loading();
+		const last = this.#last;
+		this.#arena = last === null ? Notice.loading() : last.next();
 		this.#show();
 		try {
-			const [ticket, standing] = await Promise.all([this.#open(), this.#client.standing()]);
-			const allowance = this.#allowance = await this.#tickets();
-			this.#lobby = ticket;
-			this.#arena = allowance !== null && allowance.left < 1 ? Notice.shortage(allowance) : Notice.ready(standing, ticket);
+			this.#arena = await this.#admit(last);
 		} catch (reason) {
 			this.#arena = await this.#refusal(Error.from(reason));
 		}
 		this.#opening = false;
 		this.#show();
+	}
+
+	async #admit(last: Notice | null): Promise<Notice> {
+		const allowance = this.#allowance = await this.#tickets();
+		if (allowance !== null && allowance.left < 1) return this.#waiting(allowance);
+		const [ticket, standing] = await Promise.all([this.#open(), this.#client.standing()]);
+		this.#lobby = ticket;
+		return last === null ? Notice.ready(standing, ticket) : last.again();
 	}
 
 	async #open(): Promise<Ticket> {
@@ -137,10 +141,15 @@ class Duel {
 		try {
 			const allowance = this.#allowance = await this.#client.allowance();
 			this.#schedule(allowance);
-			return Notice.shortage(allowance);
+			return this.#waiting(allowance);
 		} catch (reason) {
 			return Notice.trouble(Error.from(reason));
 		}
+	}
+
+	#waiting(allowance: Allowance): Notice {
+		const last = this.#last;
+		return last === null ? Notice.shortage(allowance) : last.wait(allowance);
 	}
 
 	async #again(): Promise<void> {
@@ -153,6 +162,7 @@ class Duel {
 	#launch(simulation: Simulation): void {
 		const drill = ReferenceError.suppress(this.#drill, "There is no match to start");
 		this.#playing = true;
+		this.#last = null;
 		this.#show();
 		if (this.#mode === Mode.practice) return simulation.start(drill);
 		void this.#start(simulation, drill);
@@ -164,6 +174,8 @@ class Duel {
 			const luck = ReferenceError.suppress(drill.luck, "The match has no luck to play with");
 			this.#lobby = null;
 			simulation.start(await this.#client.start(new Start(lobby.id, luck)));
+			this.#allowance = await this.#tickets();
+			this.#show();
 		} catch (reason) {
 			simulation.show(drill);
 			this.#playing = false;
@@ -176,12 +188,12 @@ class Duel {
 		const { ticket, report, verdict } = simulation;
 		if (ticket === null || report === null || verdict === null) return;
 		this.#playing = false;
-		this.#finished = true;
+		this.#deal();
 		if (this.#mode === Mode.practice) {
-			this.#practice = Notice.practiced(verdict, ticket);
+			this.#practice = Notice.practiced(verdict, ticket).again();
 			return this.#show();
 		}
-		this.#arena = Notice.judging(verdict, ticket);
+		this.#arena = Notice.outcome(verdict, ticket).saving();
 		this.#show();
 		void this.#judge(ticket, report, verdict);
 	}
@@ -195,14 +207,16 @@ class Duel {
 	}
 
 	async #judge(ticket: Ticket, report: Report, verdict: Verdict): Promise<void> {
+		let last = Notice.outcome(verdict, ticket);
 		try {
 			await this.#client.report(report);
-			const allowance = this.#allowance = await this.#tickets();
-			this.#arena = Notice.outcome(verdict, ticket, allowance);
 		} catch (reason) {
-			this.#arena = Notice.uncounted(verdict, ticket, Error.from(reason));
+			last = Notice.uncounted(verdict, ticket, Error.from(reason));
 		}
-		this.#show();
+		this.#last = last;
+		this.#arena = last.next();
+		if (this.#mode !== Mode.arena) return this.#show();
+		await this.#enter();
 	}
 
 	async #tickets(): Promise<Allowance | null> {
@@ -229,6 +243,8 @@ class Duel {
 		if (allowance === null) return;
 		this.#allowance = allowance;
 		this.#show();
+		if (this.#mode !== Mode.arena || this.#playing || this.#lobby !== null) return;
+		await this.#enter();
 	}
 
 	static #number(): number {

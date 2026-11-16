@@ -21,6 +21,8 @@ interface Stage {
 	play(slot: number, x: number, y: number): boolean;
 	advance(): boolean;
 	finish(): FinishCommand | null;
+	keep(next: Stage): Stage;
+	engage(): Stage;
 }
 //#endregion
 //#region Session
@@ -72,6 +74,15 @@ class Session implements Stage {
 		return new FinishCommand(new Report(id, match.moves.filter(move => move.side === human)), Verdict.of(match));
 	}
 
+	keep(next: Stage): Stage {
+		if (!this.#match.finished) return next;
+		return new Aftermath(this, next);
+	}
+
+	engage(): Stage {
+		return this;
+	}
+
 	#mark(): Uint8Array {
 		const zone = this.#zone;
 		zone.fill(0);
@@ -105,6 +116,57 @@ class Waiting implements Stage {
 
 	finish(): FinishCommand | null {
 		return null;
+	}
+
+	keep(next: Stage): Stage {
+		return next;
+	}
+
+	engage(): Stage {
+		return this;
+	}
+}
+//#endregion
+//#region Aftermath
+class Aftermath implements Stage {
+	#past: Stage;
+	#next: Stage;
+
+	constructor(past: Stage, next: Stage) {
+		this.#past = past;
+		this.#next = next;
+	}
+
+	paint(painter: Painter, preview: boolean): void {
+		void preview;
+		this.#past.paint(painter, false);
+	}
+
+	status(cell: number | null): StatusCommand {
+		const { inspected, holder, tick, tally } = this.#past.status(cell);
+		const { cards, charge } = this.#next.status(null);
+		return new StatusCommand(cards, charge, inspected, holder, tick, tally);
+	}
+
+	play(slot: number, x: number, y: number): boolean {
+		void slot, x, y;
+		return false;
+	}
+
+	advance(): boolean {
+		return false;
+	}
+
+	finish(): FinishCommand | null {
+		return null;
+	}
+
+	keep(next: Stage): Stage {
+		return new Aftermath(this.#past, next);
+	}
+
+	engage(): Stage {
+		return this.#next;
 	}
 }
 //#endregion
@@ -173,13 +235,15 @@ class SimulationWorker extends Controller {
 		if (command instanceof StartCommand) {
 			const { ticket } = command;
 			this.#agent.postMessage(AgentCommand.export(new LoadCommand(ticket.model.weights(this.#catalog))));
-			this.#stage = new Session(ticket, ticket.agent(this.#mind));
+			this.#stage = this.#stage.keep(new Session(ticket, ticket.agent(this.#mind)));
 			this.#refresh();
 			return;
 		}
 
 		if (command instanceof PreviewCommand) {
-			this.#preview = command.active;
+			const { active } = command;
+			this.#preview = active;
+			if (active) this.#stage = this.#stage.engage();
 			this.#refresh();
 			return;
 		}

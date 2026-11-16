@@ -45,7 +45,7 @@ function Tickets({ online, allowance }: TicketsProps): ReactElement {
 		<span className="tickets flex font-smaller-1" title={`${left} of ${capacity} matches left`}>
 			<span>{left}</span>
 			<span className="icon in-line ticket"></span>
-			<span hidden={deadline === null}>+1 in {minutes}m</span>
+			<span hidden={deadline === null}>next in {minutes}m</span>
 		</span>
 	);
 }
@@ -99,16 +99,14 @@ function NoticeSide({ notice, shown, onAgain }: NoticeSideProps): ReactElement {
 		return () => clearInterval(interval);
 	}, [deadline]);
 
-	const locked = notice.locked(now);
-
 	return (
 		<article className="flex column with-gap" inert={!shown} aria-hidden={!shown} aria-busy={notice.busy}>
 			<h2>{notice.title}</h2>
 			<p className="description">{notice.description}</p>
 			<footer>
-				<p className="highlight" hidden={action !== null}>{notice.hint}</p>
+				<p className="highlight" hidden={action !== null}>{notice.prompt(now)}</p>
 				<a className="depth rounded with-padding" role="button" href={target?.href} hidden={target === null}>{action}</a>
-				<button type="button" className="depth rounded with-padding" hidden={action === null || target !== null} disabled={locked} onClick={event => onAgain()}>{notice.caption(now)}</button>
+				<button type="button" className="depth rounded with-padding" hidden={action === null || target !== null} onClick={event => onAgain()}>{action}</button>
 			</footer>
 		</article>
 	);

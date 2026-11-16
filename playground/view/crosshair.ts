@@ -58,6 +58,8 @@ export class Crosshair {
 			this.hide();
 			return null;
 		}
+		const board = this.#board;
+		board.classList.toggle("aimed", document.elementFromPoint(event.clientX, event.clientY) === board);
 		const aimed = this.#aimed;
 		if (aimed !== null && aimed.is(cell)) return aimed;
 		this.#aimed = cell;
@@ -72,6 +74,7 @@ export class Crosshair {
 
 	hide(): void {
 		this.#aimed = null;
+		this.#board.classList.remove("aimed");
 		this.#container.hidden = true;
 	}
 

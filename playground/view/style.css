@@ -28,7 +28,7 @@ canvas#board {
 	user-select: none;
 }
 
-div#stage:has(section#notice:not([hidden])) canvas#board:not(:hover, :active) {
+div#stage:has(section#notice:not([hidden])) canvas#board:not(:hover, :active, .aimed) {
 	filter: blur(var(--size-small-gap));
 }
 
