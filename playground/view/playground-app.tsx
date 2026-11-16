@@ -36,15 +36,13 @@ function Tickets({ online, allowance }: TicketsProps): ReactElement {
 		return () => clearInterval(interval);
 	}, [deadline]);
 
-	if (online !== true || allowance === null) {
-		const title = online === false ? "The arena is offline" : "Connecting to the arena…";
-		return <span className="tickets flex" title={title} aria-busy={online !== false}></span>;
-	}
-	const { left, capacity } = allowance;
+	const loaded = online === true && allowance !== null;
 	const minutes = deadline === null ? 0 : ceil(max(0, deadline - now) / 60000);
+	let title = online === false ? "The arena is offline" : "Connecting to the arena…";
+	if (loaded) title = `${allowance.left} of ${allowance.capacity} matches left`;
 	return (
-		<span className="tickets flex font-smaller-1" title={`${left} of ${capacity} matches left`}>
-			<span>{left}</span>
+		<span className="tickets flex font-smaller-1" title={title} aria-busy={!loaded && online !== false}>
+			<span>{loaded ? allowance.left : "–"}</span>
 			<span className="icon in-line ticket"></span>
 			<span hidden={deadline === null}>next in {minutes}m</span>
 		</span>

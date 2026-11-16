@@ -85,6 +85,7 @@ class Duel {
 	async #connect(): Promise<void> {
 		this.#online = null;
 		this.#show();
+		const tickets = this.#tickets();
 		try {
 			await this.#client.standing();
 		} catch (reason) {
@@ -94,7 +95,7 @@ class Duel {
 			return this.#show();
 		}
 		this.#online = true;
-		this.#allowance = await this.#tickets();
+		this.#allowance = await tickets;
 		this.#show();
 		if (this.#mode === Mode.arena) await this.#enter();
 	}
