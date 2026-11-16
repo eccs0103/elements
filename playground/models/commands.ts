@@ -37,7 +37,7 @@ export interface InitializeCommandDiscriminator {
 export interface InitializeCommandScheme extends CommandScheme {
 	$type: keyof InitializeCommandDiscriminator;
 	canvas: OffscreenCanvas;
-	weights: string;
+	catalog: string;
 }
 
 export class InitializeCommand extends Command {
@@ -45,19 +45,19 @@ export class InitializeCommand extends Command {
 	canvas: OffscreenCanvas;
 
 	@Field(URI)
-	weights: URI;
+	catalog: URI;
 
 	constructor();
-	constructor(canvas: OffscreenCanvas, weights: URI);
-	constructor(canvas?: OffscreenCanvas, weights?: URI) {
-		if (canvas === undefined || weights === undefined) {
+	constructor(canvas: OffscreenCanvas, catalog: URI);
+	constructor(canvas?: OffscreenCanvas, catalog?: URI) {
+		if (canvas === undefined || catalog === undefined) {
 			super();
 			return;
 		}
 
 		super();
 		this.canvas = canvas;
-		this.weights = weights;
+		this.catalog = catalog;
 	}
 }
 //#endregion

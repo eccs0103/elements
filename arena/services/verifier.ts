@@ -1,10 +1,14 @@
 "use strict";
 
 import "adaptive-extender/node";
+import FileSystem from "node:fs";
 import { Any, Field, Model, Nullable, URI } from "adaptive-extender/node";
 import { type VerifierEnvironment } from "../models/verifier-environment.js";
 import { Ticket, Standing } from "../models/protocol.js";
-import { Ruling } from "./ruling.js";
+import { Ruling, type Minds } from "./ruling.js";
+import { type AgentModel } from "../../playground/models/agent-catalog.js";
+import { Weights } from "../../playground/models/weights.js";
+import { Network } from "../../playground/services/network.js";
 
 //#region Remote database
 class D1Result extends Model {
@@ -48,6 +52,27 @@ class RemoteDatabase {
 	}
 }
 //#endregion
+//#region Library
+class Library implements Minds {
+	#catalog: URI;
+	#networks: Map<string, Network> = new Map<string, Network>();
+
+	constructor(catalog: URI) {
+		this.#catalog = catalog;
+	}
+
+	of(model: AgentModel): Network {
+		const { folder } = model;
+		const networks = this.#networks;
+		const known = networks.get(folder);
+		if (known !== undefined) return known;
+		const text = FileSystem.readFileSync(model.weights(this.#catalog).toPath(), "utf8");
+		const network = new Network(Weights.import(JSON.parse(text), "weights"));
+		networks.set(folder, network);
+		return network;
+	}
+}
+//#endregion
 //#region Verifier
 class TicketRow extends Model {
 	@Field(String, { name: "id" })
@@ -64,20 +89,23 @@ export class Verifier {
 	static #page: number = 100;
 	static #hour: number = 3600000;
 	#database: RemoteDatabase;
+	#library: Library;
 
-	constructor(environment: Readonly<VerifierEnvironment>) {
+	constructor(environment: Readonly<VerifierEnvironment>, catalog: URI) {
 		this.#database = new RemoteDatabase(environment);
+		this.#library = new Library(catalog);
 	}
 
 	async run(now: number): Promise<void> {
 		const database = this.#database;
+		const library = this.#library;
 		const standing = new Standing();
 		while (true) {
 			const rows = await database.query("SELECT id, ticket, moves FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND (reported IS NOT NULL OR started < ?1) LIMIT ?2", [now - Ticket.deadline, Verifier.#page]);
 			if (rows.length === 0) break;
 			for (const row of rows) {
 				const { id, ticket, moves } = TicketRow.import(row, "row");
-				const ruling = Ruling.of(ticket, moves);
+				const ruling = Ruling.of(ticket, moves, library);
 				await database.query("UPDATE tickets SET judged = ?2, won = ?3, scores = ?4 WHERE id = ?1 AND judged IS NULL", [id, now, Number(ruling.won), ruling.record]);
 				ruling.count(standing);
 			}

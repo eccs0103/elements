@@ -3,6 +3,7 @@
 import "adaptive-extender/core";
 import { type Weights } from "../models/weights.js";
 import { type Observation } from "../models/observation.js";
+import { type Agent, type Mind } from "./agent.js";
 
 const { max, min, ceil, trunc } = Math;
 
@@ -181,7 +182,7 @@ class Residual {
 }
 //#endregion
 //#region Network
-export class Network {
+export class Network implements Mind {
 	#properties: Float32Array;
 	#embedding: Float32Array;
 	#width: number;
@@ -251,11 +252,17 @@ export class Network {
 
 	#queries(cards: readonly number[]): Float32Array[] {
 		const element = this.#width + this.#depth;
+		const query = this.#query;
+		const query2 = this.#query2;
 		return cards.map(kind => {
 			const features = new Float32Array(element);
 			this.#element(kind, features, 0, 1);
-			return this.#query2.apply(Dense.relu(this.#query.apply(features)));
+			return query2.apply(Dense.relu(query.apply(features)));
 		});
+	}
+
+	ask(question: Observation, agent: Agent): void {
+		agent.answer(this.decide(question));
 	}
 
 	decide(observation: Observation): number {

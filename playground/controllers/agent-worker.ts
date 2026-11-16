@@ -8,29 +8,46 @@ import { Network } from "../services/network.js";
 
 //#region Agent worker
 class AgentWorker extends Controller {
-	#network: PromiseWithResolvers<Network> = Promise.withResolvers<Network>();
+	#source: string | null = null;
+	#network: Promise<Network> | null = null;
 
-	async #load(source: URI): Promise<void> {
-		const network = this.#network;
+	async #load(source: URI): Promise<Network> {
+		const response = await fetch(source.href);
+		if (!response.ok) throw new ReferenceError(`The agent weights could not load (${response.status})`);
+		return new Network(Weights.import(await response.json(), "weights"));
+	}
+
+	#switch(source: URI): void {
+		const { href } = source;
+		if (href === this.#source) return;
+		this.#source = href;
+		const network = this.#network = this.#load(source);
+		void this.#watch(network);
+	}
+
+	async #watch(network: Promise<Network>): Promise<void> {
 		try {
-			const response = await fetch(source.href);
-			if (!response.ok) throw new ReferenceError(`The agent weights could not load (${response.status})`);
-			network.resolve(new Network(Weights.import(await response.json(), "weights")));
+			await network;
 		} catch (reason) {
-			network.reject(Error.from(reason));
+			reportError(Error.from(reason));
 		}
 	}
 
 	async #decide(command: DecideCommand): Promise<void> {
-		const network = await this.#network.promise;
-		self.postMessage(AgentCommand.export(new DecisionCommand(network.decide(command.observation))));
+		try {
+			const network = await ReferenceError.suppress(this.#network, "The agent has no weights to decide with");
+			const { number, observation } = command;
+			self.postMessage(AgentCommand.export(new DecisionCommand(number, network.decide(observation))));
+		} catch (reason) {
+			reportError(Error.from(reason));
+		}
 	}
 
 	#onMessage(event: MessageEvent): void {
 		const command = AgentCommand.import(event.data, "command");
 
 		if (command instanceof LoadCommand) {
-			void this.#load(command.source);
+			this.#switch(command.source);
 			return;
 		}
 
@@ -42,7 +59,6 @@ class AgentWorker extends Controller {
 
 	async run(): Promise<void> {
 		self.addEventListener("message", this.#onMessage.bind(this));
-		await this.#network.promise;
 	}
 }
 //#endregion

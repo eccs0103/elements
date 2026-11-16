@@ -10,10 +10,12 @@
 	},
 	"scripts": {
 		"typecheck": "tsc -p tsconfig.core.json && tsc -p tsconfig.node.json && tsc -p tsconfig.web.json && tsc -p tsconfig.worker.json && tsc -p tsconfig.cloudflare.json",
+		"predev": "wrangler d1 migrations apply elements-ledger --local --config arena/wrangler.jsonc",
 		"dev": "vite",
 		"build": "vite build",
+		"prepreview": "wrangler d1 migrations apply elements-ledger --local --config arena/wrangler.jsonc",
 		"preview": "npm run build && vite preview",
-		"deploy": "vite build && wrangler deploy",
+		"deploy": "vite build && wrangler d1 migrations apply elements-ledger --remote --config arena/wrangler.jsonc && wrangler deploy --config arena/wrangler.jsonc && wrangler deploy",
 		"test": "npm run build && vitest run",
 		"verify": "vite build --config arena/vite.config.ts && node dist/verifier/verify.js"
 	},

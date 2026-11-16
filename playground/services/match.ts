@@ -153,7 +153,7 @@ export class Match {
 		return side < 0 ? null : side;
 	}
 
-	legal(side: number, slot: number, x: number, y: number): boolean {
+	#legal(side: number, slot: number, x: number, y: number): boolean {
 		const seat = this.#side(side);
 		const board = this.#board;
 		const { size } = board;
@@ -178,7 +178,7 @@ export class Match {
 
 	play(move: Move): boolean {
 		const { tick, side, slot, x, y } = move;
-		if (tick !== this.#tick || !this.legal(side, slot, x, y)) return false;
+		if (tick !== this.#tick || !this.#legal(side, slot, x, y)) return false;
 		const seat = this.#side(side);
 		const board = this.#board;
 		const element = seat.take(slot);
@@ -192,10 +192,10 @@ export class Match {
 	}
 
 	advance(players: readonly Player[]): void {
-		this.step(players.map((player, side) => player.act(this, side)));
+		this.#step(players.map((player, side) => player.act(this, side)));
 	}
 
-	step(drops: readonly (Move | null)[]): void {
+	#step(drops: readonly (Move | null)[]): void {
 		const sides = this.#sides;
 		if (drops.length !== sides.length) throw new RangeError(`The match needs ${sides.length} drops, got ${drops.length}`);
 		if (this.finished) return;

@@ -36,7 +36,7 @@ export class Deck extends Model {
 		return this.elements.some(item => item.is(element));
 	}
 
-	add(element: Element): void {
+	#add(element: Element): void {
 		this.#admit(element);
 		const { elements } = this;
 		if (elements.length >= this.capacity) throw new RangeError("The deck is full");
@@ -60,12 +60,12 @@ export class Deck extends Model {
 
 	toggle(element: Element): void {
 		if (this.holds(element)) return this.remove(element);
-		this.add(element);
+		this.#add(element);
 	}
 
 	place(slot: number, element: Element): void {
 		const { elements } = this;
-		if (slot >= elements.length) return this.add(element);
+		if (slot >= elements.length) return this.#add(element);
 		this.#admit(element);
 		elements[this.#slot(slot)] = element;
 		this.#sort();

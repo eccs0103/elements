@@ -3,8 +3,14 @@
 import "adaptive-extender/core";
 import { Human } from "../../playground/services/players.js";
 import { Ticket, Report, Verdict, type Standing } from "../models/protocol.js";
+import { type Mind } from "../../playground/services/agent.js";
+import { type AgentModel } from "../../playground/models/agent-catalog.js";
 
 //#region Ruling
+export interface Minds {
+	of(model: AgentModel): Mind;
+}
+
 export class Ruling {
 	#won: boolean;
 	#scores: readonly number[] | null;
@@ -14,28 +20,28 @@ export class Ruling {
 		this.#scores = scores;
 	}
 
-	static of(ticket: string, moves: string | null): Ruling {
-		if (moves === null) return Ruling.forfeit();
+	static of(ticket: string, moves: string | null, minds: Minds): Ruling {
+		if (moves === null) return Ruling.#forfeit();
 		try {
 			const match = Ticket.import(JSON.parse(ticket), "ticket");
 			const report = Report.import({ ticket: match.id, moves: JSON.parse(moves) }, "report");
-			const verdict = Ruling.#replay(match, report);
+			const verdict = Ruling.#replay(match, report, minds);
 			const { human } = match;
 			return new Ruling(verdict.winner(human) === human, verdict.scores);
 		} catch {
 			// A malformed or illegal report is swallowed on purpose: it counts as a forfeit, the agent wins.
-			return Ruling.forfeit();
+			return Ruling.#forfeit();
 		}
 	}
 
-	static forfeit(): Ruling {
+	static #forfeit(): Ruling {
 		return new Ruling(false, null);
 	}
 
-	static #replay(ticket: Ticket, report: Report): Verdict {
+	static #replay(ticket: Ticket, report: Report, minds: Minds): Verdict {
 		report.check(ticket.rules, ticket.human);
 		const match = ticket.match();
-		match.replay(report.moves, ticket.lineup(new Human()));
+		match.replay(report.moves, ticket.lineup(new Human(), ticket.agent(minds.of(ticket.model))));
 		return Verdict.of(match);
 	}
 

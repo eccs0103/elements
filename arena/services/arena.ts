@@ -6,6 +6,7 @@ import { Rules } from "../../playground/models/rules.js";
 import { Ticket, Shortage, type Entry, type Start, type Report, type Standing, type Allowance } from "../models/protocol.js";
 import { type Bucket } from "../models/bucket.js";
 import { type Visitor } from "../models/visitor.js";
+import { type AgentModel } from "../../playground/models/agent-catalog.js";
 
 //#region Arena
 export interface Gate {
@@ -34,11 +35,11 @@ export class Arena {
 		this.#gate = gate;
 	}
 
-	async open(entry: Entry, visitor: Visitor, now: number): Promise<Ticket> {
+	async open(entry: Entry, visitor: Visitor, model: AgentModel, now: number): Promise<Ticket> {
 		const ledger = this.#ledger;
 		const pending = await ledger.pending(visitor.user, now - Ticket.idle);
 		if (pending !== null) return await this.#renew(pending, entry.deck);
-		const ticket = Ticket.deal(crypto.randomUUID(), Arena.#number(), Arena.#number(), entry.deck);
+		const ticket = Ticket.deal(crypto.randomUUID(), Arena.#number(), Arena.#number(), entry.deck, model);
 		ticket.match();
 		await this.#gate.admit(entry.token, visitor.address);
 		const taken: Bucket[] = [];

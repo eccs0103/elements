@@ -29,22 +29,27 @@ export interface DecideCommandDiscriminator {
 
 export interface DecideCommandScheme extends AgentCommandScheme {
 	$type: keyof DecideCommandDiscriminator;
+	number: number;
 	observation: ObservationScheme;
 }
 
 export class DecideCommand extends AgentCommand {
+	@Field(Number)
+	number: number;
+
 	@Field(Observation)
 	observation: Observation;
 
 	constructor();
-	constructor(observation: Observation);
-	constructor(observation?: Observation) {
-		if (observation === undefined) {
+	constructor(number: number, observation: Observation);
+	constructor(number?: number, observation?: Observation) {
+		if (number === undefined || observation === undefined) {
 			super();
 			return;
 		}
 
 		super();
+		this.number = number;
 		this.observation = observation;
 	}
 }
@@ -56,22 +61,27 @@ export interface DecisionCommandDiscriminator {
 
 export interface DecisionCommandScheme extends AgentCommandScheme {
 	$type: keyof DecisionCommandDiscriminator;
+	number: number;
 	action: number;
 }
 
 export class DecisionCommand extends AgentCommand {
 	@Field(Number)
+	number: number;
+
+	@Field(Number)
 	action: number;
 
 	constructor();
-	constructor(action: number);
-	constructor(action?: number) {
-		if (action === undefined) {
+	constructor(number: number, action: number);
+	constructor(number?: number, action?: number) {
+		if (number === undefined || action === undefined) {
 			super();
 			return;
 		}
 
 		super();
+		this.number = number;
 		this.action = action;
 	}
 }

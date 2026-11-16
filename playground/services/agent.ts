@@ -1,33 +1,41 @@
 "use strict";
 
-import "adaptive-extender/worker";
+import "adaptive-extender/core";
 import { type Move } from "../models/move.js";
 import { Observation } from "../models/observation.js";
-import { AgentCommand, DecideCommand, DecisionCommand } from "../models/agent-commands.js";
 import { type Match } from "./match.js";
 import { type Player } from "./players.js";
 
 //#region Agent
+export interface Mind {
+	ask(question: Observation, agent: Agent): void;
+}
+
 export class Agent implements Player {
-	#worker: Worker;
+	#mind: Mind;
+	#reaction: number;
 	#question: Observation | null = null;
 	#answer: number | null = null;
+	#due: number = 0;
 
-	constructor(worker: Worker) {
-		this.#worker = worker;
-		worker.addEventListener("message", this.#onMessage.bind(this));
+	constructor(mind: Mind, reaction: number) {
+		this.#mind = mind;
+		this.#reaction = reaction;
 	}
 
-	#onMessage(event: MessageEvent): void {
-		const command = AgentCommand.import(event.data, "command");
-		if (!(command instanceof DecisionCommand)) return;
-		this.#answer = command.action;
+	answer(action: number): void {
+		this.#answer = action;
+	}
+
+	waits(match: Match): boolean {
+		return this.#question !== null && this.#answer === null && match.tick >= this.#due;
 	}
 
 	act(match: Match, side: number): Move | null {
 		if (!match.ready(side)) return null;
 		const question = this.#question;
 		if (question === null) return this.#ask(match, side);
+		if (match.tick < this.#due) return null;
 		const answer = this.#answer;
 		if (answer === null) return null;
 		this.#question = null;
@@ -36,9 +44,12 @@ export class Agent implements Player {
 	}
 
 	#ask(match: Match, side: number): null {
-		const observation = Observation.of(match, side);
-		this.#question = observation;
-		this.#worker.postMessage(AgentCommand.export(new DecideCommand(observation)));
+		if (match.cells(side, 0).length === 0) return null;
+		const question = Observation.of(match, side);
+		this.#question = question;
+		this.#answer = null;
+		this.#due = match.tick + this.#reaction;
+		this.#mind.ask(question, this);
 		return null;
 	}
 }

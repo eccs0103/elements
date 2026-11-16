@@ -23,7 +23,7 @@ const deck = DeckService.instance;
 //#region Duel
 class Duel {
 	#model: AgentModel;
-	#weights: URI;
+	#catalog: URI;
 	#client: ArenaClient = new ArenaClient(globalThis, new URI("/", baseURI));
 	#root: Root = createRoot(body.getElement(HTMLDivElement, "div#root"));
 	#mode: Mode = settings.content.mode;
@@ -37,9 +37,9 @@ class Duel {
 	#drill: Ticket | null = null;
 	#ticket: Ticket | null = null;
 
-	constructor(model: AgentModel, weights: URI) {
+	constructor(model: AgentModel, catalog: URI) {
 		this.#model = model;
-		this.#weights = weights;
+		this.#catalog = catalog;
 	}
 
 	async open(): Promise<void> {
@@ -62,14 +62,14 @@ class Duel {
 		const notice = mode === Mode.arena ? arena : practice;
 		this.#root.render(
 			<StrictMode>
-				<PlaygroundApp model={this.#model} weights={this.#weights} ticket={this.#ticket} mode={mode} online={this.#online} arena={arena} practice={practice} playing={this.#playing} switchable={this.#switchable} ready={notice.playable} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} />
+				<PlaygroundApp catalog={this.#catalog} ticket={this.#ticket} mode={mode} online={this.#online} arena={arena} practice={practice} playing={this.#playing} switchable={this.#switchable} ready={notice.playable} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} onFailure={this.#fail.bind(this)} />
 			</StrictMode>
 		);
 	}
 
 	#deal(): Ticket {
-		const ticket = this.#drill = Ticket.deal(crypto.randomUUID(), Duel.#number(), Duel.#number(), deck.content.elements);
-		this.#practice = Notice.practice(ticket, this.#model);
+		const ticket = this.#drill = Ticket.deal(crypto.randomUUID(), Duel.#number(), Duel.#number(), deck.content.elements, this.#model);
+		this.#practice = Notice.practice(ticket);
 		return ticket;
 	}
 
@@ -121,7 +121,7 @@ class Duel {
 			const [ticket, standing] = await Promise.all([this.#open(), client.standing()]);
 			const allowance = await this.#allowance();
 			this.#lobby = ticket;
-			this.#arena = Notice.ready(standing, ticket, this.#model, allowance);
+			this.#arena = Notice.ready(standing, ticket, allowance);
 			if (this.#mode === Mode.arena) this.#ticket = ticket;
 		} catch (reason) {
 			this.#arena = await this.#refusal(Error.from(reason));
@@ -179,22 +179,29 @@ class Duel {
 		if (ticket === null || report === null || verdict === null) return;
 		this.#playing = false;
 		if (this.#mode === Mode.practice) {
-			this.#practice = Notice.practiced(verdict, ticket, this.#model);
+			this.#practice = Notice.practiced(verdict, ticket);
 			return this.#show();
 		}
-		this.#arena = Notice.judging(verdict, ticket, this.#model);
+		this.#arena = Notice.judging(verdict, ticket);
 		this.#show();
 		void this.#judge(ticket, report, verdict);
 	}
 
+	#fail(message: string): void {
+		this.#playing = false;
+		const notice = Notice.trouble(new Error(message));
+		if (this.#mode === Mode.arena) this.#arena = notice;
+		else this.#practice = notice;
+		this.#show();
+	}
+
 	async #judge(ticket: Ticket, report: Report, verdict: Verdict): Promise<void> {
 		const client = this.#client;
-		const model = this.#model;
 		try {
 			const standing = await client.report(report);
-			this.#arena = Notice.outcome(verdict, ticket, model, standing, await this.#allowance());
+			this.#arena = Notice.outcome(verdict, ticket, standing, await this.#allowance());
 		} catch (reason) {
-			this.#arena = Notice.uncounted(verdict, ticket, model, Error.from(reason));
+			this.#arena = Notice.uncounted(verdict, ticket, Error.from(reason));
 		}
 		this.#show();
 	}
@@ -225,7 +232,7 @@ class PlaygroundController extends Controller {
 		const response = await fetch(source.href);
 		if (!response.ok) throw new ReferenceError(`The agent catalog could not load (${response.status})`);
 		const model = AgentCatalog.import(await response.json(), "catalog").first;
-		await new Duel(model, model.weights(source)).open();
+		await new Duel(model, source).open();
 	}
 
 	async catch(error: Error): Promise<void> {

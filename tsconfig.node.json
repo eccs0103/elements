@@ -11,6 +11,7 @@
 		"environment/plugins/**/*.ts",
 		"vitest.config.ts",
 		"tests/determinism.test.ts",
+		"tests/agent.test.ts",
 		"arena/controllers/verify.ts",
 		"arena/services/verifier.ts",
 		"arena/vite.config.ts"

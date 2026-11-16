@@ -14,6 +14,11 @@ export interface SimulationEventMap {
 	"update": Event;
 	"launch": Event;
 	"finish": Event;
+	"failure": ErrorEvent;
+}
+
+export interface SimulationListener<K extends keyof SimulationEventMap> {
+	(this: Simulation, event: SimulationEventMap[K]): void;
 }
 
 export class Simulation extends EventTarget {
@@ -30,14 +35,15 @@ export class Simulation extends EventTarget {
 	#verdict: Verdict | null = null;
 	#drops: DropCommand[] = [];
 
-	constructor(canvas: HTMLCanvasElement, weights: URI) {
+	constructor(canvas: HTMLCanvasElement, catalog: URI) {
 		super();
 		const engine = this.#engine;
 		const worker = this.#worker;
 		engine.addEventListener("trigger", event => worker.postMessage(Command.export(new TickCommand())));
 		worker.addEventListener("message", this.#onMessage.bind(this));
+		worker.addEventListener("error", this.#onError.bind(this));
 		const offscreen = canvas.transferControlToOffscreen();
-		worker.postMessage(Command.export(new InitializeCommand(offscreen, weights)), [offscreen]);
+		worker.postMessage(Command.export(new InitializeCommand(offscreen, catalog)), [offscreen]);
 		new ResizeObserver(entries => this.#resize(canvas)).observe(canvas);
 		this.#resize(canvas);
 	}
@@ -49,7 +55,6 @@ export class Simulation extends EventTarget {
 	get holder(): number | null { return this.#holder; }
 	get report(): Report | null { return this.#report; }
 	get verdict(): Verdict | null { return this.#verdict; }
-	get launched(): boolean { return this.#engine.launched; }
 	get tick(): number { return this.#tick; }
 	get tally(): Verdict | null { return this.#tally; }
 
@@ -125,13 +130,18 @@ export class Simulation extends EventTarget {
 		}
 	}
 
-	addEventListener<K extends keyof SimulationEventMap>(type: K, listener: (this: Simulation, event: SimulationEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+	#onError(event: ErrorEvent): void {
+		this.#engine.launched = false;
+		this.dispatchEvent(new ErrorEvent("failure", { message: event.message }));
+	}
+
+	addEventListener<K extends keyof SimulationEventMap>(type: K, listener: SimulationListener<K>, options?: boolean | AddEventListenerOptions): void;
 	addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
 	addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void {
 		super.addEventListener(type, listener, options);
 	}
 
-	removeEventListener<K extends keyof SimulationEventMap>(type: K, listener: (this: Simulation, event: SimulationEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+	removeEventListener<K extends keyof SimulationEventMap>(type: K, listener: SimulationListener<K>, options?: boolean | EventListenerOptions): void;
 	removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
 	removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void {
 		super.removeEventListener(type, listener, options);

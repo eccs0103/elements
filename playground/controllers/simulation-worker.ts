@@ -8,8 +8,9 @@ import { Move } from "../models/move.js";
 import { Match } from "../services/match.js";
 import { Human, type Player } from "../services/players.js";
 import { Painter } from "../services/painter.js";
-import { Agent } from "../services/agent.js";
-import { AgentCommand, LoadCommand } from "../models/agent-commands.js";
+import { type Agent, type Mind } from "../services/agent.js";
+import { AgentCommand, LoadCommand, DecideCommand, DecisionCommand } from "../models/agent-commands.js";
+import { type Observation } from "../models/observation.js";
 import { Rules } from "../models/rules.js";
 import { Report, Verdict, type Ticket } from "../../arena/models/protocol.js";
 
@@ -26,13 +27,15 @@ interface Stage {
 class Session implements Stage {
 	#ticket: Ticket;
 	#match: Match;
+	#rival: Agent;
 	#players: readonly Player[];
 	#zone: Uint8Array;
 
-	constructor(ticket: Ticket, rival: Player) {
+	constructor(ticket: Ticket, rival: Agent) {
 		const match = this.#match = ticket.match();
 		const { size } = match.rules;
 		this.#ticket = ticket;
+		this.#rival = rival;
 		this.#players = ticket.lineup(new Human(), rival);
 		this.#zone = new Uint8Array(size * size);
 	}
@@ -57,7 +60,7 @@ class Session implements Stage {
 
 	advance(): boolean {
 		const match = this.#match;
-		if (match.finished) return false;
+		if (match.finished || this.#rival.waits(match)) return false;
 		match.advance(this.#players);
 		return true;
 	}
@@ -127,9 +130,36 @@ class Lobby extends Waiting {
 	}
 }
 //#endregion
+//#region Worker mind
+class WorkerMind implements Mind {
+	#worker: Worker;
+	#number: number = 0;
+	#agent: Agent | null = null;
+
+	constructor(worker: Worker) {
+		this.#worker = worker;
+		worker.addEventListener("message", this.#onMessage.bind(this));
+	}
+
+	ask(question: Observation, agent: Agent): void {
+		const number = this.#number + 1;
+		this.#number = number;
+		this.#agent = agent;
+		this.#worker.postMessage(AgentCommand.export(new DecideCommand(number, question)));
+	}
+
+	#onMessage(event: MessageEvent): void {
+		const command = AgentCommand.import(event.data, "command");
+		if (!(command instanceof DecisionCommand) || command.number !== this.#number) return;
+		this.#agent?.answer(command.action);
+	}
+}
+//#endregion
 //#region Simulation worker
 class SimulationWorker extends Controller {
 	#agent: Worker = new Worker(new URI("./agent-worker.js", self.location.href).href, { type: "module" });
+	#mind: WorkerMind = new WorkerMind(this.#agent);
+	#catalog: URI;
 	#painter: Painter;
 	#stage: Stage = new Waiting();
 	#preview: boolean = false;
@@ -156,15 +186,16 @@ class SimulationWorker extends Controller {
 		const command = Command.import(event.data, "command");
 
 		if (command instanceof InitializeCommand) {
-			const { canvas, weights } = command;
+			const { canvas, catalog } = command;
 			this.#painter = new Painter(canvas);
-			this.#agent.postMessage(AgentCommand.export(new LoadCommand(weights)));
+			this.#catalog = catalog;
 			return;
 		}
 
 		if (command instanceof StartCommand) {
 			const { ticket } = command;
-			this.#stage = ticket.started ? new Session(ticket, new Agent(this.#agent)) : new Lobby(ticket);
+			this.#agent.postMessage(AgentCommand.export(new LoadCommand(ticket.model.weights(this.#catalog))));
+			this.#stage = ticket.started ? new Session(ticket, ticket.agent(this.#mind)) : new Lobby(ticket);
 			this.#refresh();
 			return;
 		}

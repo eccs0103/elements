@@ -24,6 +24,7 @@
 		"playground/services/match.ts",
 		"playground/services/players.ts",
 		"playground/services/network.ts",
+		"playground/services/agent.ts",
 		"arena/models/protocol.ts",
 		"arena/models/bucket.ts",
 		"arena/models/visitor.ts",

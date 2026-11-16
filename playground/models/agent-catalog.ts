@@ -8,6 +8,7 @@ export interface AgentModelScheme {
 	folder: string;
 	name: string;
 	description: string;
+	reaction: number;
 }
 
 export class AgentModel extends Model {
@@ -22,10 +23,13 @@ export class AgentModel extends Model {
 	@Field(String, { name: "description" })
 	description: string;
 
+	@Field(Number, { name: "reaction" })
+	reaction: number;
+
 	constructor();
-	constructor(folder: string, name: string, description: string);
-	constructor(folder?: string, name?: string, description?: string) {
-		if (folder === undefined || name === undefined || description === undefined) {
+	constructor(folder: string, name: string, description: string, reaction: number);
+	constructor(folder?: string, name?: string, description?: string, reaction?: number) {
+		if (folder === undefined || name === undefined || description === undefined || reaction === undefined) {
 			super();
 			return;
 		}
@@ -34,6 +38,7 @@ export class AgentModel extends Model {
 		this.folder = folder;
 		this.name = name;
 		this.description = description;
+		this.reaction = reaction;
 	}
 
 	weights(source: Readonly<URI>): URI {
@@ -63,9 +68,7 @@ export class AgentCatalog extends Model {
 	}
 
 	get first(): AgentModel {
-		const { models } = this;
-		if (models.length < 1) throw new ReferenceError("The agent catalog lists no models");
-		return models[0];
+		return ReferenceError.suppress(this.models.at(0), "The agent catalog lists no models");
 	}
 }
 //#endregion

@@ -6,7 +6,6 @@ import { Fragment, type ReactElement, type RefObject, useEffect, useMemo, useRef
 import { type Element } from "../models/elements.js";
 import { type Simulation } from "../services/simulation.js";
 import { type Ticket } from "../../arena/models/protocol.js";
-import { type AgentModel } from "../models/agent-catalog.js";
 import { Sentence } from "../models/sentence.js";
 import { type Cell, type Crosshair } from "./crosshair.js";
 import { Swatch, Traits } from "./swatch.js";
@@ -32,15 +31,14 @@ interface PeekCardProps {
 	element: Element;
 	holder: number | null;
 	ticket: Ticket;
-	model: AgentModel;
 }
 
-function PeekCard({ element, holder, ticket, model }: PeekCardProps): ReactElement {
+function PeekCard({ element, holder, ticket }: PeekCardProps): ReactElement {
 	const { name, phase } = element;
 	const { rate } = ticket.rules;
 	const acts = useMemo(() => Sentence.acts(element, rate), [element, rate]);
 	const stoppers = useMemo(() => Sentence.stoppers(element, rate), [element, rate]);
-	let owner = model.name;
+	let owner = ticket.model.name;
 	if (holder === null) owner = "Neutral";
 	else if (holder === ticket.human) owner = "Yours";
 	return (
@@ -87,10 +85,9 @@ export interface PeekProps {
 	crosshair: Crosshair;
 	simulation: Simulation;
 	ticket: Ticket;
-	model: AgentModel;
 }
 
-export function Peek({ board, crosshair, simulation, ticket, model }: PeekProps): ReactElement {
+export function Peek({ board, crosshair, simulation, ticket }: PeekProps): ReactElement {
 	const [pressed, setPressed] = useState<boolean>(false);
 	const [bottom, setBottom] = useState<boolean>(false);
 	const [present, setPresent] = useState<boolean>(false);
@@ -156,7 +153,7 @@ export function Peek({ board, crosshair, simulation, ticket, model }: PeekProps)
 
 	return (
 		<section id="peek" className={`layer rounded flex column with-gap with-padding large-padding${bottom ? " bottom" : String.empty}`} hidden={!pressed || !present || shown === null}>
-			{shown === null ? null : <PeekCard element={shown} holder={holder} ticket={ticket} model={model} />}
+			{shown === null ? null : <PeekCard element={shown} holder={holder} ticket={ticket} />}
 		</section>
 	);
 }

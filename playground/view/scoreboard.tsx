@@ -4,7 +4,6 @@ import "adaptive-extender/web";
 import { type ReactElement, type RefObject, useEffect, useRef, useState } from "react";
 import { type Simulation } from "../services/simulation.js";
 import { type Ticket } from "../../arena/models/protocol.js";
-import { type AgentModel } from "../models/agent-catalog.js";
 
 const { ceil, round, trunc } = Math;
 
@@ -12,11 +11,10 @@ const { ceil, round, trunc } = Math;
 export interface ScoreboardProps {
 	simulation: Simulation;
 	ticket: Ticket;
-	model: AgentModel;
 }
 
-export function Scoreboard({ simulation, ticket, model }: ScoreboardProps): ReactElement {
-	const { rules, human } = ticket;
+export function Scoreboard({ simulation, ticket }: ScoreboardProps): ReactElement {
+	const { rules, human, model } = ticket;
 	const { name } = model;
 	const [left, setLeft] = useState<number>(rules.seconds);
 	const [mine, setMine] = useState<number>(0);

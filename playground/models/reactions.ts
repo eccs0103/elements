@@ -124,7 +124,6 @@ export class Reaction {
 	get law(): Law { return this.#law; }
 	get interval(): number { return this.#interval; }
 	get reach(): Reach { return this.#reach; }
-	get product(): ElementType | null { return this.#product; }
 	get remains(): ElementType | null { return this.#remains; }
 
 	yields(): ElementType {

@@ -9,6 +9,8 @@ import { Move, type MoveScheme } from "../../playground/models/move.js";
 import { Match } from "../../playground/services/match.js";
 import { Hand } from "../../playground/services/hand.js";
 import { Bot, type Player } from "../../playground/services/players.js";
+import { Agent, type Mind } from "../../playground/services/agent.js";
+import { AgentModel, type AgentModelScheme } from "../../playground/models/agent-catalog.js";
 
 const { max, ceil } = Math;
 
@@ -51,13 +53,13 @@ export interface TicketScheme {
 	rules: RulesScheme;
 	human: number;
 	deck: ElementScheme[];
+	model: AgentModelScheme;
 }
 
 export class Ticket extends Model {
 	static #route: string = "/api/tickets";
-	static #second: number = 1000;
 	static #idle: number = 600000;
-	static #slack: number = 15000;
+	static #deadline: number = 600000;
 	static #human: number = 0;
 
 	@Field(String, { name: "id" })
@@ -78,10 +80,13 @@ export class Ticket extends Model {
 	@Field(Array.Of(Element), { name: "deck" })
 	deck: Element[];
 
+	@Field(AgentModel, { name: "model" })
+	model: AgentModel;
+
 	constructor();
-	constructor(id: string, seed: number | null, luck: number, rules: Rules, human: number, deck: Element[]);
-	constructor(id?: string, seed?: number | null, luck?: number, rules?: Rules, human?: number, deck?: Element[]) {
-		if (id === undefined || seed === undefined || luck === undefined || rules === undefined || human === undefined || deck === undefined) {
+	constructor(id: string, seed: number | null, luck: number, rules: Rules, human: number, deck: Element[], model: AgentModel);
+	constructor(id?: string, seed?: number | null, luck?: number, rules?: Rules, human?: number, deck?: Element[], model?: AgentModel) {
+		if (id === undefined || seed === undefined || luck === undefined || rules === undefined || human === undefined || deck === undefined || model === undefined) {
 			super();
 			return;
 		}
@@ -93,15 +98,16 @@ export class Ticket extends Model {
 		this.rules = rules;
 		this.human = human;
 		this.deck = deck;
+		this.model = model;
 	}
 
 	static get route(): string { return Ticket.#route; }
 	static get idle(): number { return Ticket.#idle; }
-	static get deadline(): number { return new Rules().seconds * Ticket.#second + Ticket.#slack; }
+	static get deadline(): number { return Ticket.#deadline; }
 	static get human(): number { return Ticket.#human; }
 
-	static deal(id: string, seed: number, luck: number, deck: Element[]): Ticket {
-		return new Ticket(id, seed, luck, new Rules(), Ticket.#human, deck);
+	static deal(id: string, seed: number, luck: number, deck: Element[], model: AgentModel): Ticket {
+		return new Ticket(id, seed, luck, new Rules(), Ticket.#human, deck, model);
 	}
 
 	static draft(rules: Rules, seed: number, side: number): Deck {
@@ -114,12 +120,16 @@ export class Ticket extends Model {
 
 	get started(): boolean { return this.seed !== null; }
 
+	agent(mind: Mind): Agent {
+		return new Agent(mind, this.rules.ticks(this.model.reaction));
+	}
+
 	sealed(): Ticket {
-		return new Ticket(this.id, null, this.luck, this.rules, this.human, this.deck);
+		return new Ticket(this.id, null, this.luck, this.rules, this.human, this.deck, this.model);
 	}
 
 	redeal(deck: Element[]): Ticket {
-		return new Ticket(this.id, this.seed, this.luck, this.rules, this.human, deck);
+		return new Ticket(this.id, this.seed, this.luck, this.rules, this.human, deck, this.model);
 	}
 
 	holds(deck: readonly Element[]): boolean {
