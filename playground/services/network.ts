@@ -28,10 +28,7 @@ class Features {
 	get data(): Float32Array { return this.#data; }
 
 	relu(): Features {
-		const data = this.#data;
-		for (let index = 0; index < data.length; index++) {
-			if (data[index] < 0) data[index] = 0;
-		}
+		Dense.relu(this.#data);
 		return this;
 	}
 

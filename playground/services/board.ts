@@ -1,7 +1,8 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Law, Reach, type Element, type Reaction } from "../models/elements.js";
+import { type Element } from "../models/elements.js";
+import { Law, Reach, type Reaction } from "../models/reactions.js";
 import { PeriodicTable } from "./periodic-table.js";
 import { Dice } from "./dice.js";
 import { type Digest } from "./digest.js";

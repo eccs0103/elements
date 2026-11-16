@@ -1,7 +1,8 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Law, Reach, type Element, type Reaction } from "./elements.js";
+import { type Element } from "./elements.js";
+import { Law, Reach, type Reaction } from "./reactions.js";
 import { PeriodicTable } from "../services/periodic-table.js";
 
 //#region Phrase

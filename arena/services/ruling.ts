@@ -14,8 +14,29 @@ export class Ruling {
 		this.#scores = scores;
 	}
 
+	static of(ticket: string, moves: string | null): Ruling {
+		if (moves === null) return Ruling.forfeit();
+		try {
+			const match = Ticket.import(JSON.parse(ticket), "ticket");
+			const report = Report.import({ ticket: match.id, moves: JSON.parse(moves) }, "report");
+			const verdict = Ruling.#replay(match, report);
+			const { human } = match;
+			return new Ruling(verdict.winner(human) === human, verdict.scores);
+		} catch {
+			// A malformed or illegal report is swallowed on purpose: it counts as a forfeit, the agent wins.
+			return Ruling.forfeit();
+		}
+	}
+
 	static forfeit(): Ruling {
 		return new Ruling(false, null);
+	}
+
+	static #replay(ticket: Ticket, report: Report): Verdict {
+		report.check(ticket.rules, ticket.human);
+		const match = ticket.match();
+		match.replay(report.moves, ticket.lineup(new Human()));
+		return Verdict.of(match);
 	}
 
 	get won(): boolean { return this.#won; }
@@ -27,30 +48,6 @@ export class Ruling {
 	count(standing: Standing): void {
 		if (this.#won) standing.humanity++;
 		else standing.agent++;
-	}
-}
-//#endregion
-//#region Referee
-export class Referee {
-	static decide(ticket: string, moves: string | null): Ruling {
-		if (moves === null) return Ruling.forfeit();
-		try {
-			const match = Ticket.import(JSON.parse(ticket), "ticket");
-			const report = Report.import({ ticket: match.id, moves: JSON.parse(moves) }, "report");
-			const verdict = Referee.#replay(match, report);
-			const { human } = match;
-			return new Ruling(verdict.winner(human) === human, verdict.scores);
-		} catch {
-			// A malformed or illegal report is swallowed on purpose: it counts as a forfeit, the agent wins.
-			return Ruling.forfeit();
-		}
-	}
-
-	static #replay(ticket: Ticket, report: Report): Verdict {
-		report.check(ticket.rules, ticket.human);
-		const match = ticket.match();
-		match.replay(report.moves, ticket.lineup(new Human()));
-		return Verdict.of(match);
 	}
 }
 //#endregion

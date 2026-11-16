@@ -4,7 +4,7 @@ import "adaptive-extender/node";
 import { Any, Field, Model, Nullable, URI } from "adaptive-extender/node";
 import { type VerifierEnvironment } from "../models/verifier-environment.js";
 import { Ticket, Standing } from "../models/protocol.js";
-import { Referee } from "./referee.js";
+import { Ruling } from "./ruling.js";
 
 //#region Remote database
 class D1Result extends Model {
@@ -77,7 +77,7 @@ export class Verifier {
 			if (rows.length === 0) break;
 			for (const row of rows) {
 				const { id, ticket, moves } = TicketRow.import(row, "row");
-				const ruling = Referee.decide(ticket, moves);
+				const ruling = Ruling.of(ticket, moves);
 				await database.query("UPDATE tickets SET judged = ?2, won = ?3, scores = ?4 WHERE id = ?1 AND judged IS NULL", [id, now, Number(ruling.won), ruling.record]);
 				ruling.count(standing);
 			}

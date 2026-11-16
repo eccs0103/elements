@@ -78,23 +78,18 @@ class Session implements Stage {
 	}
 }
 //#endregion
-//#region Lobby
-class Lobby implements Stage {
-	#ticket: Ticket;
-
-	constructor(ticket: Ticket) {
-		this.#ticket = ticket;
-	}
+//#region Waiting
+class Waiting implements Stage {
+	get tally(): Verdict { return new Verdict(new Array<number>(Match.count).fill(0)); }
 
 	paint(painter: Painter, preview: boolean): void {
 		void preview;
-		painter.ground(this.#ticket.rules.size);
+		painter.ground(new Rules().size);
 	}
 
 	status(cell: number | null): StatusCommand {
-		const inspected = Nullable.map(cell, cell => PeriodicTable.ground);
-		const tally = new Verdict(new Array<number>(Match.count).fill(0));
-		return new StatusCommand(Array.from(this.#ticket.opening()), 1, inspected, null, 0, tally);
+		void cell;
+		return new StatusCommand([], 1, null, null, 0, this.tally);
 	}
 
 	play(slot: number, x: number, y: number): boolean {
@@ -111,30 +106,23 @@ class Lobby implements Stage {
 	}
 }
 //#endregion
-//#region Waiting
-class Waiting implements Stage {
+//#region Lobby
+class Lobby extends Waiting {
+	#ticket: Ticket;
+
+	constructor(ticket: Ticket) {
+		super();
+		this.#ticket = ticket;
+	}
+
 	paint(painter: Painter, preview: boolean): void {
 		void preview;
-		painter.ground(new Rules().size);
+		painter.ground(this.#ticket.rules.size);
 	}
 
 	status(cell: number | null): StatusCommand {
-		void cell;
-		const tally = new Verdict(new Array<number>(Match.count).fill(0));
-		return new StatusCommand([], 1, null, null, 0, tally);
-	}
-
-	play(slot: number, x: number, y: number): boolean {
-		void slot, x, y;
-		return false;
-	}
-
-	advance(): boolean {
-		return false;
-	}
-
-	finish(): FinishCommand | null {
-		return null;
+		const inspected = Nullable.map(cell, cell => PeriodicTable.ground);
+		return new StatusCommand(Array.from(this.#ticket.opening()), 1, inspected, null, 0, this.tally);
 	}
 }
 //#endregion
