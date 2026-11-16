@@ -202,6 +202,7 @@ export class Start extends Model {
 export interface ReportScheme {
 	ticket: string;
 	moves: MoveScheme[];
+	won: boolean;
 }
 
 export class Report extends Model {
@@ -213,10 +214,13 @@ export class Report extends Model {
 	@Field(Array.Of(Move), { name: "moves" })
 	moves: Move[];
 
+	@Field(Boolean, { name: "won" })
+	won: boolean;
+
 	constructor();
-	constructor(ticket: string, moves: Move[]);
-	constructor(ticket?: string, moves?: Move[]) {
-		if (ticket === undefined || moves === undefined) {
+	constructor(ticket: string, moves: Move[], won: boolean);
+	constructor(ticket?: string, moves?: Move[], won?: boolean) {
+		if (ticket === undefined || moves === undefined || won === undefined) {
 			super();
 			return;
 		}
@@ -224,6 +228,7 @@ export class Report extends Model {
 		super();
 		this.ticket = ticket;
 		this.moves = moves;
+		this.won = won;
 	}
 
 	static locate(origin: Readonly<URI>): URI { return new URI(Report.#route, origin); }
@@ -277,6 +282,8 @@ export class Verdict extends Model {
 export interface StandingScheme {
 	humanity: number;
 	agent: number;
+	review_humanity: number;
+	review_agent: number;
 }
 
 export class Standing extends Model {
@@ -287,6 +294,12 @@ export class Standing extends Model {
 
 	@Field(Number, { name: "agent" })
 	agent: number = 0;
+
+	@Field(Number, { name: "review_humanity" })
+	reviewHumanity: number = 0;
+
+	@Field(Number, { name: "review_agent" })
+	reviewAgent: number = 0;
 
 	static locate(origin: Readonly<URI>): URI { return new URI(Standing.#route, origin); }
 }

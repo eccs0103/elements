@@ -6,7 +6,7 @@ import { Element, type ElementScheme } from "./elements.js";
 import { Ticket, Report, Verdict, type TicketScheme, type ReportScheme, type VerdictScheme } from "../../arena/models/protocol.js";
 
 //#region Command
-export interface CommandDiscriminator extends InitializeCommandDiscriminator, StartCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator, PreviewCommandDiscriminator, InspectCommandDiscriminator, ResizeCommandDiscriminator, StatusCommandDiscriminator, FinishCommandDiscriminator {
+export interface CommandDiscriminator extends InitializeCommandDiscriminator, StartCommandDiscriminator, BeginCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator, PreviewCommandDiscriminator, InspectCommandDiscriminator, ResizeCommandDiscriminator, StatusCommandDiscriminator, FinishCommandDiscriminator {
 }
 
 export interface CommandScheme {
@@ -15,6 +15,7 @@ export interface CommandScheme {
 
 @Descendant(Deferred(_ => InitializeCommand))
 @Descendant(Deferred(_ => StartCommand))
+@Descendant(Deferred(_ => BeginCommand))
 @Descendant(Deferred(_ => TickCommand))
 @Descendant(Deferred(_ => DropCommand))
 @Descendant(Deferred(_ => PreviewCommand))
@@ -86,6 +87,18 @@ export class StartCommand extends Command {
 		super();
 		this.ticket = ticket;
 	}
+}
+//#endregion
+//#region Begin command
+export interface BeginCommandDiscriminator {
+	"BeginCommand": BeginCommand;
+}
+
+export interface BeginCommandScheme extends CommandScheme {
+	$type: keyof BeginCommandDiscriminator;
+}
+
+export class BeginCommand extends Command {
 }
 //#endregion
 //#region Tick command

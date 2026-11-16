@@ -77,12 +77,12 @@ export class D1Ledger implements Ledger {
 
 	async report(report: Report, user: string, since: number, now: number): Promise<boolean> {
 		const moves = JSON.stringify(Array.Of(Move).export(report.moves));
-		const row = await this.#database.prepare("UPDATE tickets SET reported = ?4, moves = ?5 WHERE id = ?1 AND visitor = ?2 AND started > ?3 AND reported IS NULL RETURNING id").bind(report.ticket, user, since, now, moves).first<string>("id");
+		const row = await this.#database.prepare("UPDATE tickets SET reported = ?4, moves = ?5, claimed = ?6 WHERE id = ?1 AND visitor = ?2 AND started > ?3 AND reported IS NULL RETURNING id").bind(report.ticket, user, since, now, moves, Number(report.won)).first<string>("id");
 		return row !== null;
 	}
 
 	async standing(): Promise<Standing> {
-		const row = await this.#database.prepare("SELECT humanity, agent FROM standing WHERE id = 1").first();
+		const row = await this.#database.prepare("SELECT humanity, agent, (SELECT count(*) FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND reported IS NOT NULL AND claimed = 1) AS review_humanity, (SELECT count(*) FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND reported IS NOT NULL AND claimed = 0) AS review_agent FROM standing WHERE id = 1").first();
 		if (row === null) return new Standing();
 		return Standing.import(row, "standing");
 	}

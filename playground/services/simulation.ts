@@ -3,7 +3,7 @@
 import "adaptive-extender/web";
 import { StaticEngine, URI } from "adaptive-extender/web";
 import { type Element } from "../models/elements.js";
-import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
+import { Command, InitializeCommand, StartCommand, BeginCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
 import { type Ticket, type Report, type Verdict } from "../../arena/models/protocol.js";
 
 const { baseURI } = document;
@@ -78,6 +78,7 @@ export class Simulation extends EventTarget {
 		const engine = this.#engine;
 		const worker = this.#worker;
 		if (ticket.id !== this.#ticket?.id) this.#post(ticket);
+		worker.postMessage(Command.export(new BeginCommand()));
 		this.#launching = false;
 		engine.limit = ticket.rules.rate;
 		engine.launched = true;

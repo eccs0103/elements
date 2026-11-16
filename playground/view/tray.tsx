@@ -51,7 +51,7 @@ export function Tray({ simulation, crosshair, ready }: TrayProps): ReactElement 
 		event.currentTarget.setPointerCapture(event.pointerId);
 		refSlot.current = slot;
 		setColor(cards[slot].color.toString());
-		simulation.preview(true);
+		simulation.preview(ready);
 		follow(event);
 	};
 

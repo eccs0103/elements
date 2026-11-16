@@ -2,7 +2,7 @@
 
 import "adaptive-extender/worker";
 import { Controller, Nullable, URI } from "adaptive-extender/worker";
-import { Command, InitializeCommand, StartCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
+import { Command, InitializeCommand, StartCommand, BeginCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
 import { PeriodicTable } from "../services/periodic-table.js";
 import { Move } from "../models/move.js";
 import { Match } from "../services/match.js";
@@ -16,13 +16,14 @@ import { Report, Verdict, type Ticket } from "../../arena/models/protocol.js";
 
 //#region Stage
 interface Stage {
-	paint(painter: Painter, preview: boolean): void;
+	paint(painter: Painter, zone: Uint8Array | null): void;
+	zone(): Uint8Array | null;
 	status(cell: number | null): StatusCommand;
 	play(slot: number, x: number, y: number): boolean;
 	advance(): boolean;
 	finish(): FinishCommand | null;
 	keep(next: Stage): Stage;
-	engage(): Stage;
+	begin(): Stage;
 }
 //#endregion
 //#region Session
@@ -42,8 +43,17 @@ class Session implements Stage {
 		this.#zone = new Uint8Array(size * size);
 	}
 
-	paint(painter: Painter, preview: boolean): void {
-		painter.paint(this.#match.board, preview ? this.#mark() : null);
+	paint(painter: Painter, zone: Uint8Array | null): void {
+		painter.paint(this.#match.board, zone);
+	}
+
+	zone(): Uint8Array {
+		const zone = this.#zone;
+		zone.fill(0);
+		for (const cell of this.#match.cells(this.#ticket.human, 0)) {
+			zone[cell] = 1;
+		}
+		return zone;
 	}
 
 	status(cell: number | null): StatusCommand {
@@ -71,7 +81,8 @@ class Session implements Stage {
 		const match = this.#match;
 		if (!match.finished) return null;
 		const { id, human } = this.#ticket;
-		return new FinishCommand(new Report(id, match.moves.filter(move => move.side === human)), Verdict.of(match));
+		const verdict = Verdict.of(match);
+		return new FinishCommand(new Report(id, match.moves.filter(move => move.side === human), verdict.winner(human) === human), verdict);
 	}
 
 	keep(next: Stage): Stage {
@@ -79,25 +90,20 @@ class Session implements Stage {
 		return new Aftermath(this, next);
 	}
 
-	engage(): Stage {
+	begin(): Stage {
 		return this;
-	}
-
-	#mark(): Uint8Array {
-		const zone = this.#zone;
-		zone.fill(0);
-		for (const cell of this.#match.cells(this.#ticket.human, 0)) {
-			zone[cell] = 1;
-		}
-		return zone;
 	}
 }
 //#endregion
 //#region Waiting
 class Waiting implements Stage {
-	paint(painter: Painter, preview: boolean): void {
-		void preview;
+	paint(painter: Painter, zone: Uint8Array | null): void {
+		void zone;
 		painter.ground(new Rules().size);
+	}
+
+	zone(): Uint8Array | null {
+		return null;
 	}
 
 	status(cell: number | null): StatusCommand {
@@ -122,7 +128,7 @@ class Waiting implements Stage {
 		return next;
 	}
 
-	engage(): Stage {
+	begin(): Stage {
 		return this;
 	}
 }
@@ -137,9 +143,12 @@ class Aftermath implements Stage {
 		this.#next = next;
 	}
 
-	paint(painter: Painter, preview: boolean): void {
-		void preview;
-		this.#past.paint(painter, false);
+	paint(painter: Painter, zone: Uint8Array | null): void {
+		this.#past.paint(painter, zone);
+	}
+
+	zone(): Uint8Array | null {
+		return this.#next.zone();
 	}
 
 	status(cell: number | null): StatusCommand {
@@ -165,7 +174,7 @@ class Aftermath implements Stage {
 		return new Aftermath(this.#past, next);
 	}
 
-	engage(): Stage {
+	begin(): Stage {
 		return this.#next;
 	}
 }
@@ -206,7 +215,8 @@ class SimulationWorker extends Controller {
 	#inspected: number | null = null;
 
 	#refresh(): void {
-		this.#stage.paint(this.#painter, this.#preview);
+		const stage = this.#stage;
+		stage.paint(this.#painter, this.#preview ? stage.zone() : null);
 		this.#describe();
 	}
 
@@ -241,9 +251,13 @@ class SimulationWorker extends Controller {
 		}
 
 		if (command instanceof PreviewCommand) {
-			const { active } = command;
-			this.#preview = active;
-			if (active) this.#stage = this.#stage.engage();
+			this.#preview = command.active;
+			this.#refresh();
+			return;
+		}
+
+		if (command instanceof BeginCommand) {
+			this.#stage = this.#stage.begin();
 			this.#refresh();
 			return;
 		}

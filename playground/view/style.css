@@ -175,7 +175,7 @@ fieldset#mode {
 	}
 
 	& span.tickets {
-		align-items: center;
+		align-items: baseline;
 		gap: var(--size-small-gap);
 		min-block-size: 1lh;
 		font-variant-numeric: tabular-nums;

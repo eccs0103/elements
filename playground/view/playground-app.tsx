@@ -4,7 +4,7 @@ import "adaptive-extender/web";
 import { type URI } from "adaptive-extender/web";
 import { type ReactElement, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Simulation } from "../services/simulation.js";
-import { type Ticket, type Allowance } from "../../arena/models/protocol.js";
+import { type Ticket, type Allowance, type Standing } from "../../arena/models/protocol.js";
 import { Mode } from "../../settings/models/settings.js";
 import { Crosshair } from "./crosshair.js";
 import { type Notice } from "./notice.js";
@@ -77,6 +77,21 @@ function ModeSwitch({ mode, online, allowance, hidden, onSwitch }: ModeSwitchPro
 	);
 }
 //#endregion
+//#region Headline
+interface HeadlineProps {
+	standing: Standing;
+	rival: string;
+}
+
+function Headline({ standing, rival }: HeadlineProps): ReactElement {
+	const { humanity, agent, reviewHumanity, reviewAgent } = standing;
+	return (
+		<>
+			Humanity {humanity}<small className="description" title={`${reviewHumanity} in review`} hidden={reviewHumanity < 1}> +{reviewHumanity}</small> : {agent}<small className="description" title={`${reviewAgent} in review`} hidden={reviewAgent < 1}> +{reviewAgent}</small> {rival}
+		</>
+	);
+}
+//#endregion
 //#region Notice side
 interface NoticeSideProps {
 	notice: Notice;
@@ -86,7 +101,7 @@ interface NoticeSideProps {
 
 function NoticeSide({ notice, shown, onAgain }: NoticeSideProps): ReactElement {
 	const [now, setNow] = useState<number>(Date.now);
-	const { deadline, target, action } = notice;
+	const { deadline, target, action, standing, rival } = notice;
 
 	useEffect(() => {
 		setNow(Date.now());
@@ -101,7 +116,7 @@ function NoticeSide({ notice, shown, onAgain }: NoticeSideProps): ReactElement {
 
 	return (
 		<article className="flex column with-gap" inert={!shown} aria-hidden={!shown} aria-busy={notice.busy}>
-			<h2>{notice.title}</h2>
+			<h2>{standing === null || rival === null ? notice.title : <Headline standing={standing} rival={rival} />}</h2>
 			<p className="description">{notice.description}</p>
 			<footer>
 				<p className="highlight" hidden={action !== null}>{notice.prompt(now)}</p>
