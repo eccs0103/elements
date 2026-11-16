@@ -113,6 +113,10 @@ fieldset#mode {
 	margin: 0;
 	border: none;
 
+	&:hover {
+		opacity: 1;
+	}
+
 	& legend {
 		position: absolute;
 		inline-size: 1px;
@@ -140,8 +144,10 @@ fieldset#mode {
 
 	& input + label {
 		z-index: 1;
-		display: grid;
-		justify-items: center;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: var(--size-small-gap);
 	}
 
 	& input:checked + label {
@@ -165,13 +171,20 @@ fieldset#mode {
 		font-weight: 600;
 	}
 
-	& span.state {
-		font-weight: normal;
-		white-space: nowrap;
-		opacity: 0.75;
+	& span.tickets {
+		gap: calc(var(--size-small-gap) / 2);
 	}
 
-	& input:checked + label span.state {
+	& span.tickets[aria-busy="true"] {
+		animation: breathe 1.6s ease-in-out infinite alternate;
+	}
+
+	& span.ticket {
+		--url: url(../../assets/icons/ticket.svg);
+		opacity: 0.3;
+	}
+
+	& span.ticket.lit {
 		opacity: 1;
 	}
 }
@@ -205,7 +218,8 @@ div#sides {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	section#notice article[aria-busy="true"] p.highlight {
+	section#notice article[aria-busy="true"] p.highlight,
+	fieldset#mode span.tickets[aria-busy="true"] {
 		animation: none;
 	}
 
@@ -406,6 +420,11 @@ span.ghost {
 	opacity: 0.8;
 	pointer-events: none;
 	translate: calc(var(--x) - 50%) calc(var(--y) - 50%);
+
+	&.disabled {
+		filter: grayscale(1);
+		opacity: 0.4;
+	}
 }
 
 @media (orientation: portrait) {

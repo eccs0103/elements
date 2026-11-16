@@ -10,7 +10,6 @@ import { AgentCatalog, type AgentModel } from "../../playground/models/agent-cat
 
 //#region Arena router
 export class ArenaRouter {
-	static #catalog: string = "/models.json";
 	#arena: Arena;
 
 	constructor(arena: Arena) {
@@ -39,17 +38,18 @@ export class ArenaRouter {
 		const arena = this.#arena;
 		const now = Date.now();
 		const { method } = request;
-		const { pathname } = new URI(request.url);
-		if (method === "POST" && pathname === Ticket.route) return Response.json(Ticket.export(await arena.open(Entry.import(await request.json(), "entry"), visitor, await ArenaRouter.#model(request), now)));
-		if (method === "POST" && pathname === Start.route) return Response.json(Ticket.export(await arena.start(Start.import(await request.json(), "start"), visitor, now)));
-		if (method === "POST" && pathname === Report.route) return Response.json(Standing.export(await arena.report(Report.import(await request.json(), "report"), visitor, now)));
-		if (method === "GET" && pathname === Standing.route) return Response.json(Standing.export(await arena.standing()));
-		if (method === "GET" && pathname === Allowance.route) return Response.json(Allowance.export(await arena.allowance(visitor, now)));
+		const target = new URI(request.url);
+		const { pathname } = target;
+		if (method === "POST" && Ticket.locate(target).pathname === pathname) return Response.json(Ticket.export(await arena.open(Entry.import(await request.json(), "entry"), visitor, await ArenaRouter.#model(target), now)));
+		if (method === "POST" && Start.locate(target).pathname === pathname) return Response.json(Ticket.export(await arena.start(Start.import(await request.json(), "start"), visitor, now)));
+		if (method === "POST" && Report.locate(target).pathname === pathname) return Response.json(Standing.export(await arena.report(Report.import(await request.json(), "report"), visitor, now)));
+		if (method === "GET" && Standing.locate(target).pathname === pathname) return Response.json(Standing.export(await arena.standing()));
+		if (method === "GET" && Allowance.locate(target).pathname === pathname) return Response.json(Allowance.export(await arena.allowance(visitor, now)));
 		return Response.json(Failure.export(new Failure(`No route for ${method} ${pathname}`)), { status: 404 });
 	}
 
-	static async #model(request: Request): Promise<AgentModel> {
-		const response = await fetch(new URI(ArenaRouter.#catalog, new URI(request.url)).href);
+	static async #model(target: Readonly<URI>): Promise<AgentModel> {
+		const response = await fetch(new URI("/models.json", target).href);
 		if (!response.ok) throw new ReferenceError(`The agent catalog could not load (${response.status})`);
 		return AgentCatalog.import(await response.json(), "catalog").first;
 	}

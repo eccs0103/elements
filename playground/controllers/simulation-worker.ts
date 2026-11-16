@@ -84,8 +84,6 @@ class Session implements Stage {
 //#endregion
 //#region Waiting
 class Waiting implements Stage {
-	get tally(): Verdict { return new Verdict(new Array<number>(Match.count).fill(0)); }
-
 	paint(painter: Painter, preview: boolean): void {
 		void preview;
 		painter.ground(new Rules().size);
@@ -93,7 +91,7 @@ class Waiting implements Stage {
 
 	status(cell: number | null): StatusCommand {
 		void cell;
-		return new StatusCommand([], 1, null, null, 0, this.tally);
+		return new StatusCommand([], 1, null, null, 0, new Verdict(new Array<number>(Match.count).fill(0)));
 	}
 
 	play(slot: number, x: number, y: number): boolean {
@@ -107,26 +105,6 @@ class Waiting implements Stage {
 
 	finish(): FinishCommand | null {
 		return null;
-	}
-}
-//#endregion
-//#region Lobby
-class Lobby extends Waiting {
-	#ticket: Ticket;
-
-	constructor(ticket: Ticket) {
-		super();
-		this.#ticket = ticket;
-	}
-
-	paint(painter: Painter, preview: boolean): void {
-		void preview;
-		painter.ground(this.#ticket.rules.size);
-	}
-
-	status(cell: number | null): StatusCommand {
-		const inspected = Nullable.map(cell, cell => PeriodicTable.ground);
-		return new StatusCommand(Array.from(this.#ticket.opening()), 1, inspected, null, 0, this.tally);
 	}
 }
 //#endregion
@@ -157,7 +135,7 @@ class WorkerMind implements Mind {
 //#endregion
 //#region Simulation worker
 class SimulationWorker extends Controller {
-	#agent: Worker = new Worker(new URI("./agent-worker.js", self.location.href).href, { type: "module" });
+	#agent: Worker = new Worker(new URI("./agent-worker.js", new URI(self.location.href)).href, { type: "module" });
 	#mind: WorkerMind = new WorkerMind(this.#agent);
 	#catalog: URI;
 	#painter: Painter;
@@ -195,7 +173,7 @@ class SimulationWorker extends Controller {
 		if (command instanceof StartCommand) {
 			const { ticket } = command;
 			this.#agent.postMessage(AgentCommand.export(new LoadCommand(ticket.model.weights(this.#catalog))));
-			this.#stage = ticket.started ? new Session(ticket, ticket.agent(this.#mind)) : new Lobby(ticket);
+			this.#stage = new Session(ticket, ticket.agent(this.#mind));
 			this.#refresh();
 			return;
 		}

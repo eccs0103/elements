@@ -34,6 +34,7 @@ export class Simulation extends EventTarget {
 	#report: Report | null = null;
 	#verdict: Verdict | null = null;
 	#drops: DropCommand[] = [];
+	#launching: boolean = false;
 
 	constructor(canvas: HTMLCanvasElement, catalog: URI) {
 		super();
@@ -58,23 +59,28 @@ export class Simulation extends EventTarget {
 	get tick(): number { return this.#tick; }
 	get tally(): Verdict | null { return this.#tally; }
 
-	launch(): void {
+	show(ticket: Ticket): void {
 		const engine = this.#engine;
-		if (engine.launched || this.#verdict !== null) return;
-		engine.launched = true;
+		engine.launched = false;
+		engine.limit = ticket.rules.rate;
+		this.#launching = false;
+		this.#drops.splice(0);
+		this.#post(ticket);
+	}
+
+	launch(): void {
+		if (this.#engine.launched || this.#launching || this.#verdict !== null) return;
+		this.#launching = true;
 		this.dispatchEvent(new Event("launch"));
 	}
 
 	start(ticket: Ticket): void {
-		const worker = this.#worker;
 		const engine = this.#engine;
-		if (!ticket.started || ticket.id !== this.#ticket?.id) engine.launched = false;
-		this.#ticket = ticket;
-		this.#report = null;
-		this.#verdict = null;
+		const worker = this.#worker;
+		if (ticket.id !== this.#ticket?.id) this.#post(ticket);
+		this.#launching = false;
 		engine.limit = ticket.rules.rate;
-		worker.postMessage(Command.export(new StartCommand(ticket)));
-		if (!ticket.started) return;
+		engine.launched = true;
 		for (const drop of this.#drops.splice(0)) {
 			worker.postMessage(Command.export(drop));
 		}
@@ -82,8 +88,7 @@ export class Simulation extends EventTarget {
 
 	drop(slot: number, x: number, y: number): void {
 		const drop = new DropCommand(slot, x, y);
-		const ticket = this.#ticket;
-		if (ticket === null || !ticket.started) {
+		if (!this.#engine.launched) {
 			this.#drops.push(drop);
 			return;
 		}
@@ -96,6 +101,13 @@ export class Simulation extends EventTarget {
 
 	inspect(cell: number | null): void {
 		this.#worker.postMessage(Command.export(new InspectCommand(cell)));
+	}
+
+	#post(ticket: Ticket): void {
+		this.#ticket = ticket;
+		this.#report = null;
+		this.#verdict = null;
+		this.#worker.postMessage(Command.export(new StartCommand(ticket)));
 	}
 
 	#resize(canvas: HTMLCanvasElement): void {

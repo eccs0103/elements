@@ -64,10 +64,15 @@ export class D1Ledger implements Ledger {
 		await this.#database.prepare("INSERT INTO tickets (id, visitor, ticket, issued) VALUES (?1, ?2, ?3, ?4)").bind(ticket.id, user, JSON.stringify(Ticket.export(ticket)), now).run();
 	}
 
-	async start(id: string, user: string, since: number, now: number): Promise<Ticket | null> {
-		const row = await this.#database.prepare("UPDATE tickets SET started = ?4 WHERE id = ?1 AND visitor = ?2 AND started IS NULL AND issued > ?3 RETURNING ticket").bind(id, user, since, now).first<string>("ticket");
+	async opened(id: string, user: string, since: number): Promise<Ticket | null> {
+		const row = await this.#database.prepare("SELECT ticket FROM tickets WHERE id = ?1 AND visitor = ?2 AND started IS NULL AND issued > ?3").bind(id, user, since).first<string>("ticket");
 		if (row === null) return null;
 		return D1Ledger.#ticket(row);
+	}
+
+	async start(ticket: Ticket, user: string, since: number, now: number): Promise<boolean> {
+		const row = await this.#database.prepare("UPDATE tickets SET started = ?4, ticket = ?5 WHERE id = ?1 AND visitor = ?2 AND started IS NULL AND issued > ?3 RETURNING id").bind(ticket.id, user, since, now, JSON.stringify(Ticket.export(ticket))).first<string>("id");
+		return row !== null;
 	}
 
 	async report(report: Report, user: string, since: number, now: number): Promise<boolean> {

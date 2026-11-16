@@ -1,13 +1,12 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Model, Field, Nullable } from "adaptive-extender/core";
+import { Model, Field, Nullable, URI } from "adaptive-extender/core";
 import { Element, type ElementScheme } from "../../playground/models/elements.js";
 import { Deck } from "../../playground/models/deck.js";
 import { Rules, type RulesScheme } from "../../playground/models/rules.js";
 import { Move, type MoveScheme } from "../../playground/models/move.js";
 import { Match } from "../../playground/services/match.js";
-import { Hand } from "../../playground/services/hand.js";
 import { Bot, type Player } from "../../playground/services/players.js";
 import { Agent, type Mind } from "../../playground/services/agent.js";
 import { AgentModel, type AgentModelScheme } from "../../playground/models/agent-catalog.js";
@@ -49,7 +48,7 @@ export class Entry extends Model {
 export interface TicketScheme {
 	id: string;
 	seed: number | null;
-	luck: number;
+	luck: number | null;
 	rules: RulesScheme;
 	human: number;
 	deck: ElementScheme[];
@@ -68,8 +67,8 @@ export class Ticket extends Model {
 	@Field(Nullable.Of(Number), { name: "seed" })
 	seed: number | null;
 
-	@Field(Number, { name: "luck" })
-	luck: number;
+	@Field(Nullable.Of(Number), { name: "luck" })
+	luck: number | null;
 
 	@Field(Rules, { name: "rules" })
 	rules: Rules;
@@ -84,8 +83,8 @@ export class Ticket extends Model {
 	model: AgentModel;
 
 	constructor();
-	constructor(id: string, seed: number | null, luck: number, rules: Rules, human: number, deck: Element[], model: AgentModel);
-	constructor(id?: string, seed?: number | null, luck?: number, rules?: Rules, human?: number, deck?: Element[], model?: AgentModel) {
+	constructor(id: string, seed: number | null, luck: number | null, rules: Rules, human: number, deck: Element[], model: AgentModel);
+	constructor(id?: string, seed?: number | null, luck?: number | null, rules?: Rules, human?: number, deck?: Element[], model?: AgentModel) {
 		if (id === undefined || seed === undefined || luck === undefined || rules === undefined || human === undefined || deck === undefined || model === undefined) {
 			super();
 			return;
@@ -101,12 +100,12 @@ export class Ticket extends Model {
 		this.model = model;
 	}
 
-	static get route(): string { return Ticket.#route; }
+	static locate(origin: Readonly<URI>): URI { return new URI(Ticket.#route, origin); }
 	static get idle(): number { return Ticket.#idle; }
 	static get deadline(): number { return Ticket.#deadline; }
 	static get human(): number { return Ticket.#human; }
 
-	static deal(id: string, seed: number, luck: number, deck: Element[], model: AgentModel): Ticket {
+	static deal(id: string, seed: number, luck: number | null, deck: Element[], model: AgentModel): Ticket {
 		return new Ticket(id, seed, luck, new Rules(), Ticket.#human, deck, model);
 	}
 
@@ -132,18 +131,19 @@ export class Ticket extends Model {
 		return new Ticket(this.id, this.seed, this.luck, this.rules, this.human, deck, this.model);
 	}
 
+	dealt(luck: number): Ticket {
+		return new Ticket(this.id, this.seed, luck, this.rules, this.human, this.deck, this.model);
+	}
+
 	holds(deck: readonly Element[]): boolean {
 		const own = this.deck;
 		return own.length === deck.length && own.every((element, index) => element.is(deck[index]));
 	}
 
-	opening(): readonly Element[] {
-		return new Hand(this.deck, this.rules.hand, this.luck).cards;
-	}
-
 	match(): Match {
-		const { human, deck, rules, luck } = this;
+		const { human, deck, rules } = this;
 		const seed = this.#seed();
+		const luck = ReferenceError.suppress(this.luck, `The ticket '${this.id}' has no luck yet`);
 		const decks = Iterator.range(0, Match.count).map(side => side === human ? deck : Ticket.draft(rules, seed, side).elements).toArray();
 		return new Match(rules, seed, luck, decks, human);
 	}
@@ -163,27 +163,39 @@ export class Ticket extends Model {
 //#region Start
 export interface StartScheme {
 	ticket: string;
+	luck: number;
 }
 
 export class Start extends Model {
 	static #route: string = "/api/starts";
+	static #limit: number = 0x7FFFFFFF;
 
 	@Field(String, { name: "ticket" })
 	ticket: string;
 
+	@Field(Number, { name: "luck" })
+	luck: number;
+
 	constructor();
-	constructor(ticket: string);
-	constructor(ticket?: string) {
-		if (ticket === undefined) {
+	constructor(ticket: string, luck: number);
+	constructor(ticket?: string, luck?: number) {
+		if (ticket === undefined || luck === undefined) {
 			super();
 			return;
 		}
 
 		super();
 		this.ticket = ticket;
+		this.luck = luck;
 	}
 
-	static get route(): string { return Start.#route; }
+	static locate(origin: Readonly<URI>): URI { return new URI(Start.#route, origin); }
+
+	check(): void {
+		const { luck } = this;
+		const limit = Start.#limit;
+		if (!Number.isInteger(luck) || luck < 0 || luck > limit) throw new RangeError(`The luck ${luck} must be an integer from 0 to ${limit}`);
+	}
 }
 //#endregion
 //#region Report
@@ -214,7 +226,7 @@ export class Report extends Model {
 		this.moves = moves;
 	}
 
-	static get route(): string { return Report.#route; }
+	static locate(origin: Readonly<URI>): URI { return new URI(Report.#route, origin); }
 
 	check(rules: Rules, human: number): void {
 		const { moves } = this;
@@ -276,7 +288,7 @@ export class Standing extends Model {
 	@Field(Number, { name: "agent" })
 	agent: number = 0;
 
-	static get route(): string { return Standing.#route; }
+	static locate(origin: Readonly<URI>): URI { return new URI(Standing.#route, origin); }
 }
 //#endregion
 //#region Failure
@@ -305,6 +317,7 @@ export class Failure extends Model {
 export interface AllowanceScheme {
 	left: number;
 	wait: number;
+	capacity: number;
 }
 
 export class Allowance extends Model {
@@ -316,10 +329,13 @@ export class Allowance extends Model {
 	@Field(Number, { name: "wait" })
 	wait: number;
 
+	@Field(Number, { name: "capacity" })
+	capacity: number;
+
 	constructor();
-	constructor(left: number, wait: number);
-	constructor(left?: number, wait?: number) {
-		if (left === undefined || wait === undefined) {
+	constructor(left: number, wait: number, capacity: number);
+	constructor(left?: number, wait?: number, capacity?: number) {
+		if (left === undefined || wait === undefined || capacity === undefined) {
 			super();
 			return;
 		}
@@ -327,9 +343,10 @@ export class Allowance extends Model {
 		super();
 		this.left = left;
 		this.wait = wait;
+		this.capacity = capacity;
 	}
 
-	static get route(): string { return Allowance.#route; }
+	static locate(origin: Readonly<URI>): URI { return new URI(Allowance.#route, origin); }
 }
 //#endregion
 //#region Shortage

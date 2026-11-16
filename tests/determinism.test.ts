@@ -13,7 +13,7 @@ describe("Determinism", () => {
 		const config = new URI("./wrangler.jsonc", new URI(import.meta.url)).toPath();
 		const worker = await unstable_startWorker({ config, dev: { inspector: false, persist: false, server: { port: 0 } } });
 		try {
-			const response = await worker.fetch("http://localhost/");
+			const response = await worker.fetch(new URI("http://localhost/").href);
 			expect(Number(await response.text())).toBe(local);
 			expect(local).toBe(pinned);
 		} finally {

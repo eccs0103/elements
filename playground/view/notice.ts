@@ -1,7 +1,7 @@
 "use strict";
 
 import "adaptive-extender/web";
-import { Nullable, URI } from "adaptive-extender/web";
+import { URI } from "adaptive-extender/web";
 import { type Allowance, type Standing, type Ticket, type Verdict } from "../../arena/models/protocol.js";
 import { type AgentModel } from "../models/agent-catalog.js";
 
@@ -11,7 +11,6 @@ const { ceil, trunc } = Math;
 //#region Notice
 export class Notice {
 	static #second: number = 1000;
-	static #minute: number = 60000;
 	#title: string;
 	#description: string;
 	#note: string | null = null;
@@ -41,9 +40,8 @@ export class Notice {
 		return notice;
 	}
 
-	static ready(standing: Standing, ticket: Ticket, allowance: Allowance | null): Notice {
+	static ready(standing: Standing, ticket: Ticket): Notice {
 		const notice = new Notice(Notice.#score(standing, ticket.model), Notice.#rules(ticket));
-		notice.#note = Nullable.map(allowance, Notice.#rest.bind(Notice));
 		notice.#hint = "Drag a card to start the game";
 		notice.#playable = true;
 		return notice;
@@ -68,11 +66,7 @@ export class Notice {
 	static outcome(verdict: Verdict, ticket: Ticket, standing: Standing, allowance: Allowance | null): Notice {
 		const notice = new Notice(Notice.#outcome(verdict, ticket), Notice.#score(standing, ticket.model));
 		notice.#action = "Play again";
-		if (allowance === null) return notice;
-		if (allowance.left > 0) {
-			notice.#note = `${Notice.#matches(allowance.left)} left`;
-			return notice;
-		}
+		if (allowance === null || allowance.left > 0) return notice;
 		notice.#note = "No matches left for now";
 		notice.#deadline = Date.now() + allowance.wait;
 		return notice;
@@ -150,15 +144,5 @@ export class Notice {
 		return `${winner} ${verdict.scores[human]} : ${verdict.against(human)}`;
 	}
 
-	static #rest(allowance: Allowance): string {
-		const { left, wait } = allowance;
-		if (left === 0) return `Your last match for now. The next one comes in ${ceil(wait / Notice.#minute)} min.`;
-		if (wait === 0) return `${Notice.#matches(left)} left after this one`;
-		return `${Notice.#matches(left)} left after this one, one more in ${ceil(wait / Notice.#minute)} min`;
-	}
-
-	static #matches(count: number): string {
-		return `${count} ${count === 1 ? "match" : "matches"}`;
-	}
 }
 //#endregion

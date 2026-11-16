@@ -21,12 +21,14 @@ export interface Ledger {
 	wait(bucket: Bucket, now: number): Promise<number>;
 	allowance(bucket: Bucket, now: number): Promise<Allowance>;
 	save(ticket: Ticket, user: string, now: number): Promise<void>;
-	start(id: string, user: string, since: number, now: number): Promise<Ticket | null>;
+	opened(id: string, user: string, since: number): Promise<Ticket | null>;
+	start(ticket: Ticket, user: string, since: number, now: number): Promise<boolean>;
 	report(report: Report, user: string, since: number, now: number): Promise<boolean>;
 	standing(): Promise<Standing>;
 }
 
 export class Arena {
+	static #unknown: string = "The ticket is unknown, expired or already started";
 	#ledger: Ledger;
 	#gate: Gate;
 
@@ -39,27 +41,29 @@ export class Arena {
 		const ledger = this.#ledger;
 		const pending = await ledger.pending(visitor.user, now - Ticket.idle);
 		if (pending !== null) return await this.#renew(pending, entry.deck);
-		const ticket = Ticket.deal(crypto.randomUUID(), Arena.#number(), Arena.#number(), entry.deck, model);
-		ticket.match();
+		const allowance = await this.allowance(visitor, now);
+		if (allowance.left < 1) throw Shortage.after(allowance.wait);
 		await this.#gate.admit(entry.token, visitor.address);
-		const taken: Bucket[] = [];
-		for (const bucket of visitor.buckets()) {
-			if (await ledger.take(bucket, now)) {
-				taken.push(bucket);
-				continue;
-			}
-			for (const paid of taken) {
-				await ledger.refund(paid);
-			}
-			throw Shortage.after(await ledger.wait(bucket, now));
-		}
+		const ticket = Ticket.deal(crypto.randomUUID(), Arena.#number(), null, entry.deck, model);
 		await ledger.save(ticket, visitor.user, now);
 		return ticket.sealed();
 	}
 
 	async start(start: Start, visitor: Visitor, now: number): Promise<Ticket> {
-		const ticket = await this.#ledger.start(start.ticket, visitor.user, now - Ticket.idle, now);
-		return ReferenceError.suppress(ticket, "The ticket is unknown, expired or already started");
+		const ledger = this.#ledger;
+		const { user } = visitor;
+		const since = now - Ticket.idle;
+		const unknown = Arena.#unknown;
+		start.check();
+		const opened = ReferenceError.suppress(await ledger.opened(start.ticket, user, since), unknown);
+		const ticket = opened.dealt(start.luck);
+		ticket.match();
+		const taken = await this.#spend(visitor, now);
+		if (await ledger.start(ticket, user, since, now)) return ticket;
+		for (const bucket of taken) {
+			await ledger.refund(bucket);
+		}
+		throw new ReferenceError(unknown);
 	}
 
 	async report(report: Report, visitor: Visitor, now: number): Promise<Standing> {
@@ -84,10 +88,25 @@ export class Arena {
 		return tightest;
 	}
 
+	async #spend(visitor: Visitor, now: number): Promise<Bucket[]> {
+		const ledger = this.#ledger;
+		const taken: Bucket[] = [];
+		for (const bucket of visitor.buckets()) {
+			if (await ledger.take(bucket, now)) {
+				taken.push(bucket);
+				continue;
+			}
+			for (const paid of taken) {
+				await ledger.refund(paid);
+			}
+			throw Shortage.after(await ledger.wait(bucket, now));
+		}
+		return taken;
+	}
+
 	async #renew(pending: Ticket, deck: Element[]): Promise<Ticket> {
 		if (pending.holds(deck)) return pending.sealed();
 		const ticket = pending.redeal(deck);
-		ticket.match();
 		await this.#ledger.renew(ticket);
 		return ticket.sealed();
 	}

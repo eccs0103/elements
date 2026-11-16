@@ -20,9 +20,10 @@ interface HandStyle extends CSSProperties {
 export interface TrayProps {
 	simulation: Simulation;
 	crosshair: Crosshair;
+	ready: boolean;
 }
 
-export function Tray({ simulation, crosshair }: TrayProps): ReactElement {
+export function Tray({ simulation, crosshair, ready }: TrayProps): ReactElement {
 	const [, refresh] = useReducer((version: number) => version + 1, 0);
 	const [color, setColor] = useState<string | null>(null);
 	const refGhost: RefObject<HTMLSpanElement | null> = useRef(null);
@@ -47,7 +48,6 @@ export function Tray({ simulation, crosshair }: TrayProps): ReactElement {
 
 	const grab = (event: PointerEvent<HTMLSpanElement>, slot: number): void => {
 		if (simulation.charge < 1) return;
-		simulation.launch();
 		event.currentTarget.setPointerCapture(event.pointerId);
 		refSlot.current = slot;
 		setColor(cards[slot].color.toString());
@@ -68,8 +68,9 @@ export function Tray({ simulation, crosshair }: TrayProps): ReactElement {
 		if (slot === null) return;
 		const cell = crosshair.cell(event.nativeEvent);
 		cancel();
-		if (cell === null) return;
+		if (cell === null || !ready) return;
 		simulation.drop(slot, cell.x, cell.y);
+		simulation.launch();
 	};
 
 	const hand: HandStyle = { "--charge": `${charge}` };
@@ -82,7 +83,7 @@ export function Tray({ simulation, crosshair }: TrayProps): ReactElement {
 					return <span key={slot} className="card rounded" title={card.name} style={style} onPointerDown={event => grab(event, slot)} onPointerMove={follow} onPointerUp={release} onPointerCancel={event => cancel()}></span>;
 				})}
 			</div>
-			{createPortal(<span ref={refGhost} className="ghost rounded" hidden={color === null} style={ghost}></span>, body)}
+			{createPortal(<span ref={refGhost} className={`ghost rounded${ready ? String.empty : " disabled"}`} hidden={color === null} style={ghost}></span>, body)}
 		</>
 	);
 }

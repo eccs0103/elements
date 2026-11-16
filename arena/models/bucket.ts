@@ -41,12 +41,13 @@ export class Bucket {
 		const period = this.#period;
 		const passed = now - updated;
 		const left = min(capacity, tokens + trunc(passed / period));
-		if (left >= capacity) return new Allowance(left, 0);
-		return new Allowance(left, period - passed % period);
+		if (left >= capacity) return new Allowance(left, 0, capacity);
+		return new Allowance(left, period - passed % period, capacity);
 	}
 
 	full(): Allowance {
-		return new Allowance(this.#capacity, 0);
+		const capacity = this.#capacity;
+		return new Allowance(capacity, 0, capacity);
 	}
 }
 //#endregion

@@ -8,7 +8,7 @@ import { Network } from "../services/network.js";
 
 //#region Agent worker
 class AgentWorker extends Controller {
-	#source: string | null = null;
+	#source: URI | null = null;
 	#network: Promise<Network> | null = null;
 
 	async #load(source: URI): Promise<Network> {
@@ -18,9 +18,8 @@ class AgentWorker extends Controller {
 	}
 
 	#switch(source: URI): void {
-		const { href } = source;
-		if (href === this.#source) return;
-		this.#source = href;
+		if (source.href === this.#source?.href) return;
+		this.#source = source;
 		const network = this.#network = this.#load(source);
 		void this.#watch(network);
 	}

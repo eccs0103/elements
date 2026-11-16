@@ -20,28 +20,28 @@ export class ArenaClient {
 	}
 
 	async open(entry: Entry): Promise<Ticket> {
-		return Ticket.import(await this.#send("POST", Ticket.route, Entry.export(entry)), "ticket");
+		return Ticket.import(await this.#send("POST", Ticket.locate(this.#origin), Entry.export(entry)), "ticket");
 	}
 
 	async start(start: Start): Promise<Ticket> {
-		return Ticket.import(await this.#send("POST", Start.route, Start.export(start)), "ticket");
+		return Ticket.import(await this.#send("POST", Start.locate(this.#origin), Start.export(start)), "ticket");
 	}
 
 	async report(report: Report): Promise<Standing> {
-		return Standing.import(await this.#send("POST", Report.route, Report.export(report)), "standing");
+		return Standing.import(await this.#send("POST", Report.locate(this.#origin), Report.export(report)), "standing");
 	}
 
 	async standing(): Promise<Standing> {
-		return Standing.import(await this.#send("GET", Standing.route, null), "standing");
+		return Standing.import(await this.#send("GET", Standing.locate(this.#origin), null), "standing");
 	}
 
 	async allowance(): Promise<Allowance> {
-		return Allowance.import(await this.#send("GET", Allowance.route, null), "allowance");
+		return Allowance.import(await this.#send("GET", Allowance.locate(this.#origin), null), "allowance");
 	}
 
-	async #send(method: string, route: string, body: unknown): Promise<unknown> {
+	async #send(method: string, target: Readonly<URI>, body: unknown): Promise<unknown> {
 		const content = body === null ? null : JSON.stringify(body);
-		const request = new Request(new URI(route, this.#origin).href, { method, body: content, headers: { ["Content-Type"]: "application/json" }, signal: AbortSignal.timeout(ArenaClient.#patience) });
+		const request = new Request(target.href, { method, body: content, headers: { ["Content-Type"]: "application/json" }, signal: AbortSignal.timeout(ArenaClient.#patience) });
 		const response = await this.#server.fetch(request);
 		const payload = await response.json();
 		if (response.ok) return payload;

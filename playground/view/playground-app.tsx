@@ -4,7 +4,7 @@ import "adaptive-extender/web";
 import { type URI } from "adaptive-extender/web";
 import { type ReactElement, type RefObject, useEffect, useRef, useState } from "react";
 import { Simulation } from "../services/simulation.js";
-import { type Ticket } from "../../arena/models/protocol.js";
+import { type Ticket, type Allowance } from "../../arena/models/protocol.js";
 import { Mode } from "../../settings/models/settings.js";
 import { Crosshair } from "./crosshair.js";
 import { type Notice } from "./notice.js";
@@ -12,19 +12,35 @@ import { Peek } from "./peek.js";
 import { Scoreboard } from "./scoreboard.js";
 import { Tray } from "./tray.js";
 
+//#region Tickets
+interface TicketsProps {
+	online: boolean | null;
+	allowance: Allowance | null;
+}
+
+function Tickets({ online, allowance }: TicketsProps): ReactElement {
+	if (online !== true || allowance === null) {
+		const title = online === false ? "The arena is offline" : "Connecting to the arena…";
+		return <span className="tickets flex" title={title} aria-busy={online !== false}></span>;
+	}
+	const { left, capacity } = allowance;
+	return (
+		<span className="tickets flex" title={`${left} of ${capacity} matches left`}>
+			{Iterator.range(0, capacity).map(index => <span key={index} className={`icon in-line ticket${index < left ? " lit" : String.empty}`}></span>).toArray()}
+		</span>
+	);
+}
+//#endregion
 //#region Mode switch
 interface ModeSwitchProps {
 	mode: Mode;
 	online: boolean | null;
+	allowance: Allowance | null;
 	hidden: boolean;
 	onSwitch(mode: Mode): void;
 }
 
-function ModeSwitch({ mode, online, hidden, onSwitch }: ModeSwitchProps): ReactElement {
-	let state = "Counts for Humanity";
-	if (online === null) state = "Connecting…";
-	if (online === false) state = "Offline";
-
+function ModeSwitch({ mode, online, allowance, hidden, onSwitch }: ModeSwitchProps): ReactElement {
 	return (
 		<fieldset id="mode" className="depth rounded" hidden={hidden}>
 			<legend>Mode</legend>
@@ -32,12 +48,11 @@ function ModeSwitch({ mode, online, hidden, onSwitch }: ModeSwitchProps): ReactE
 			<input id="arena" type="radio" name="mode" checked={mode === Mode.arena} disabled={online !== true} onChange={event => onSwitch(Mode.arena)} />
 			<label htmlFor="arena" className="rounded with-padding small-padding">
 				<span className="name">Arena</span>
-				<span className="state font-smaller-3">{state}</span>
+				<Tickets online={online} allowance={allowance} />
 			</label>
 			<input id="practice" type="radio" name="mode" checked={mode === Mode.practice} onChange={event => onSwitch(Mode.practice)} />
 			<label htmlFor="practice" className="rounded with-padding small-padding">
 				<span className="name">Practice</span>
-				<span className="state font-smaller-3">Not counted</span>
 			</label>
 		</fieldset>
 	);
@@ -85,6 +100,7 @@ function NoticeSide({ notice, shown, onAgain }: NoticeSideProps): ReactElement {
 interface BoardNoticeProps {
 	mode: Mode;
 	online: boolean | null;
+	allowance: Allowance | null;
 	arena: Notice;
 	practice: Notice;
 	playing: boolean;
@@ -93,10 +109,10 @@ interface BoardNoticeProps {
 	onAgain(): void;
 }
 
-function BoardNotice({ mode, online, arena, practice, playing, switchable, onSwitch, onAgain }: BoardNoticeProps): ReactElement {
+function BoardNotice({ mode, online, allowance, arena, practice, playing, switchable, onSwitch, onAgain }: BoardNoticeProps): ReactElement {
 	return (
 		<section id="notice" className="layer rounded flex column with-gap with-padding large-padding" hidden={playing} aria-live="polite">
-			<ModeSwitch mode={mode} online={online} hidden={!switchable} onSwitch={onSwitch} />
+			<ModeSwitch mode={mode} online={online} allowance={allowance} hidden={!switchable} onSwitch={onSwitch} />
 			<div id="sides">
 				<NoticeSide notice={arena} shown={mode === Mode.arena} onAgain={onAgain} />
 				<NoticeSide notice={practice} shown={mode === Mode.practice} onAgain={onAgain} />
@@ -111,6 +127,7 @@ export interface PlaygroundAppProps {
 	ticket: Ticket | null;
 	mode: Mode;
 	online: boolean | null;
+	allowance: Allowance | null;
 	arena: Notice;
 	practice: Notice;
 	playing: boolean;
@@ -123,7 +140,7 @@ export interface PlaygroundAppProps {
 	onFailure(message: string): void;
 }
 
-export function PlaygroundApp({ catalog, ticket, mode, online, arena, practice, playing, switchable, ready, onSwitch, onAgain, onLaunch, onFinish, onFailure }: PlaygroundAppProps): ReactElement {
+export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena, practice, playing, switchable, ready, onSwitch, onAgain, onLaunch, onFinish, onFailure }: PlaygroundAppProps): ReactElement {
 	const [simulation, setSimulation] = useState<Simulation | null>(null);
 	const [crosshair, setCrosshair] = useState<Crosshair | null>(null);
 	const refBoard: RefObject<HTMLCanvasElement | null> = useRef(null);
@@ -145,7 +162,7 @@ export function PlaygroundApp({ catalog, ticket, mode, online, arena, practice, 
 
 	useEffect(() => {
 		if (simulation === null || ticket === null) return;
-		simulation.start(ticket);
+		simulation.show(ticket);
 	}, [simulation, ticket]);
 
 	return (
@@ -158,10 +175,10 @@ export function PlaygroundApp({ catalog, ticket, mode, online, arena, practice, 
 					<span className="column"></span>
 					<span className="cell"></span>
 				</div>
-				<BoardNotice mode={mode} online={online} arena={arena} practice={practice} playing={playing} switchable={switchable} onSwitch={onSwitch} onAgain={onAgain} />
+				<BoardNotice mode={mode} online={online} allowance={allowance} arena={arena} practice={practice} playing={playing} switchable={switchable} onSwitch={onSwitch} onAgain={onAgain} />
 				{simulation === null || crosshair === null || ticket === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} ticket={ticket} />}
-				<div id="toolkit" className="flex" inert={!ready && !playing}>
-					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} />}
+				<div id="toolkit" className="flex">
+					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} ready={ready || playing} />}
 				</div>
 			</div>
 		</main>

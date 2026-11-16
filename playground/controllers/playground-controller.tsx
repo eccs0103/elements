@@ -22,23 +22,23 @@ const deck = DeckService.instance;
 
 //#region Duel
 class Duel {
-	#model: AgentModel;
 	#catalog: URI;
 	#client: ArenaClient = new ArenaClient(globalThis, new URI("/", baseURI));
 	#root: Root = createRoot(body.getElement(HTMLDivElement, "div#root"));
 	#mode: Mode = settings.content.mode;
+	#model: AgentModel | null = null;
 	#online: boolean | null = null;
+	#allowance: Allowance | null = null;
 	#arena: Notice = Notice.connecting();
 	#practice: Notice = Notice.loading();
 	#playing: boolean = false;
+	#finished: boolean = false;
 	#opening: boolean = false;
 	#switchable: boolean = true;
 	#lobby: Ticket | null = null;
 	#drill: Ticket | null = null;
-	#ticket: Ticket | null = null;
 
-	constructor(model: AgentModel, catalog: URI) {
-		this.#model = model;
+	constructor(catalog: URI) {
 		this.#catalog = catalog;
 	}
 
@@ -49,8 +49,9 @@ class Duel {
 			this.#arena = this.#practice = Notice.unfinished(content.elements.length, content.capacity);
 			return this.#show();
 		}
-		const drill = this.#deal();
-		if (this.#mode === Mode.practice) this.#ticket = drill;
+		this.#show();
+		this.#model = await this.#load();
+		this.#deal();
 		this.#show();
 		await this.#connect();
 	}
@@ -62,15 +63,22 @@ class Duel {
 		const notice = mode === Mode.arena ? arena : practice;
 		this.#root.render(
 			<StrictMode>
-				<PlaygroundApp catalog={this.#catalog} ticket={this.#ticket} mode={mode} online={this.#online} arena={arena} practice={practice} playing={this.#playing} switchable={this.#switchable} ready={notice.playable} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} onFailure={this.#fail.bind(this)} />
+				<PlaygroundApp catalog={this.#catalog} ticket={this.#drill} mode={mode} online={this.#online} allowance={this.#allowance} arena={arena} practice={practice} playing={this.#playing} switchable={this.#switchable} ready={notice.playable} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} onFailure={this.#fail.bind(this)} />
 			</StrictMode>
 		);
 	}
 
-	#deal(): Ticket {
-		const ticket = this.#drill = Ticket.deal(crypto.randomUUID(), Duel.#number(), Duel.#number(), deck.content.elements, this.#model);
-		this.#practice = Notice.practice(ticket);
-		return ticket;
+	async #load(): Promise<AgentModel> {
+		const response = await fetch(this.#catalog.href);
+		if (!response.ok) throw new ReferenceError(`The agent catalog could not load (${response.status})`);
+		return AgentCatalog.import(await response.json(), "catalog").first;
+	}
+
+	#deal(): void {
+		const model = ReferenceError.suppress(this.#model, "The agent catalog has not loaded yet");
+		const drill = this.#drill = Ticket.deal(crypto.randomUUID(), Duel.#number(), Duel.#number(), deck.content.elements, model);
+		this.#practice = Notice.practice(drill);
+		this.#finished = false;
 	}
 
 	async #connect(): Promise<void> {
@@ -81,13 +89,11 @@ class Duel {
 		} catch (reason) {
 			console.error(`The arena is offline:\n${Error.from(reason)}`);
 			this.#online = false;
-			if (this.#mode === Mode.arena) {
-				this.#mode = Mode.practice;
-				this.#ticket = this.#drill ?? this.#deal();
-			}
+			if (this.#mode === Mode.arena) this.#mode = Mode.practice;
 			return this.#show();
 		}
 		this.#online = true;
+		this.#allowance = await this.#tickets();
 		this.#show();
 		if (this.#mode === Mode.arena) await this.#enter();
 	}
@@ -97,32 +103,22 @@ class Duel {
 		if (mode === Mode.arena && this.#online !== true) return;
 		this.#mode = mode;
 		settings.content.mode = mode;
-		if (mode === Mode.practice) {
-			this.#ticket = this.#drill ?? this.#deal();
-			this.#show();
-		} else {
-			void this.#enter();
-		}
+		if (this.#finished) this.#deal();
+		this.#show();
+		if (mode === Mode.arena) void this.#enter();
 		await settings.save();
 	}
 
 	async #enter(): Promise<void> {
-		const lobby = this.#lobby;
-		if (lobby !== null) {
-			this.#ticket = lobby;
-			return this.#show();
-		}
-		if (this.#opening) return this.#show();
+		if (this.#lobby !== null || this.#opening) return this.#show();
 		this.#opening = true;
 		this.#arena = Notice.loading();
 		this.#show();
 		try {
-			const client = this.#client;
-			const [ticket, standing] = await Promise.all([this.#open(), client.standing()]);
-			const allowance = await this.#allowance();
+			const [ticket, standing] = await Promise.all([this.#open(), this.#client.standing()]);
+			const allowance = this.#allowance = await this.#tickets();
 			this.#lobby = ticket;
-			this.#arena = Notice.ready(standing, ticket, allowance);
-			if (this.#mode === Mode.arena) this.#ticket = ticket;
+			this.#arena = allowance !== null && allowance.left < 1 ? Notice.shortage(allowance) : Notice.ready(standing, ticket);
 		} catch (reason) {
 			this.#arena = await this.#refusal(Error.from(reason));
 		}
@@ -138,38 +134,38 @@ class Duel {
 	async #refusal(error: Error): Promise<Notice> {
 		if (!(error instanceof Shortage)) return Notice.trouble(error);
 		try {
-			return Notice.shortage(await this.#client.allowance());
+			const allowance = this.#allowance = await this.#client.allowance();
+			return Notice.shortage(allowance);
 		} catch (reason) {
 			return Notice.trouble(Error.from(reason));
 		}
 	}
 
 	async #again(): Promise<void> {
-		if (this.#mode === Mode.arena) return await this.#enter();
-		this.#ticket = this.#deal();
+		this.#deal();
 		this.#show();
+		if (this.#mode === Mode.arena) return await this.#enter();
 		if (this.#online === false) await this.#connect();
 	}
 
 	#launch(simulation: Simulation): void {
+		const drill = ReferenceError.suppress(this.#drill, "There is no match to start");
 		this.#playing = true;
 		this.#show();
-		if (this.#mode === Mode.practice) {
-			this.#drill = null;
-			return;
-		}
-		this.#lobby = null;
-		void this.#start(simulation);
+		if (this.#mode === Mode.practice) return simulation.start(drill);
+		void this.#start(simulation, drill);
 	}
 
-	async #start(simulation: Simulation): Promise<void> {
-		const { ticket } = simulation;
-		if (ticket === null) return;
+	async #start(simulation: Simulation, drill: Ticket): Promise<void> {
 		try {
-			simulation.start(await this.#client.start(new Start(ticket.id)));
+			const lobby = ReferenceError.suppress(this.#lobby, "The arena match is not ready yet");
+			const luck = ReferenceError.suppress(drill.luck, "The match has no luck to play with");
+			this.#lobby = null;
+			simulation.start(await this.#client.start(new Start(lobby.id, luck)));
 		} catch (reason) {
+			simulation.show(drill);
 			this.#playing = false;
-			this.#arena = Notice.trouble(Error.from(reason));
+			this.#arena = await this.#refusal(Error.from(reason));
 			this.#show();
 		}
 	}
@@ -178,6 +174,7 @@ class Duel {
 		const { ticket, report, verdict } = simulation;
 		if (ticket === null || report === null || verdict === null) return;
 		this.#playing = false;
+		this.#finished = true;
 		if (this.#mode === Mode.practice) {
 			this.#practice = Notice.practiced(verdict, ticket);
 			return this.#show();
@@ -196,17 +193,17 @@ class Duel {
 	}
 
 	async #judge(ticket: Ticket, report: Report, verdict: Verdict): Promise<void> {
-		const client = this.#client;
 		try {
-			const standing = await client.report(report);
-			this.#arena = Notice.outcome(verdict, ticket, standing, await this.#allowance());
+			const standing = await this.#client.report(report);
+			const allowance = this.#allowance = await this.#tickets();
+			this.#arena = Notice.outcome(verdict, ticket, standing, allowance);
 		} catch (reason) {
 			this.#arena = Notice.uncounted(verdict, ticket, Error.from(reason));
 		}
 		this.#show();
 	}
 
-	async #allowance(): Promise<Allowance | null> {
+	async #tickets(): Promise<Allowance | null> {
 		try {
 			return await this.#client.allowance();
 		} catch (reason) {
@@ -223,16 +220,12 @@ class Duel {
 //#endregion
 //#region Playground controller
 class PlaygroundController extends Controller {
-	static #source: URI = new URI("../models.json", baseURI);
+	static #catalog: URI = new URI("../models.json", baseURI);
 
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
 		settings.apply();
-		const source = PlaygroundController.#source;
-		const response = await fetch(source.href);
-		if (!response.ok) throw new ReferenceError(`The agent catalog could not load (${response.status})`);
-		const model = AgentCatalog.import(await response.json(), "catalog").first;
-		await new Duel(model, source).open();
+		await new Duel(PlaygroundController.#catalog).open();
 	}
 
 	async catch(error: Error): Promise<void> {
