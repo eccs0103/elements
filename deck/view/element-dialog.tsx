@@ -36,7 +36,6 @@ class Demo {
 		engine.limit = rate;
 		engine.addEventListener("trigger", this.#advance.bind(this));
 		this.#length = rate * Demo.#seconds;
-		this.#board = new Board(Demo.#size, Demo.#seed);
 	}
 
 	static suggest(element: Element, rate: number): Element | null {

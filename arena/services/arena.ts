@@ -60,6 +60,7 @@ export class Arena {
 		ticket.match();
 		const taken = await this.#spend(visitor, now);
 		if (await ledger.start(ticket, user, since, now)) return ticket;
+		// Not simplified: #spend refunds with the same loop, but a shared method costs as many instructions as it saves.
 		for (const bucket of taken) {
 			await ledger.refund(bucket);
 		}

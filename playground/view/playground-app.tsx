@@ -147,7 +147,6 @@ export interface PlaygroundAppProps {
 	practice: Notice;
 	playing: boolean;
 	switchable: boolean;
-	ready: boolean;
 	onSwitch(mode: Mode): void;
 	onAgain(): void;
 	onLaunch(simulation: Simulation): void;
@@ -155,11 +154,12 @@ export interface PlaygroundAppProps {
 	onFailure(message: string): void;
 }
 
-export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena, practice, playing, switchable, ready, onSwitch, onAgain, onLaunch, onFinish, onFailure }: PlaygroundAppProps): ReactElement {
+export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena, practice, playing, switchable, onSwitch, onAgain, onLaunch, onFinish, onFailure }: PlaygroundAppProps): ReactElement {
 	const [simulation, setSimulation] = useState<Simulation | null>(null);
 	const [crosshair, setCrosshair] = useState<Crosshair | null>(null);
 	const refBoard: RefObject<HTMLCanvasElement | null> = useRef(null);
 	const refCrosshair: RefObject<HTMLDivElement | null> = useRef(null);
+	// Not simplified: StrictMode runs the effect twice while the simulation state is still null; only this ref stops a second Simulation.
 	const refSimulation: RefObject<Simulation | null> = useRef(null);
 
 	useEffect(() => {
@@ -180,6 +180,7 @@ export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena,
 		simulation.show(ticket);
 	}, [simulation, ticket]);
 
+	const notice = mode === Mode.arena ? arena : practice;
 	return (
 		<main>
 			<div id="stage">
@@ -193,7 +194,7 @@ export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena,
 				<BoardNotice mode={mode} online={online} allowance={allowance} arena={arena} practice={practice} playing={playing} switchable={switchable} onSwitch={onSwitch} onAgain={onAgain} />
 				{simulation === null || crosshair === null || ticket === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} ticket={ticket} />}
 				<div id="toolkit" className="flex">
-					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} ready={ready || playing} />}
+					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} ready={notice.playable || playing} />}
 				</div>
 			</div>
 		</main>

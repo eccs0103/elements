@@ -115,6 +115,7 @@ export class Notice {
 		const deadline = this.#deadline;
 		if (hint === null || deadline === null) return hint;
 		const left = ceil(max(0, deadline - now) / Notice.#second);
+		// Not simplified: Scoreboard writes minutes and seconds the same way, but no class owns both; a shared one is a new abstraction for one line.
 		return `${hint} ${trunc(left / 60)}:${String(left % 60).padStart(2, "0")}`;
 	}
 

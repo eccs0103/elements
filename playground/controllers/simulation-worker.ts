@@ -108,6 +108,7 @@ class Waiting implements Stage {
 
 	status(cell: number | null): StatusCommand {
 		void cell;
+		// Not simplified: Simulation builds the same empty Verdict, but a factory would add a method and save nothing at the two call sites.
 		return new StatusCommand([], 1, null, null, 0, new Verdict(new Array<number>(Match.count).fill(0)));
 	}
 
@@ -220,6 +221,7 @@ class SimulationWorker extends Controller {
 		if (finish !== null) self.postMessage(Command.export(finish));
 	}
 
+	// Not simplified: the last branch keeps its return, so every branch has one shape (owner ruling).
 	#onMessage(event: MessageEvent): void {
 		const command = Command.import(event.data, "command");
 

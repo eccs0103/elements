@@ -124,7 +124,6 @@ export class Reaction {
 	get law(): Law { return this.#law; }
 	get interval(): number { return this.#interval; }
 	get reach(): Reach { return this.#reach; }
-	get remains(): ElementType | null { return this.#remains; }
 
 	yields(): ElementType {
 		return ReferenceError.suppress(this.#product, "The reaction has no resulting element");

@@ -28,6 +28,7 @@ export class ArenaVitePlugin extends VitePlugin {
 		this.#mount(server.middlewares, server.httpServer);
 	}
 
+	// Not simplified: spreading super.build() would reuse its bindings, but PluginOption is a union that cannot be spread without a cast.
 	build(): PluginOption {
 		const configureServer = this.configureServer.bind(this);
 		const configurePreviewServer = this.configurePreviewServer.bind(this);

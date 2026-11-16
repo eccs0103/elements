@@ -20,6 +20,7 @@ export class AgentModel extends Model {
 	@Field(String, { name: "name" })
 	name: string;
 
+	// Not simplified: nothing reads the description yet, but it is the owner's catalog shape, stored tickets carry it and roadmap 5.22 will show it.
 	@Field(String, { name: "description" })
 	description: string;
 

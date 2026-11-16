@@ -13,6 +13,7 @@ import { type Agent, type Mind } from "../playground/services/agent.js";
 import { Human } from "../playground/services/players.js";
 import { Dice } from "../playground/services/dice.js";
 import { Ticket, Verdict } from "../arena/models/protocol.js";
+import { Bot } from "./bot.js";
 
 //#region Late mind
 class LateMind implements Mind {
@@ -67,7 +68,7 @@ describe("Agent", () => {
 		const mind = new LateMind(network, seed);
 		const agent = ticket.agent(mind);
 		const live = ticket.match();
-		const players = ticket.lineup(Ticket.bot(seed, Ticket.human), agent);
+		const players = ticket.lineup(new Bot(seed + 3 + Ticket.human), agent);
 		while (!live.finished) {
 			mind.tick();
 			if (agent.waits(live)) {

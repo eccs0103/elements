@@ -7,7 +7,7 @@ import { Deck } from "../../playground/models/deck.js";
 import { Rules, type RulesScheme } from "../../playground/models/rules.js";
 import { Move, type MoveScheme } from "../../playground/models/move.js";
 import { Match } from "../../playground/services/match.js";
-import { Bot, type Player } from "../../playground/services/players.js";
+import { type Player } from "../../playground/services/players.js";
 import { Agent, type Mind } from "../../playground/services/agent.js";
 import { AgentModel, type AgentModelScheme } from "../../playground/models/agent-catalog.js";
 
@@ -113,12 +113,6 @@ export class Ticket extends Model {
 		return Deck.random(rules, seed + 5 + side);
 	}
 
-	static bot(seed: number, side: number): Bot {
-		return new Bot(seed + 3 + side);
-	}
-
-	get started(): boolean { return this.seed !== null; }
-
 	agent(mind: Mind): Agent {
 		return new Agent(mind, this.rules.ticks(this.model.reaction));
 	}
@@ -143,21 +137,14 @@ export class Ticket extends Model {
 
 	match(): Match {
 		const { human, deck, rules } = this;
-		const seed = this.#seed();
+		const seed = ReferenceError.suppress(this.seed, `The ticket '${this.id}' has not started yet`);
 		const luck = ReferenceError.suppress(this.luck, `The ticket '${this.id}' has no luck yet`);
 		const decks = Iterator.range(0, Match.count).map(side => side === human ? deck : Ticket.draft(rules, seed, side).elements).toArray();
 		return new Match(rules, seed, luck, decks, human);
 	}
 
-	lineup(human: Player): Player[];
-	lineup(human: Player, rival: Player): Player[];
-	lineup(human: Player, rival?: Player): Player[] {
-		const seed = this.#seed();
-		return Iterator.range(0, Match.count).map(side => side === this.human ? human : rival ?? Ticket.bot(seed, side)).toArray();
-	}
-
-	#seed(): number {
-		return ReferenceError.suppress(this.seed, `The ticket '${this.id}' has not started yet`);
+	lineup(human: Player, rival: Player): Player[] {
+		return Iterator.range(0, Match.count).map(side => side === this.human ? human : rival).toArray();
 	}
 }
 //#endregion

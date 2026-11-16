@@ -22,8 +22,8 @@ const deck = DeckService.instance;
 
 //#region Duel
 class Duel {
-	#catalog: URI;
-	#client: ArenaClient = new ArenaClient(globalThis, new URI("/", baseURI));
+	static #catalog: URI = new URI("../models.json", baseURI);
+	#client: ArenaClient = new ArenaClient(new URI("/", baseURI));
 	#root: Root = createRoot(body.getElement(HTMLDivElement, "div#root"));
 	#mode: Mode = settings.content.mode;
 	#model: AgentModel | null = null;
@@ -38,10 +38,6 @@ class Duel {
 	#drill: Ticket | null = null;
 	#refill: number | null = null;
 	#last: Notice | null = null;
-
-	constructor(catalog: URI) {
-		this.#catalog = catalog;
-	}
 
 	async open(): Promise<void> {
 		const { content } = deck;
@@ -58,20 +54,16 @@ class Duel {
 	}
 
 	#show(): void {
-		const mode = this.#mode;
-		const arena = this.#arena;
-		const practice = this.#practice;
-		const notice = mode === Mode.arena ? arena : practice;
 		this.#root.render(
 			<StrictMode>
-				<PlaygroundApp catalog={this.#catalog} ticket={this.#drill} mode={mode} online={this.#online} allowance={this.#allowance} arena={arena} practice={practice} playing={this.#playing} switchable={this.#switchable} ready={notice.playable} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} onFailure={this.#fail.bind(this)} />
+				<PlaygroundApp catalog={Duel.#catalog}ticket={this.#drill} mode={this.#mode} online={this.#online} allowance={this.#allowance} arena={this.#arena} practice={this.#practice} playing={this.#playing} switchable={this.#switchable} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} onFailure={this.#fail.bind(this)} />
 			</StrictMode>
 		);
 	}
 
 	// Not simplified: ArenaRouter.#model fetches the same catalog, but AgentCatalog is core and fetch is not.
 	async #load(): Promise<AgentModel> {
-		const response = await fetch(this.#catalog.href);
+		const response = await fetch(Duel.#catalog.href);
 		if (!response.ok) throw new ReferenceError(`The agent catalog could not load (${response.status})`);
 		return AgentCatalog.import(await response.json(), "catalog").first;
 	}
@@ -187,8 +179,9 @@ class Duel {
 	}
 
 	#finish(simulation: Simulation): void {
-		const { ticket, report, verdict } = simulation;
-		if (ticket === null || report === null || verdict === null) return;
+		const { ticket, finish } = simulation;
+		if (ticket === null || finish === null) return;
+		const { report, verdict } = finish;
 		this.#playing = false;
 		this.#deal();
 		if (this.#mode === Mode.practice) {
@@ -249,7 +242,7 @@ class Duel {
 		await this.#enter();
 	}
 
-	// Not simplified: Arena.#number is the same, but crypto is not in core, so no core model can own one shared copy.
+	// Not simplified: Arena.#number is the same, but crypto is not in core, so no core model can own one shared copy; Random.global would change the entropy source.
 	static #number(): number {
 		const [value] = crypto.getRandomValues(new Uint32Array(1));
 		return value >>> 1;
@@ -258,12 +251,10 @@ class Duel {
 //#endregion
 //#region Playground controller
 class PlaygroundController extends Controller {
-	static #catalog: URI = new URI("../models.json", baseURI);
-
 	async run(): Promise<void> {
 		void AnalyticsController.launch();
 		settings.apply();
-		await new Duel(PlaygroundController.#catalog).open();
+		await new Duel().open();
 	}
 
 	async catch(error: Error): Promise<void> {

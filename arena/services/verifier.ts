@@ -64,6 +64,7 @@ class Library implements Minds {
 	of(model: AgentModel): Network {
 		const { folder } = model;
 		const networks = this.#networks;
+		// Not simplified: Map.getOrInsertComputed would replace this cache, but package.json allows Node 22, which lacks it.
 		const known = networks.get(folder);
 		if (known !== undefined) return known;
 		const text = FileSystem.readFileSync(model.weights(this.#catalog).toPath(), "utf8");

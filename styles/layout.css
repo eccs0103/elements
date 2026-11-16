@@ -76,7 +76,6 @@ span.icon.conductive {
 	}
 
 	nav {
-		flex-direction: row;
 		border-end-start-radius: 0 !important;
 		border-end-end-radius: 0 !important;
 	}

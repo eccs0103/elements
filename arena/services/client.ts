@@ -5,17 +5,11 @@ import { URI } from "adaptive-extender/worker";
 import { Entry, Ticket, Start, Report, Standing, Allowance, Failure, Shortage } from "../models/protocol.js";
 
 //#region Arena client
-export interface Server {
-	fetch(request: Request): Promise<Response>;
-}
-
 export class ArenaClient {
 	static #patience: number = 10000;
-	#server: Server;
 	#origin: URI;
 
-	constructor(server: Server, origin: Readonly<URI>) {
-		this.#server = server;
+	constructor(origin: Readonly<URI>) {
 		this.#origin = new URI(origin);
 	}
 
@@ -42,7 +36,7 @@ export class ArenaClient {
 	async #send(method: string, target: Readonly<URI>, body: unknown): Promise<unknown> {
 		const content = body === null ? null : JSON.stringify(body);
 		const request = new Request(target.href, { method, body: content, headers: { ["Content-Type"]: "application/json" }, signal: AbortSignal.timeout(ArenaClient.#patience) });
-		const response = await this.#server.fetch(request);
+		const response = await fetch(request);
 		const payload = await response.json();
 		if (response.ok) return payload;
 		const { error } = Failure.import(payload, "failure");

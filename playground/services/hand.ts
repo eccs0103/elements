@@ -38,6 +38,7 @@ export class Hand {
 
 	play(slot: number): Element {
 		const cards = this.#cards;
+		// Not simplified: Side.armed checks the slot first, but play is public, so a caller may pass a wrong slot.
 		if (!Number.isInteger(slot) || slot < 0 || slot >= cards.length) throw new RangeError(`The slot ${slot} is out of the hand`);
 		const [element] = cards.splice(slot, 1);
 		this.#ages[this.#deck.indexOf(element)] = 0;

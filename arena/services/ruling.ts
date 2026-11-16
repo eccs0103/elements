@@ -7,6 +7,7 @@ import { type Mind } from "../../playground/services/agent.js";
 import { type AgentModel } from "../../playground/models/agent-catalog.js";
 
 //#region Ruling
+// Not simplified: the verifier's Library is the only Minds, but it reads files (node) and Ruling is core.
 export interface Minds {
 	of(model: AgentModel): Mind;
 }

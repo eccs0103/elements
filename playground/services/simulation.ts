@@ -3,7 +3,7 @@
 import "adaptive-extender/web";
 import { StaticEngine, URI } from "adaptive-extender/web";
 import { Command, InitializeCommand, StartCommand, BeginCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
-import { Verdict, type Ticket, type Report } from "../../arena/models/protocol.js";
+import { Verdict, type Ticket } from "../../arena/models/protocol.js";
 import { Match } from "./match.js";
 
 const { baseURI } = document;
@@ -26,8 +26,7 @@ export class Simulation extends EventTarget {
 	#engine: StaticEngine = new StaticEngine({ launch: false });
 	#ticket: Ticket | null = null;
 	#status: StatusCommand = new StatusCommand([], 0, null, null, 0, new Verdict(new Array<number>(Match.count).fill(0)));
-	#report: Report | null = null;
-	#verdict: Verdict | null = null;
+	#finish: FinishCommand | null = null;
 	#drops: DropCommand[] = [];
 	#launching: boolean = false;
 
@@ -46,12 +45,12 @@ export class Simulation extends EventTarget {
 
 	get ticket(): Ticket | null { return this.#ticket; }
 	get status(): StatusCommand { return this.#status; }
-	get report(): Report | null { return this.#report; }
-	get verdict(): Verdict | null { return this.#verdict; }
+	get finish(): FinishCommand | null { return this.#finish; }
 
 	show(ticket: Ticket): void {
 		const engine = this.#engine;
 		engine.launched = false;
+		// Not simplified: start sets the limit again, but the engine's timer already runs at this limit while it waits; dropping it would shift the first tick.
 		engine.limit = ticket.rules.rate;
 		this.#launching = false;
 		this.#drops.splice(0);
@@ -59,7 +58,7 @@ export class Simulation extends EventTarget {
 	}
 
 	launch(): void {
-		if (this.#engine.launched || this.#launching || this.#verdict !== null) return;
+		if (this.#engine.launched || this.#launching || this.#finish !== null) return;
 		this.#launching = true;
 		this.dispatchEvent(new Event("launch"));
 	}
@@ -96,8 +95,7 @@ export class Simulation extends EventTarget {
 
 	#post(ticket: Ticket): void {
 		this.#ticket = ticket;
-		this.#report = null;
-		this.#verdict = null;
+		this.#finish = null;
 		this.#worker.postMessage(Command.export(new StartCommand(ticket)));
 	}
 
@@ -109,6 +107,7 @@ export class Simulation extends EventTarget {
 		this.#worker.postMessage(Command.export(new ResizeCommand(width, height)));
 	}
 
+	// Not simplified: the last branch keeps its return, so every branch has one shape (owner ruling).
 	#onMessage(event: MessageEvent): void {
 		const command = Command.import(event.data, "command");
 
@@ -119,8 +118,7 @@ export class Simulation extends EventTarget {
 		}
 
 		if (command instanceof FinishCommand) {
-			this.#report = command.report;
-			this.#verdict = command.verdict;
+			this.#finish = command;
 			this.#engine.launched = false;
 			this.dispatchEvent(new Event("finish"));
 			return;

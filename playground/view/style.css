@@ -98,10 +98,6 @@ section#notice {
 	& button {
 		font-weight: 600;
 	}
-
-	& article[aria-busy="true"] p.highlight {
-		animation: breathe 1.6s ease-in-out infinite alternate;
-	}
 }
 
 fieldset#mode {
@@ -182,10 +178,6 @@ fieldset#mode {
 		font-variant-numeric: tabular-nums;
 	}
 
-	& span.tickets[aria-busy="true"] {
-		animation: breathe 1.6s ease-in-out infinite alternate;
-	}
-
 	& span.ticket {
 		--url: url(../../assets/icons/ticket.svg);
 	}
@@ -211,6 +203,11 @@ div#sides {
 	& > article:last-child[inert] {
 		translate: var(--size-large-gap) 0;
 	}
+}
+
+section#notice article[aria-busy="true"] p.highlight,
+fieldset#mode span.tickets[aria-busy="true"] {
+	animation: breathe 1.6s ease-in-out infinite alternate;
 }
 
 @keyframes breathe {
@@ -448,11 +445,6 @@ span.ghost {
 			inline-size: 100%;
 			block-size: var(--weight);
 		}
-	}
-
-	div#toolkit,
-	div#hand {
-		flex-direction: row;
 	}
 
 	div#hand {

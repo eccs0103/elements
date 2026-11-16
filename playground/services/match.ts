@@ -69,6 +69,7 @@ export class Match {
 	#rules: Rules;
 	#board: Board;
 	#sides: readonly Side[];
+	// Not simplified: Board counts the same ticks, but reading its counter would add a getter call to every tick check.
 	#tick: number = 0;
 	#moves: Move[] = [];
 	#favoured: number;
@@ -133,6 +134,7 @@ export class Match {
 		return side < 0 ? null : side;
 	}
 
+	// Not simplified: play is the only caller, but legality is its own question; merging the two would break the small-functions rule.
 	#legal(side: number, slot: number, x: number, y: number): boolean {
 		const seat = this.#side(side);
 		const board = this.#board;
@@ -172,10 +174,7 @@ export class Match {
 	}
 
 	advance(players: readonly Player[]): void {
-		this.#step(players.map((player, side) => player.act(this, side)));
-	}
-
-	#step(drops: readonly (Move | null)[]): void {
+		const drops = players.map((player, side) => player.act(this, side));
 		const sides = this.#sides;
 		// Not simplified: advance is public, so a caller may pass the wrong number of players.
 		if (drops.length !== sides.length) throw new RangeError(`The match needs ${sides.length} drops, got ${drops.length}`);

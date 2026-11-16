@@ -46,9 +46,7 @@ export class Crosshair {
 	}
 
 	cell(event: PointerEvent): Cell | null {
-		const size = this.size;
-		if (size === null) return null;
-		return this.#locate(event, size);
+		return Nullable.map(this.size, size => this.#locate(event, size));
 	}
 
 	aim(event: PointerEvent): Cell | null {

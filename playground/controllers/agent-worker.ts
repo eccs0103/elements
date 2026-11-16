@@ -43,6 +43,7 @@ class AgentWorker extends Controller {
 		}
 	}
 
+	// Not simplified: the last branch keeps its return, so every branch has one shape (owner ruling).
 	#onMessage(event: MessageEvent): void {
 		const command = AgentCommand.import(event.data, "command");
 

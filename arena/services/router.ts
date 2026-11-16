@@ -27,7 +27,8 @@ export class ArenaRouter {
 
 	async #answer(request: Request, user: string): Promise<Response> {
 		try {
-			return await this.#route(request, new Visitor(user, ArenaRouter.#address(request)));
+			const address = ReferenceError.suppress(request.headers.get("CF-Connecting-IP"), "The request carries no client address");
+			return await this.#route(request, new Visitor(user, address));
 		} catch (reason) {
 			const error = Error.from(reason);
 			return Response.json(Failure.export(new Failure(error.message)), { status: error instanceof Shortage ? Shortage.status : 400 });
@@ -53,10 +54,6 @@ export class ArenaRouter {
 		const response = await fetch(new URI("/models.json", target).href);
 		if (!response.ok) throw new ReferenceError(`The agent catalog could not load (${response.status})`);
 		return AgentCatalog.import(await response.json(), "catalog").first;
-	}
-
-	static #address(request: Request): string {
-		return ReferenceError.suppress(request.headers.get("CF-Connecting-IP"), "The request carries no client address");
 	}
 }
 //#endregion

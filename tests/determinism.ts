@@ -6,6 +6,7 @@ import { Match } from "../playground/services/match.js";
 import { Human } from "../playground/services/players.js";
 import { Digest } from "../playground/services/digest.js";
 import { Ticket } from "../arena/models/protocol.js";
+import { Bot } from "./bot.js";
 
 //#region Determinism
 export class Determinism {
@@ -24,7 +25,7 @@ export class Determinism {
 		const sides = Iterator.range(0, Match.count).toArray();
 		const decks = sides.map(side => Ticket.draft(rules, seed, side).elements);
 		const match = new Match(rules, seed, seed + 1, decks, 0);
-		const players = sides.map(side => Ticket.bot(seed, side));
+		const players = sides.map(side => new Bot(seed + 3 + side));
 		while (!match.finished) {
 			match.advance(players);
 		}

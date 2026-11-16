@@ -32,6 +32,7 @@
 		"arena/models/verifier-environment.ts",
 		"arena/services/ruling.ts",
 		"settings/models/settings.ts",
-		"tests/determinism.ts"
+		"tests/determinism.ts",
+		"tests/bot.ts"
 	]
 }

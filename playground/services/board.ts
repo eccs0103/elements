@@ -35,6 +35,7 @@ class Neighbourhood {
 		this.#cells = Uint32Array.from(cells);
 	}
 
+	// Not simplified: each factory has one caller, but they keep the offset tables private to this class.
 	static orthogonal(size: number): Neighbourhood {
 		return new Neighbourhood(size, Neighbourhood.#orthogonal);
 	}
@@ -234,10 +235,10 @@ export class Board {
 	}
 
 	#act(cell: number, kind: number, reaction: Reaction, mask: Uint8Array, slot: number): boolean {
-		const { law, remains } = reaction;
+		const { law } = reaction;
 		const owner = this.#owner;
 		if (law === Law.burnout) {
-			if (remains !== null) this.#spawn(cell, PeriodicTable.id(remains), null, owner);
+			this.#spawn(cell, Board.#remains(reaction), null, owner);
 			return false;
 		}
 		const candidates = this.#candidates;

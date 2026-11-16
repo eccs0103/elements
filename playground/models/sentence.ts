@@ -82,9 +82,9 @@ export class Sentence {
 		const remains = Sentence.#remains.bind(Sentence, reaction);
 		switch (law) {
 		case Law.spread: return [subject, new Phrase("grows over it", [])];
-		case Law.convert: return [subject, new Phrase("turns it into", [product()])];
-		case Law.ignite: return [subject, new Phrase("sets it on fire, turning it into", [product()])];
+		case Law.convert:
 		case Law.cool: return [subject, new Phrase("turns it into", [product()])];
+		case Law.ignite: return [subject, new Phrase("sets it on fire, turning it into", [product()])];
 		case Law.destroy: return [subject, new Phrase("destroys it into", [product()]), new Phrase("and becomes", [remains()])];
 		default: throw new TypeError(`Invalid '${law}' law`);
 		}
