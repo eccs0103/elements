@@ -12,7 +12,7 @@ div#stage {
 
 canvas#board,
 div#crosshair,
-section#intro {
+section#notice {
 	grid-area: board;
 }
 
@@ -60,7 +60,7 @@ div#crosshair {
 	}
 }
 
-section#intro {
+section#notice {
 	position: relative;
 	place-self: center;
 	max-inline-size: calc(100% - 2 * var(--size-large-gap));
@@ -72,6 +72,16 @@ section#intro {
 	& h2,
 	& p {
 		margin: 0;
+	}
+
+	& p.note,
+	& p.highlight {
+		font-variant-numeric: tabular-nums;
+	}
+
+	& a {
+		align-self: center;
+		font-weight: 600;
 	}
 
 	&[aria-busy="true"] p.highlight {
@@ -86,7 +96,7 @@ section#intro {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	section#intro[aria-busy="true"] p.highlight {
+	section#notice[aria-busy="true"] p.highlight {
 		animation: none;
 	}
 }

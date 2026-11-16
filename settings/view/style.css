@@ -1,3 +1,7 @@
 button#reset span.icon {
 	--url: url(../../assets/icons/clock-rotate-left.svg);
 }
+
+dialog#reset footer {
+	justify-content: flex-end;
+}

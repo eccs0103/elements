@@ -3,21 +3,10 @@
 import "adaptive-extender/core";
 import { type Element } from "../../playground/models/elements.js";
 import { Rules } from "../../playground/models/rules.js";
-import { Ticket, type Entry, type Start, type Report, type Standing } from "../models/protocol.js";
+import { Ticket, Shortage, type Entry, type Start, type Report, type Standing, type Allowance } from "../models/protocol.js";
 import { type Bucket } from "../models/bucket.js";
 import { type Visitor } from "../models/visitor.js";
 
-const { ceil } = Math;
-
-//#region Shortage
-export class Shortage extends Error {
-	static #minute: number = 60000;
-
-	constructor(wait: number) {
-		super(`No matches left. The next one comes in ${ceil(wait / Shortage.#minute)} min.`);
-	}
-}
-//#endregion
 //#region Arena
 export interface Gate {
 	admit(token: string, address: string): Promise<void>;
@@ -29,6 +18,7 @@ export interface Ledger {
 	take(bucket: Bucket, now: number): Promise<boolean>;
 	refund(bucket: Bucket): Promise<void>;
 	wait(bucket: Bucket, now: number): Promise<number>;
+	allowance(bucket: Bucket, now: number): Promise<Allowance>;
 	save(ticket: Ticket, user: string, now: number): Promise<void>;
 	start(id: string, user: string, since: number, now: number): Promise<Ticket | null>;
 	report(report: Report, user: string, since: number, now: number): Promise<boolean>;
@@ -62,7 +52,7 @@ export class Arena {
 			for (const paid of taken) {
 				await ledger.refund(paid);
 			}
-			throw new Shortage(await ledger.wait(bucket, now));
+			throw Shortage.after(await ledger.wait(bucket, now));
 		}
 		await ledger.save(ticket, visitor.user, now);
 		return ticket.sealed();
@@ -83,6 +73,16 @@ export class Arena {
 
 	async standing(): Promise<Standing> {
 		return await this.#ledger.standing();
+	}
+
+	async allowance(visitor: Visitor, now: number): Promise<Allowance> {
+		const ledger = this.#ledger;
+		const [first, ...rest] = await Promise.all(visitor.buckets().map(bucket => ledger.allowance(bucket, now)));
+		let tightest = first;
+		for (const allowance of rest) {
+			if (allowance.left < tightest.left) tightest = allowance;
+		}
+		return tightest;
 	}
 
 	async #renew(pending: Ticket, deck: Element[]): Promise<Ticket> {

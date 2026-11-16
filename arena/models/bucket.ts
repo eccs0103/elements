@@ -1,8 +1,9 @@
 "use strict";
 
 import "adaptive-extender/core";
+import { Allowance } from "./protocol.js";
 
-const { max } = Math;
+const { max, min, trunc } = Math;
 
 //#region Bucket
 export class Bucket {
@@ -33,6 +34,19 @@ export class Bucket {
 
 	wait(updated: number, now: number): number {
 		return max(0, updated + this.#period - now);
+	}
+
+	allowance(tokens: number, updated: number, now: number): Allowance {
+		const capacity = this.#capacity;
+		const period = this.#period;
+		const passed = now - updated;
+		const left = min(capacity, tokens + trunc(passed / period));
+		if (left >= capacity) return new Allowance(left, 0);
+		return new Allowance(left, period - passed % period);
+	}
+
+	full(): Allowance {
+		return new Allowance(this.#capacity, 0);
 	}
 }
 //#endregion

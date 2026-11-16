@@ -10,7 +10,7 @@ import { Match } from "../../playground/services/match.js";
 import { Hand } from "../../playground/services/hand.js";
 import { Bot, type Player } from "../../playground/services/players.js";
 
-const { max } = Math;
+const { max, ceil } = Math;
 
 //#region Entry
 export interface EntryScheme {
@@ -287,6 +287,49 @@ export class Failure extends Model {
 
 		super();
 		this.error = error;
+	}
+}
+//#endregion
+//#region Allowance
+export interface AllowanceScheme {
+	left: number;
+	wait: number;
+}
+
+export class Allowance extends Model {
+	static #route: string = "/api/allowance";
+
+	@Field(Number, { name: "left" })
+	left: number;
+
+	@Field(Number, { name: "wait" })
+	wait: number;
+
+	constructor();
+	constructor(left: number, wait: number);
+	constructor(left?: number, wait?: number) {
+		if (left === undefined || wait === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.left = left;
+		this.wait = wait;
+	}
+
+	static get route(): string { return Allowance.#route; }
+}
+//#endregion
+//#region Shortage
+export class Shortage extends Error {
+	static #minute: number = 60000;
+	static #status: number = 429;
+
+	static get status(): number { return Shortage.#status; }
+
+	static after(wait: number): Shortage {
+		return new Shortage(`No matches left. The next one comes in ${ceil(wait / Shortage.#minute)} min.`);
 	}
 }
 //#endregion

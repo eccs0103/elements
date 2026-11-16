@@ -2,10 +2,10 @@
 
 import "adaptive-extender/core";
 import { URI } from "adaptive-extender/core";
-import { Entry, Ticket, Start, Report, Standing, Failure } from "../models/protocol.js";
+import { Entry, Ticket, Start, Report, Standing, Allowance, Failure, Shortage } from "../models/protocol.js";
 import { Visitor } from "../models/visitor.js";
 import { VisitorCookies } from "../../environment/workers/visitor-cookies.js";
-import { Shortage, type Arena } from "./arena.js";
+import { type Arena } from "./arena.js";
 
 //#region Arena router
 export class ArenaRouter {
@@ -29,7 +29,7 @@ export class ArenaRouter {
 			return await this.#route(request, new Visitor(user, ArenaRouter.#address(request)));
 		} catch (reason) {
 			const error = Error.from(reason);
-			return Response.json(Failure.export(new Failure(error.message)), { status: error instanceof Shortage ? 429 : 400 });
+			return Response.json(Failure.export(new Failure(error.message)), { status: error instanceof Shortage ? Shortage.status : 400 });
 		}
 	}
 
@@ -42,6 +42,7 @@ export class ArenaRouter {
 		if (method === "POST" && pathname === Start.route) return Response.json(Ticket.export(await arena.start(Start.import(await request.json(), "start"), visitor, now)));
 		if (method === "POST" && pathname === Report.route) return Response.json(Standing.export(await arena.report(Report.import(await request.json(), "report"), visitor, now)));
 		if (method === "GET" && pathname === Standing.route) return Response.json(Standing.export(await arena.standing()));
+		if (method === "GET" && pathname === Allowance.route) return Response.json(Allowance.export(await arena.allowance(visitor, now)));
 		return Response.json(Failure.export(new Failure(`No route for ${method} ${pathname}`)), { status: 404 });
 	}
 

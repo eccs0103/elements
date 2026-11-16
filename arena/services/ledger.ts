@@ -2,11 +2,16 @@
 
 import "adaptive-extender/core";
 import { Move } from "../../playground/models/move.js";
-import { Ticket, Report, Standing } from "../models/protocol.js";
+import { Ticket, Report, Standing, type Allowance } from "../models/protocol.js";
 import { type Bucket } from "../models/bucket.js";
 import { type Ledger } from "./arena.js";
 
 //#region D1 ledger
+interface BucketRow {
+	tokens: number;
+	updated: number;
+}
+
 export class D1Ledger implements Ledger {
 	#database: D1Database;
 
@@ -47,6 +52,12 @@ export class D1Ledger implements Ledger {
 	async wait(bucket: Bucket, now: number): Promise<number> {
 		const updated = await this.#database.prepare("SELECT updated FROM buckets WHERE key = ?1").bind(bucket.key).first<number>("updated");
 		return bucket.wait(ReferenceError.suppress(updated, `The bucket '${bucket.key}' is missing`), now);
+	}
+
+	async allowance(bucket: Bucket, now: number): Promise<Allowance> {
+		const row = await this.#database.prepare("SELECT tokens, updated FROM buckets WHERE key = ?1").bind(bucket.key).first<BucketRow>();
+		if (row === null) return bucket.full();
+		return bucket.allowance(row.tokens, row.updated, now);
 	}
 
 	async save(ticket: Ticket, user: string, now: number): Promise<void> {

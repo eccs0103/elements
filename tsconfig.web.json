@@ -12,6 +12,7 @@
 		"playground/services/challenge.ts",
 		"playground/services/deck-service.ts",
 		"playground/view/playground-app.tsx",
+		"playground/view/notice.ts",
 		"playground/view/tray.tsx",
 		"playground/view/crosshair.ts",
 		"playground/view/peek.tsx",

@@ -3,45 +3,43 @@
 import "adaptive-extender/web";
 import { type ReactElement, type RefObject, useEffect, useRef, useState } from "react";
 import { Simulation } from "../services/simulation.js";
-import { type Standing, type Ticket } from "../../arena/models/protocol.js";
+import { type Ticket } from "../../arena/models/protocol.js";
 import { Crosshair } from "./crosshair.js";
+import { type Notice } from "./notice.js";
 import { Peek } from "./peek.js";
 import { Scoreboard } from "./scoreboard.js";
 import { Tray } from "./tray.js";
 
-//#region Intro
-interface IntroProps {
-	simulation: Simulation | null;
-	standing: Standing | null;
-	ticket: Ticket | null;
+//#region Board notice
+interface BoardNoticeProps {
+	notice: Notice;
 }
 
-function Intro({ simulation, standing, ticket }: IntroProps): ReactElement {
-	const [launched, setLaunched] = useState<boolean>(false);
-	const ready = standing !== null && ticket !== null;
-	let title = "Your rival is getting ready";
-	let description = "Loading the match takes a few seconds";
-	let hint = "Loading the match…";
-	if (ready) {
-		const { humanity, agent } = standing;
-		const { model, rules } = ticket;
-		title = `Humanity ${humanity} : ${agent} ${model}`;
-		description = `Drop elements to spread over the board: more cells after ${rules.seconds} s wins.`;
-		hint = "Drag a card to start the game";
-	}
+function BoardNotice({ notice }: BoardNoticeProps): ReactElement {
+	const [now, setNow] = useState<number>(Date.now);
+	const { deadline, target, note, action } = notice;
 
 	useEffect(() => {
-		if (simulation === null) return;
-		const update = (event: Event): void => setLaunched(simulation.launched);
-		simulation.addEventListener("update", update);
-		return () => simulation.removeEventListener("update", update);
-	}, [simulation]);
+		setNow(Date.now());
+		if (deadline === null) return;
+		const interval = setInterval(() => {
+			const current = Date.now();
+			setNow(current);
+			if (current >= deadline) clearInterval(interval);
+		}, 1000);
+		return () => clearInterval(interval);
+	}, [deadline]);
+
+	const locked = notice.locked(now);
+	const line = notice.line(now);
 
 	return (
-		<section id="intro" className="layer rounded flex column with-gap with-padding large-padding" hidden={launched} aria-busy={!ready}>
-			<h2>{title}</h2>
-			<p className="description">{description}</p>
-			<p className="highlight">{hint}</p>
+		<section id="notice" className="layer rounded flex column with-gap with-padding large-padding" hidden={notice.hidden} aria-busy={notice.busy} aria-live="polite">
+			<h2>{notice.title}</h2>
+			<p className="description">{notice.description}</p>
+			<p className="note" hidden={note === null}>{note}</p>
+			<p className="highlight" hidden={line === null}>{line}</p>
+			<a className="depth rounded with-padding" role="button" href={target?.href} hidden={action === null || target === null} aria-disabled={locked} tabIndex={locked ? -1 : 0}>{action}</a>
 		</section>
 	);
 }
@@ -49,12 +47,12 @@ function Intro({ simulation, standing, ticket }: IntroProps): ReactElement {
 //#region Playground app
 export interface PlaygroundAppProps {
 	ticket: Ticket | null;
-	standing: Standing | null;
+	notice: Notice;
 	onLaunch(simulation: Simulation): void;
 	onFinish(simulation: Simulation): void;
 }
 
-export function PlaygroundApp({ ticket, standing, onLaunch, onFinish }: PlaygroundAppProps): ReactElement {
+export function PlaygroundApp({ ticket, notice, onLaunch, onFinish }: PlaygroundAppProps): ReactElement {
 	const [simulation, setSimulation] = useState<Simulation | null>(null);
 	const [crosshair, setCrosshair] = useState<Crosshair | null>(null);
 	const refBoard: RefObject<HTMLCanvasElement | null> = useRef(null);
@@ -88,7 +86,7 @@ export function PlaygroundApp({ ticket, standing, onLaunch, onFinish }: Playgrou
 					<span className="column"></span>
 					<span className="cell"></span>
 				</div>
-				<Intro simulation={simulation} standing={standing} ticket={ticket} />
+				<BoardNotice notice={notice} />
 				{simulation === null || crosshair === null || ticket === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} ticket={ticket} />}
 				<div id="toolkit" className="flex">
 					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} />}
