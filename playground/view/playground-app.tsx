@@ -12,14 +12,23 @@ import { Tray } from "./tray.js";
 //#region Intro
 interface IntroProps {
 	simulation: Simulation | null;
-	standing: Standing;
-	ticket: Ticket;
+	standing: Standing | null;
+	ticket: Ticket | null;
 }
 
 function Intro({ simulation, standing, ticket }: IntroProps): ReactElement {
 	const [launched, setLaunched] = useState<boolean>(false);
-	const { humanity, agent } = standing;
-	const { model, rules } = ticket;
+	const ready = standing !== null && ticket !== null;
+	let title = "Your rival is getting ready";
+	let description = "Loading the match takes a few seconds";
+	let hint = "Loading the match…";
+	if (ready) {
+		const { humanity, agent } = standing;
+		const { model, rules } = ticket;
+		title = `Humanity ${humanity} : ${agent} ${model}`;
+		description = `Drop elements to spread over the board: more cells after ${rules.seconds} s wins.`;
+		hint = "Drag a card to start the game";
+	}
 
 	useEffect(() => {
 		if (simulation === null) return;
@@ -29,18 +38,18 @@ function Intro({ simulation, standing, ticket }: IntroProps): ReactElement {
 	}, [simulation]);
 
 	return (
-		<section id="intro" className="layer rounded flex column with-gap with-padding large-padding" hidden={launched}>
-			<h2>{`Humanity ${humanity} : ${agent} ${model}`}</h2>
-			<p className="description">{`Drop elements to spread over the board: more cells after ${rules.seconds} s wins.`}</p>
-			<p className="highlight">Drag a card to start the game</p>
+		<section id="intro" className="layer rounded flex column with-gap with-padding large-padding" hidden={launched} aria-busy={!ready}>
+			<h2>{title}</h2>
+			<p className="description">{description}</p>
+			<p className="highlight">{hint}</p>
 		</section>
 	);
 }
 //#endregion
 //#region Playground app
 export interface PlaygroundAppProps {
-	ticket: Ticket;
-	standing: Standing;
+	ticket: Ticket | null;
+	standing: Standing | null;
 	onLaunch(simulation: Simulation): void;
 	onFinish(simulation: Simulation): void;
 }
@@ -60,15 +69,19 @@ export function PlaygroundApp({ ticket, standing, onLaunch, onFinish }: Playgrou
 		const created = refSimulation.current = new Simulation(canvasBoard);
 		created.addEventListener("launch", event => onLaunch(created));
 		created.addEventListener("finish", event => onFinish(created));
-		created.start(ticket);
 		setSimulation(created);
 		setCrosshair(new Crosshair(divCrosshair, canvasBoard, created));
-	}, [ticket, onLaunch, onFinish]);
+	}, [onLaunch, onFinish]);
+
+	useEffect(() => {
+		if (simulation === null || ticket === null) return;
+		simulation.start(ticket);
+	}, [simulation, ticket]);
 
 	return (
 		<main>
 			<div id="stage">
-				{simulation === null ? null : <Scoreboard simulation={simulation} ticket={ticket} />}
+				{simulation === null || ticket === null ? null : <Scoreboard simulation={simulation} ticket={ticket} />}
 				<canvas id="board" ref={refBoard} onContextMenu={event => event.preventDefault()}></canvas>
 				<div id="crosshair" ref={refCrosshair} hidden>
 					<span className="row"></span>
@@ -76,7 +89,7 @@ export function PlaygroundApp({ ticket, standing, onLaunch, onFinish }: Playgrou
 					<span className="cell"></span>
 				</div>
 				<Intro simulation={simulation} standing={standing} ticket={ticket} />
-				{simulation === null || crosshair === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} ticket={ticket} />}
+				{simulation === null || crosshair === null || ticket === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} ticket={ticket} />}
 				<div id="toolkit" className="flex">
 					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} />}
 				</div>

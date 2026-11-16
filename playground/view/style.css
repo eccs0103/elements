@@ -73,6 +73,22 @@ section#intro {
 	& p {
 		margin: 0;
 	}
+
+	&[aria-busy="true"] p.highlight {
+		animation: breathe 1.6s ease-in-out infinite alternate;
+	}
+}
+
+@keyframes breathe {
+	to {
+		opacity: 0.4;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	section#intro[aria-busy="true"] p.highlight {
+		animation: none;
+	}
 }
 
 section#peek {

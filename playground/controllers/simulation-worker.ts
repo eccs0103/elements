@@ -9,6 +9,7 @@ import { Match } from "../services/match.js";
 import { Human, type Player } from "../services/players.js";
 import { Painter } from "../services/painter.js";
 import { Agent } from "../services/agent.js";
+import { Rules } from "../models/rules.js";
 import { Report, Verdict, type Ticket } from "../../arena/models/protocol.js";
 
 //#region Stage
@@ -110,30 +111,53 @@ class Lobby implements Stage {
 	}
 }
 //#endregion
+//#region Waiting
+class Waiting implements Stage {
+	paint(painter: Painter, preview: boolean): void {
+		void preview;
+		painter.ground(new Rules().size);
+	}
+
+	status(cell: number | null): StatusCommand {
+		void cell;
+		const tally = new Verdict(new Array<number>(Match.count).fill(0));
+		return new StatusCommand([], 1, null, null, 0, tally);
+	}
+
+	play(slot: number, x: number, y: number): boolean {
+		void slot, x, y;
+		return false;
+	}
+
+	advance(): boolean {
+		return false;
+	}
+
+	finish(): FinishCommand | null {
+		return null;
+	}
+}
+//#endregion
 //#region Simulation worker
 class SimulationWorker extends Controller {
 	#agent: Worker = new Worker(new URI("./agent-worker.js", self.location.href).href, { type: "module" });
 	#painter: Painter;
-	#stage: Stage | null = null;
+	#stage: Stage = new Waiting();
 	#preview: boolean = false;
 	#inspected: number | null = null;
 
 	#refresh(): void {
-		const stage = this.#stage;
-		if (stage === null) return;
-		stage.paint(this.#painter, this.#preview);
+		this.#stage.paint(this.#painter, this.#preview);
 		this.#describe();
 	}
 
 	#describe(): void {
-		const stage = this.#stage;
-		if (stage === null) return;
-		self.postMessage(Command.export(stage.status(this.#inspected)));
+		self.postMessage(Command.export(this.#stage.status(this.#inspected)));
 	}
 
 	#tick(): void {
 		const stage = this.#stage;
-		if (stage === null || !stage.advance()) return;
+		if (!stage.advance()) return;
 		this.#refresh();
 		const finish = stage.finish();
 		if (finish !== null) self.postMessage(Command.export(finish));
@@ -181,7 +205,7 @@ class SimulationWorker extends Controller {
 		if (command instanceof DropCommand) {
 			const stage = this.#stage;
 			const { slot, x, y } = command;
-			if (stage !== null && stage.play(slot, x, y)) this.#refresh();
+			if (stage.play(slot, x, y)) this.#refresh();
 			return;
 		}
 	}
