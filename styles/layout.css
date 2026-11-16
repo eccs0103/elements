@@ -15,15 +15,15 @@ nav {
 	}
 
 	& a.icon-deck span.icon {
-		--url: url(../../assets/icons/layer-group.svg);
+		--url: url(../assets/icons/layer-group.svg);
 	}
 
 	& a.icon-playground span.icon {
-		--url: url(../../assets/icons/cubes.svg);
+		--url: url(../assets/icons/cubes.svg);
 	}
 
 	& a.icon-settings span.icon {
-		--url: url(../../assets/icons/gear.svg);
+		--url: url(../assets/icons/gear.svg);
 	}
 }
 
@@ -54,17 +54,17 @@ li.trait span.icon {
 }
 
 li.trait.heat span.icon {
-	--url: url(../../assets/icons/temperature-half.svg);
+	--url: url(../assets/icons/temperature-half.svg);
 }
 
 li.trait.flammable span.icon,
 span.icon.flammable {
-	--url: url(../../assets/icons/fire.svg);
+	--url: url(../assets/icons/fire.svg);
 }
 
 li.trait.conductive span.icon,
 span.icon.conductive {
-	--url: url(../../assets/icons/bolt.svg);
+	--url: url(../assets/icons/bolt.svg);
 }
 
 @media (orientation: portrait) {
