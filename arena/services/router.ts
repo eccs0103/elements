@@ -48,6 +48,7 @@ export class ArenaRouter {
 		return Response.json(Failure.export(new Failure(`No route for ${method} ${pathname}`)), { status: 404 });
 	}
 
+	// Not simplified: Duel.#load fetches the same catalog, but AgentCatalog is core and fetch is not.
 	static async #model(target: Readonly<URI>): Promise<AgentModel> {
 		const response = await fetch(new URI("/models.json", target).href);
 		if (!response.ok) throw new ReferenceError(`The agent catalog could not load (${response.status})`);

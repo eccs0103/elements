@@ -90,6 +90,7 @@ export class Sentence {
 		}
 	}
 
+	// Not simplified: #act and #threat bind these lazily on purpose; yields() and leaves() throw for a law that has no product or remains.
 	static #product(reaction: Reaction): Element {
 		return PeriodicTable.of(reaction.yields());
 	}

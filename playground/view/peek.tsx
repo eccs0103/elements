@@ -16,6 +16,7 @@ interface ChipProps {
 	compact: boolean;
 }
 
+// Not simplified: the deck dialog's Chip is a button with a click, this one a plain span; the owner declined the merge.
 function Chip({ element, compact }: ChipProps): ReactElement {
 	const { name } = element;
 	return (
@@ -98,9 +99,9 @@ export function Peek({ board, crosshair, simulation, ticket }: PeekProps): React
 
 	useEffect(() => {
 		const update = (event: Event): void => {
-			const { inspected } = simulation;
+			const { inspected, holder } = simulation.status;
 			setPresent(inspected !== null);
-			setHolder(simulation.holder);
+			setHolder(holder);
 			if (inspected === null) return;
 			setShown(previous => previous !== null && previous.is(inspected) ? previous : inspected);
 		};

@@ -127,19 +127,6 @@ export class Board {
 	get owners(): ArrayLike<number> { return this.#owners; }
 	get size(): number { return this.#size; }
 
-	clone(): Board {
-		const board = new Board(this.#size, this.#seed);
-		board.#kinds.set(this.#kinds);
-		board.#budgets.set(this.#budgets);
-		board.#tints.set(this.#tints);
-		board.#owners.set(this.#owners);
-		board.#progress.set(this.#progress);
-		board.#births.set(this.#births);
-		board.#reverse = this.#reverse;
-		board.#tick = this.#tick;
-		return board;
-	}
-
 	feed(digest: Digest): void {
 		digest.add(this.#seed);
 		digest.add(this.#tick);
@@ -279,6 +266,7 @@ export class Board {
 		return mirrored ? found - 1 - index : index;
 	}
 
+	// Not simplified: inlining these two wrappers would repeat the same table lookup at every call site.
 	static #product(reaction: Reaction): number {
 		return PeriodicTable.id(reaction.yields());
 	}

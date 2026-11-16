@@ -111,6 +111,7 @@ export class Arena {
 		return ticket.sealed();
 	}
 
+	// Not simplified: Duel.#number is the same, but crypto is not in core, so no core model can own one shared copy.
 	static #number(): number {
 		const [value] = crypto.getRandomValues(new Uint32Array(1));
 		return value >>> 1;

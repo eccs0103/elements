@@ -134,11 +134,12 @@ class Waiting implements Stage {
 }
 //#endregion
 //#region Aftermath
-class Aftermath implements Stage {
+class Aftermath extends Waiting {
 	#past: Stage;
 	#next: Stage;
 
 	constructor(past: Stage, next: Stage) {
+		super();
 		this.#past = past;
 		this.#next = next;
 	}
@@ -155,19 +156,6 @@ class Aftermath implements Stage {
 		const { inspected, holder, tick, tally } = this.#past.status(cell);
 		const { cards, charge } = this.#next.status(null);
 		return new StatusCommand(cards, charge, inspected, holder, tick, tally);
-	}
-
-	play(slot: number, x: number, y: number): boolean {
-		void slot, x, y;
-		return false;
-	}
-
-	advance(): boolean {
-		return false;
-	}
-
-	finish(): FinishCommand | null {
-		return null;
 	}
 
 	keep(next: Stage): Stage {

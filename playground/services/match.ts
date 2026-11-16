@@ -47,12 +47,6 @@ class Side {
 		return abs(y - this.#edge) < this.#depth || board.touches(this.#owner, x, y);
 	}
 
-	clone(): Side {
-		const side = new Side(this.#hand.clone(), this.#edge, this.#depth, this.#owner, this.#pause);
-		side.#wait = this.#wait;
-		return side;
-	}
-
 	feed(digest: Digest): void {
 		this.#hand.feed(digest);
 		digest.add(this.#wait);
@@ -73,9 +67,6 @@ class Side {
 export class Match {
 	static #count: number = 2;
 	#rules: Rules;
-	#seed: number;
-	#luck: number;
-	#decks: readonly (readonly Element[])[];
 	#board: Board;
 	#sides: readonly Side[];
 	#tick: number = 0;
@@ -93,9 +84,6 @@ export class Match {
 		if (!Number.isInteger(favoured) || favoured < 0 || favoured >= count) throw new RangeError(`The favoured side ${favoured} does not exist`);
 		const [south, north] = decks;
 		this.#rules = rules;
-		this.#seed = seed;
-		this.#luck = luck;
-		this.#decks = decks;
 		this.#favoured = favoured;
 		this.#board = new Board(size, seed);
 		this.#sides = [
@@ -112,6 +100,7 @@ export class Match {
 	get favoured(): number { return this.#favoured; }
 	get finished(): boolean { return this.#tick >= this.#rules.length; }
 	get moves(): readonly Move[] { return this.#moves; }
+	// Not simplified: only tests read the hash, but it is the determinism proof (Node = workerd, live = replay).
 	get hash(): number {
 		const digest = new Digest();
 		digest.add(this.#tick);
@@ -120,15 +109,6 @@ export class Match {
 			seat.feed(digest);
 		}
 		return digest.value;
-	}
-
-	clone(): Match {
-		const match = new Match(this.#rules, this.#seed, this.#luck, this.#decks, this.#favoured);
-		match.#board = this.#board.clone();
-		match.#sides = this.#sides.map(seat => seat.clone());
-		match.#tick = this.#tick;
-		match.#moves = [...this.#moves];
-		return match;
 	}
 
 	cards(side: number): readonly Element[] {
@@ -197,6 +177,7 @@ export class Match {
 
 	#step(drops: readonly (Move | null)[]): void {
 		const sides = this.#sides;
+		// Not simplified: advance is public, so a caller may pass the wrong number of players.
 		if (drops.length !== sides.length) throw new RangeError(`The match needs ${sides.length} drops, got ${drops.length}`);
 		if (this.finished) return;
 		const favoured = this.#favoured;

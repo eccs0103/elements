@@ -2,9 +2,9 @@
 
 import "adaptive-extender/web";
 import { StaticEngine, URI } from "adaptive-extender/web";
-import { type Element } from "../models/elements.js";
 import { Command, InitializeCommand, StartCommand, BeginCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
-import { type Ticket, type Report, type Verdict } from "../../arena/models/protocol.js";
+import { Verdict, type Ticket, type Report } from "../../arena/models/protocol.js";
+import { Match } from "./match.js";
 
 const { baseURI } = document;
 const { round } = Math;
@@ -25,12 +25,7 @@ export class Simulation extends EventTarget {
 	#worker: Worker = new Worker(new URI("./controllers/simulation-worker.js", baseURI).href, { type: "module" });
 	#engine: StaticEngine = new StaticEngine({ launch: false });
 	#ticket: Ticket | null = null;
-	#cards: readonly Element[] = [];
-	#charge: number = 0;
-	#inspected: Element | null = null;
-	#holder: number | null = null;
-	#tick: number = 0;
-	#tally: Verdict | null = null;
+	#status: StatusCommand = new StatusCommand([], 0, null, null, 0, new Verdict(new Array<number>(Match.count).fill(0)));
 	#report: Report | null = null;
 	#verdict: Verdict | null = null;
 	#drops: DropCommand[] = [];
@@ -50,14 +45,9 @@ export class Simulation extends EventTarget {
 	}
 
 	get ticket(): Ticket | null { return this.#ticket; }
-	get cards(): readonly Element[] { return this.#cards; }
-	get charge(): number { return this.#charge; }
-	get inspected(): Element | null { return this.#inspected; }
-	get holder(): number | null { return this.#holder; }
+	get status(): StatusCommand { return this.#status; }
 	get report(): Report | null { return this.#report; }
 	get verdict(): Verdict | null { return this.#verdict; }
-	get tick(): number { return this.#tick; }
-	get tally(): Verdict | null { return this.#tally; }
 
 	show(ticket: Ticket): void {
 		const engine = this.#engine;
@@ -123,13 +113,7 @@ export class Simulation extends EventTarget {
 		const command = Command.import(event.data, "command");
 
 		if (command instanceof StatusCommand) {
-			const { cards, charge, inspected, holder, tick, tally } = command;
-			this.#cards = cards;
-			this.#charge = charge;
-			this.#inspected = inspected;
-			this.#holder = holder;
-			this.#tick = tick;
-			this.#tally = tally;
+			this.#status = command;
 			this.dispatchEvent(new Event("update"));
 			return;
 		}

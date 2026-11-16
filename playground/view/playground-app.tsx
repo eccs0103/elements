@@ -20,6 +20,7 @@ interface TicketsProps {
 	allowance: Allowance | null;
 }
 
+// Not simplified: Tickets and NoticeSide repeat the countdown effect; a shared hook would be a top-level function (owner ruling).
 function Tickets({ online, allowance }: TicketsProps): ReactElement {
 	const [now, setNow] = useState<number>(Date.now);
 	const deadline = useMemo(() => allowance === null || allowance.wait <= 0 ? null : Date.now() + allowance.wait, [allowance]);

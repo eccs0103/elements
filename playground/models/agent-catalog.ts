@@ -55,18 +55,6 @@ export class AgentCatalog extends Model {
 	@Field(Array.Of(AgentModel), { name: "models" })
 	models: AgentModel[];
 
-	constructor();
-	constructor(models: AgentModel[]);
-	constructor(models?: AgentModel[]) {
-		if (models === undefined) {
-			super();
-			return;
-		}
-
-		super();
-		this.models = models;
-	}
-
 	get first(): AgentModel {
 		return ReferenceError.suppress(this.models.at(0), "The agent catalog lists no models");
 	}

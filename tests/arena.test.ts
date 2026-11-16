@@ -121,11 +121,12 @@ class OpenGate implements Gate {
 //#endregion
 
 describe("Arena", () => {
+	const visitor = new Visitor("visitor", "192.0.2.1");
+	const model = new AgentModel("data/test", "Test", "A test model.", 0.6);
+	const entry = new Entry(Ticket.draft(new Rules(), 1, Ticket.human).elements, "token");
+
 	it("spends a ticket only when a match starts, with the page's luck", async () => {
 		const arena = new Arena(new MemoryLedger(), new OpenGate());
-		const visitor = new Visitor("visitor", "192.0.2.1");
-		const model = new AgentModel("data/test", "Test", "A test model.", 0.6);
-		const entry = new Entry(Ticket.draft(new Rules(), 1, Ticket.human).elements, "token");
 		const now = 1000000;
 		const lobby = await arena.open(entry, visitor, model, now);
 		expect(lobby.seed).toBeNull();
@@ -155,9 +156,6 @@ describe("Arena", () => {
 
 	it("refuses a luck outside the dealt range", async () => {
 		const arena = new Arena(new MemoryLedger(), new OpenGate());
-		const visitor = new Visitor("visitor", "192.0.2.1");
-		const model = new AgentModel("data/test", "Test", "A test model.", 0.6);
-		const entry = new Entry(Ticket.draft(new Rules(), 1, Ticket.human).elements, "token");
 		const lobby = await arena.open(entry, visitor, model, 0);
 		await expect(arena.start(new Start(lobby.id, -1), visitor, 1)).rejects.toThrow(RangeError);
 		await expect(arena.start(new Start(lobby.id, 0.5), visitor, 1)).rejects.toThrow(RangeError);

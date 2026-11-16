@@ -5,6 +5,7 @@ import { type BufferedCell } from "adaptive-extender/web";
 import { Settings } from "../models/settings.js";
 
 //#region Settings service
+// Not simplified: same shape as DeckService on purpose, the house singleton + cell pattern; a shared base was ruled out.
 export class SettingsService {
 	static #key: string = "Elements\\Settings";
 	static #lock: boolean = true;

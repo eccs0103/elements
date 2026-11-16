@@ -46,14 +46,6 @@ section.group > h4.phase {
 	text-transform: capitalize;
 }
 
-span.icon.flammable {
-	--url: url(../../assets/icons/fire.svg);
-}
-
-span.icon.conductive {
-	--url: url(../../assets/icons/bolt.svg);
-}
-
 span.marks {
 	min-block-size: var(--size-small-standart);
 
@@ -128,6 +120,7 @@ button:focus-visible {
 	outline: var(--size-separator) solid var(--color-highlight);
 }
 
+/* Not simplified: the playground's span.ghost has other sizes and states; the pages load different stylesheets. */
 span.ghost {
 	position: fixed;
 	inset: 0 auto auto 0;

@@ -29,6 +29,7 @@ export class Deck extends Model {
 		return deck;
 	}
 
+	// Not simplified: the static takes the match's real rules, the getter the default ones; both are needed.
 	get capacity(): number { return Deck.capacity(new Rules()); }
 	get full(): boolean { return this.elements.length === this.capacity; }
 

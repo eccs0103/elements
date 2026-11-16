@@ -106,6 +106,7 @@ interface ChipProps {
 	onWatch(element: Element): void;
 }
 
+// Not simplified: the board peek's Chip is a plain span, this one a button with a click; the owner declined the merge.
 function Chip({ element, compact, onWatch }: ChipProps): ReactElement {
 	const { name } = element;
 	return (

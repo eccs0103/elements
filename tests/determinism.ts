@@ -22,19 +22,15 @@ export class Determinism {
 	static #play(seed: number): number {
 		const rules = new Rules();
 		const sides = Iterator.range(0, Match.count).toArray();
-		const match = new Match(rules, seed, seed + 1, sides.map(side => Ticket.draft(rules, seed, side).elements), 0);
+		const decks = sides.map(side => Ticket.draft(rules, seed, side).elements);
+		const match = new Match(rules, seed, seed + 1, decks, 0);
 		const players = sides.map(side => Ticket.bot(seed, side));
-		const half = rules.length / 2;
-		while (match.tick < half) {
-			match.advance(players);
-		}
-		const clone = match.clone();
-		const start = match.moves.length;
 		while (!match.finished) {
 			match.advance(players);
 		}
-		clone.replay(match.moves.slice(start), sides.map(side => new Human()));
-		if (clone.hash !== match.hash) throw new Error(`The clone of match ${seed} drifted from the original`);
+		const replay = new Match(rules, seed, seed + 1, decks, 0);
+		replay.replay(match.moves, sides.map(side => new Human()));
+		if (replay.hash !== match.hash) throw new Error(`The replay of match ${seed} drifted from the original`);
 		return match.hash;
 	}
 }

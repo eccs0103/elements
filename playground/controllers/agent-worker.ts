@@ -24,6 +24,7 @@ class AgentWorker extends Controller {
 		void this.#watch(network);
 	}
 
+	// Not simplified: the owner keeps this so a bad weights download is reported at load, not at the first decision.
 	async #watch(network: Promise<Network>): Promise<void> {
 		try {
 			await network;

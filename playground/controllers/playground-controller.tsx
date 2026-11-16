@@ -69,6 +69,7 @@ class Duel {
 		);
 	}
 
+	// Not simplified: ArenaRouter.#model fetches the same catalog, but AgentCatalog is core and fetch is not.
 	async #load(): Promise<AgentModel> {
 		const response = await fetch(this.#catalog.href);
 		if (!response.ok) throw new ReferenceError(`The agent catalog could not load (${response.status})`);
@@ -247,6 +248,7 @@ class Duel {
 		await this.#enter();
 	}
 
+	// Not simplified: Arena.#number is the same, but crypto is not in core, so no core model can own one shared copy.
 	static #number(): number {
 		const [value] = crypto.getRandomValues(new Uint32Array(1));
 		return value >>> 1;

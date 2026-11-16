@@ -16,6 +16,14 @@ section#notice {
 	grid-area: board;
 }
 
+canvas#board,
+section#notice,
+section#peek {
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
 canvas#board {
 	inline-size: 100%;
 	block-size: 100%;
@@ -23,9 +31,6 @@ canvas#board {
 	transition: filter var(--time-reveal-duration) ease-out;
 	touch-action: none;
 	-webkit-touch-callout: none;
-	-moz-user-select: none;
-	-webkit-user-select: none;
-	user-select: none;
 }
 
 div#stage:has(section#notice:not([hidden])) canvas#board:not(:hover, :active, .aimed) {
@@ -72,9 +77,6 @@ section#notice {
 	inline-size: min(calc(100% - 2 * var(--size-large-gap)), calc(14 * var(--size-standart)));
 	box-sizing: border-box;
 	text-align: center;
-	-moz-user-select: none;
-	-webkit-user-select: none;
-	user-select: none;
 
 	& h2,
 	& p {
@@ -244,9 +246,6 @@ section#peek {
 	margin-inline: auto;
 	overflow: hidden;
 	pointer-events: none;
-	-moz-user-select: none;
-	-webkit-user-select: none;
-	user-select: none;
 
 	&.bottom {
 		inset-block: auto var(--size-gap);
@@ -413,6 +412,7 @@ div#hand {
 	}
 }
 
+/* Not simplified: the deck's span.ghost has other sizes and states; the pages load different stylesheets. */
 span.ghost {
 	position: fixed;
 	inset: 0 auto auto 0;

@@ -28,7 +28,7 @@ export function Tray({ simulation, crosshair, ready }: TrayProps): ReactElement 
 	const [color, setColor] = useState<string | null>(null);
 	const refGhost: RefObject<HTMLSpanElement | null> = useRef(null);
 	const refSlot: RefObject<number | null> = useRef(null);
-	const { cards, charge } = simulation;
+	const { cards, charge } = simulation.status;
 
 	useEffect(() => {
 		const update = (event: Event): void => refresh();
@@ -47,7 +47,7 @@ export function Tray({ simulation, crosshair, ready }: TrayProps): ReactElement 
 	};
 
 	const grab = (event: PointerEvent<HTMLSpanElement>, slot: number): void => {
-		if (simulation.charge < 1) return;
+		if (simulation.status.charge < 1) return;
 		event.currentTarget.setPointerCapture(event.pointerId);
 		refSlot.current = slot;
 		setColor(cards[slot].color.toString());

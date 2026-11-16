@@ -123,6 +123,7 @@ export class Ticket extends Model {
 		return new Agent(mind, this.rules.ticks(this.model.reaction));
 	}
 
+	// Not simplified: sealed, redeal and dealt each change a different field; one generic copy would need field names as strings.
 	sealed(): Ticket {
 		return new Ticket(this.id, null, this.luck, this.rules, this.human, this.deck, this.model);
 	}

@@ -3,7 +3,8 @@
 import "adaptive-extender/node";
 import { URI } from "adaptive-extender/node";
 import { type PluginOption, type ViteDevServer, type PreviewServer, type Connect, type HttpServer } from "vite";
-import { type IncomingMessage, type ServerResponse } from "node:http";
+import { type ServerResponse } from "node:http";
+import StreamConsumers from "node:stream/consumers";
 import { unstable_startWorker } from "wrangler";
 import { VitePlugin } from "./vite-plugin.js";
 
@@ -40,11 +41,8 @@ export class ArenaVitePlugin extends VitePlugin {
 	}
 
 	#start(host: string): ReturnType<typeof unstable_startWorker> {
-		const running = this.#worker;
-		if (running !== null) return running;
 		// The origin makes the arena see the page's own address, so its catalog fetch reaches this server as it reaches the site in production.
-		const worker = this.#worker = unstable_startWorker({ config: ArenaVitePlugin.#config.toPath(), dev: { inspector: false, server: { port: 0 }, origin: { hostname: host } } });
-		return worker;
+		return this.#worker ??= unstable_startWorker({ config: ArenaVitePlugin.#config.toPath(), dev: { inspector: false, server: { port: 0 }, origin: { hostname: host } } });
 	}
 
 	async #stop(): Promise<void> {
@@ -60,7 +58,7 @@ export class ArenaVitePlugin extends VitePlugin {
 			const address = ReferenceError.suppress(originalUrl, "The request has no address");
 			const worker = await this.#start(ReferenceError.suppress(headers.host, "The request has no host"));
 			const target = new URI((await worker.url).href);
-			const body = method === "GET" || method === "HEAD" ? null : await ArenaVitePlugin.#read(request);
+			const body = method === "GET" || method === "HEAD" ? null : await StreamConsumers.buffer(request);
 			const forwarded = new Headers();
 			for (const [name, value] of Object.entries(headers)) {
 				if (typeof value === "string") forwarded.set(name, value);
@@ -76,14 +74,6 @@ export class ArenaVitePlugin extends VitePlugin {
 		} catch (reason) {
 			next(reason);
 		}
-	}
-
-	static async #read(request: IncomingMessage): Promise<Buffer> {
-		const chunks: Buffer[] = [];
-		for await (const chunk of request) {
-			chunks.push(Buffer.from(chunk));
-		}
-		return Buffer.concat(chunks);
 	}
 }
 //#endregion

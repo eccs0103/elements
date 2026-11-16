@@ -24,9 +24,9 @@ export function Scoreboard({ simulation, ticket }: ScoreboardProps): ReactElemen
 	useEffect(() => {
 		const update = (event: Event): void => {
 			const divRail = refRail.current;
-			const { tick, tally } = simulation;
+			const { tick, tally } = simulation.status;
 			setLeft(ceil((rules.length - tick) / rules.rate));
-			if (divRail === null || tally === null) return;
+			if (divRail === null) return;
 			const area = rules.size ** 2;
 			const owned = tally.scores[human] / area;
 			const rival = tally.against(human) / area;

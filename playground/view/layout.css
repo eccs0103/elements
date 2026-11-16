@@ -57,11 +57,13 @@ li.trait.heat span.icon {
 	--url: url(../../assets/icons/temperature-half.svg);
 }
 
-li.trait.flammable span.icon {
+li.trait.flammable span.icon,
+span.icon.flammable {
 	--url: url(../../assets/icons/fire.svg);
 }
 
-li.trait.conductive span.icon {
+li.trait.conductive span.icon,
+span.icon.conductive {
 	--url: url(../../assets/icons/bolt.svg);
 }
 

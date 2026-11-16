@@ -15,6 +15,7 @@ export class Hand {
 	#draws: number = 0;
 
 	constructor(deck: readonly Element[], size: number, seed: number) {
+		// Not simplified: a deck from the network (Entry) can repeat an element, and Match does not check that.
 		if (deck.some((element, index) => deck.findIndex(other => other.is(element)) !== index)) throw new TypeError("The deck must not repeat an element");
 		if (!Number.isInteger(size) || size <= 0 || size > deck.length) throw new RangeError(`The hand size ${size} must be between 1 and the deck size ${deck.length}`);
 		this.#deck = deck;
@@ -27,15 +28,6 @@ export class Hand {
 	}
 
 	get cards(): readonly Element[] { return this.#cards; }
-
-	clone(): Hand {
-		const cards = this.#cards;
-		const hand = new Hand(this.#deck, cards.length, this.#seed);
-		hand.#cards = [...cards];
-		hand.#ages = [...this.#ages];
-		hand.#draws = this.#draws;
-		return hand;
-	}
 
 	feed(digest: Digest): void {
 		digest.addAll(this.#cards.map(element => PeriodicTable.id(element)));

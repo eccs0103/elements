@@ -122,6 +122,7 @@ export interface DirtScheme extends ElementScheme {
 }
 
 export class Dirt extends Element {
+	// Not simplified: every element keeps its colours as named shared statics (owner ruling); inlining them is not a cut.
 	static #color: Readonly<Color> = Color.fromRGB(150, 100, 80);
 
 	constructor() {

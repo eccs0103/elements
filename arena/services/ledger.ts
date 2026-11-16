@@ -1,6 +1,7 @@
 "use strict";
 
 import "adaptive-extender/core";
+import { Nullable } from "adaptive-extender/core";
 import { Move } from "../../playground/models/move.js";
 import { Ticket, Report, Standing, type Allowance } from "../models/protocol.js";
 import { type Bucket } from "../models/bucket.js";
@@ -21,8 +22,7 @@ export class D1Ledger implements Ledger {
 
 	async pending(user: string, since: number): Promise<Ticket | null> {
 		const row = await this.#database.prepare("SELECT ticket FROM tickets WHERE visitor = ?1 AND started IS NULL AND issued > ?2 ORDER BY issued DESC LIMIT 1").bind(user, since).first<string>("ticket");
-		if (row === null) return null;
-		return D1Ledger.#ticket(row);
+		return Nullable.map(row, D1Ledger.#ticket);
 	}
 
 	async renew(ticket: Ticket): Promise<void> {
@@ -66,8 +66,7 @@ export class D1Ledger implements Ledger {
 
 	async opened(id: string, user: string, since: number): Promise<Ticket | null> {
 		const row = await this.#database.prepare("SELECT ticket FROM tickets WHERE id = ?1 AND visitor = ?2 AND started IS NULL AND issued > ?3").bind(id, user, since).first<string>("ticket");
-		if (row === null) return null;
-		return D1Ledger.#ticket(row);
+		return Nullable.map(row, D1Ledger.#ticket);
 	}
 
 	async start(ticket: Ticket, user: string, since: number, now: number): Promise<boolean> {

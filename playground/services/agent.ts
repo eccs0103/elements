@@ -47,7 +47,6 @@ export class Agent implements Player {
 		if (match.cells(side, 0).length === 0) return null;
 		const question = Observation.of(match, side);
 		this.#question = question;
-		this.#answer = null;
 		this.#due = match.tick + this.#reaction;
 		this.#mind.ask(question, this);
 		return null;
