@@ -8,8 +8,13 @@ interface TurnstileOptions {
 	sitekey: string;
 	action: string;
 	appearance: string;
+	retry: string;
 	callback(token: string): void;
-	["error-callback"](code: string): void;
+	["error-callback"](code: string): boolean;
+	["timeout-callback"](): void;
+	["unsupported-callback"](): void;
+	["before-interactive-callback"](): void;
+	["after-interactive-callback"](): void;
 }
 
 interface Turnstile {
@@ -25,30 +30,52 @@ declare global {
 
 export class Challenge {
 	static #sitekey: string = "0x4AAAAAAGBet7ZYe7rBg5A8";
-	#container: HTMLElement;
+	static #patience: number = 15000;
+	#dialog: HTMLDialogElement;
 	#script: HTMLScriptElement;
 
-	constructor(container: HTMLElement, script: HTMLScriptElement) {
-		this.#container = container;
+	constructor(dialog: HTMLDialogElement, script: HTMLScriptElement) {
+		this.#dialog = dialog;
 		this.#script = script;
 	}
 
 	async token(): Promise<string> {
 		const turnstile = await this.#load();
-		const container = this.#container;
+		const dialog = this.#dialog;
 		return await new Promise<string>((resolve, reject) => {
-			const widget = turnstile.render(container, {
+			const widget = turnstile.render(dialog, {
 				sitekey: Challenge.#sitekey,
 				action: Entry.action,
 				appearance: "interaction-only",
+				retry: "never",
 				callback(token: string): void {
-					turnstile.remove(widget);
+					settle();
 					resolve(token);
 				},
-				["error-callback"](code: string): void {
+				["error-callback"](code: string): boolean {
+					settle();
 					reject(new Error(`The bot check failed (${code})`));
+					return true;
+				},
+				["timeout-callback"](): void {
+					settle();
+					reject(new Error("The bot check timed out"));
+				},
+				["unsupported-callback"](): void {
+					settle();
+					reject(new Error("This browser is not supported by the bot check"));
+				},
+				["before-interactive-callback"](): void {
+					if (!dialog.open) dialog.showModal();
+				},
+				["after-interactive-callback"](): void {
+					dialog.close();
 				},
 			});
+			function settle(): void {
+				turnstile.remove(widget);
+				dialog.close();
+			}
 		});
 	}
 
@@ -59,6 +86,8 @@ export class Challenge {
 			await Promise.withSignal((signal, resolve, reject) => {
 				script.addEventListener("load", event => resolve(), { signal });
 				script.addEventListener("error", event => reject(new Error("The bot check could not load")), { signal });
+				// A load or error that fired before these listeners is never replayed.
+				AbortSignal.timeout(Challenge.#patience).addEventListener("abort", event => reject(new Error("The bot check could not load")), { signal });
 			});
 		}
 		return ReferenceError.suppress(window.turnstile, "The bot check loaded without its API");

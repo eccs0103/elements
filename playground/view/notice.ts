@@ -49,7 +49,6 @@ export class Notice {
 
 	static practice(ticket: Ticket): Notice {
 		const notice = new Notice(`Practice against ${ticket.model.name}`, Notice.#rules(ticket));
-		notice.#note = "Free and unlimited, nothing is counted";
 		notice.#hint = "Drag a card to start the game";
 		notice.#playable = true;
 		return notice;

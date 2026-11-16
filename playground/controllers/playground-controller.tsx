@@ -37,6 +37,7 @@ class Duel {
 	#switchable: boolean = true;
 	#lobby: Ticket | null = null;
 	#drill: Ticket | null = null;
+	#refill: number | null = null;
 
 	constructor(catalog: URI) {
 		this.#catalog = catalog;
@@ -127,7 +128,7 @@ class Duel {
 	}
 
 	async #open(): Promise<Ticket> {
-		const challenge = new Challenge(body.getElement(HTMLDivElement, "div#gate"), head.getElement(HTMLScriptElement, "script#challenge"));
+		const challenge = new Challenge(body.getElement(HTMLDialogElement, "dialog#gate"), head.getElement(HTMLScriptElement, "script#challenge"));
 		return await this.#client.open(new Entry(deck.content.elements, await challenge.token()));
 	}
 
@@ -135,6 +136,7 @@ class Duel {
 		if (!(error instanceof Shortage)) return Notice.trouble(error);
 		try {
 			const allowance = this.#allowance = await this.#client.allowance();
+			this.#schedule(allowance);
 			return Notice.shortage(allowance);
 		} catch (reason) {
 			return Notice.trouble(Error.from(reason));
@@ -205,11 +207,28 @@ class Duel {
 
 	async #tickets(): Promise<Allowance | null> {
 		try {
-			return await this.#client.allowance();
+			const allowance = await this.#client.allowance();
+			this.#schedule(allowance);
+			return allowance;
 		} catch (reason) {
 			console.error(`The allowance did not load:\n${Error.from(reason)}`);
 			return null;
 		}
+	}
+
+	#schedule(allowance: Allowance): void {
+		const refill = this.#refill;
+		if (refill !== null) clearTimeout(refill);
+		this.#refill = null;
+		if (allowance.wait <= 0) return;
+		this.#refill = setTimeout(this.#restore.bind(this), allowance.wait);
+	}
+
+	async #restore(): Promise<void> {
+		const allowance = await this.#tickets();
+		if (allowance === null) return;
+		this.#allowance = allowance;
+		this.#show();
 	}
 
 	static #number(): number {

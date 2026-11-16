@@ -2,7 +2,7 @@
 
 import "adaptive-extender/web";
 import { type URI } from "adaptive-extender/web";
-import { type ReactElement, type RefObject, useEffect, useRef, useState } from "react";
+import { type ReactElement, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Simulation } from "../services/simulation.js";
 import { type Ticket, type Allowance } from "../../arena/models/protocol.js";
 import { Mode } from "../../settings/models/settings.js";
@@ -12,6 +12,8 @@ import { Peek } from "./peek.js";
 import { Scoreboard } from "./scoreboard.js";
 import { Tray } from "./tray.js";
 
+const { ceil, max } = Math;
+
 //#region Tickets
 interface TicketsProps {
 	online: boolean | null;
@@ -19,14 +21,31 @@ interface TicketsProps {
 }
 
 function Tickets({ online, allowance }: TicketsProps): ReactElement {
+	const [now, setNow] = useState<number>(Date.now);
+	const deadline = useMemo(() => allowance === null || allowance.wait <= 0 ? null : Date.now() + allowance.wait, [allowance]);
+
+	useEffect(() => {
+		setNow(Date.now());
+		if (deadline === null) return;
+		const interval = setInterval(() => {
+			const current = Date.now();
+			setNow(current);
+			if (current >= deadline) clearInterval(interval);
+		}, 1000);
+		return () => clearInterval(interval);
+	}, [deadline]);
+
 	if (online !== true || allowance === null) {
 		const title = online === false ? "The arena is offline" : "Connecting to the arena…";
 		return <span className="tickets flex" title={title} aria-busy={online !== false}></span>;
 	}
 	const { left, capacity } = allowance;
+	const minutes = deadline === null ? 0 : ceil(max(0, deadline - now) / 60000);
 	return (
 		<span className="tickets flex" title={`${left} of ${capacity} matches left`}>
-			{Iterator.range(0, capacity).map(index => <span key={index} className={`icon in-line ticket${index < left ? " lit" : String.empty}`}></span>).toArray()}
+			<span>{left}</span>
+			<span className="icon in-line ticket"></span>
+			<span className="description" hidden={deadline === null}>· refill in {minutes}m</span>
 		</span>
 	);
 }
