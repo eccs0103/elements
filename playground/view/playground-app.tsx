@@ -44,7 +44,7 @@ function Tickets({ online, allowance }: TicketsProps): ReactElement {
 		<span className="tickets flex font-smaller-1" title={title} aria-busy={!loaded && online !== false}>
 			<span>{loaded ? allowance.left : "–"}</span>
 			<span className="icon in-line ticket"></span>
-			<span hidden={deadline === null}>next in {minutes}m</span>
+			<span hidden={deadline === null}>, next in {minutes}m</span>
 		</span>
 	);
 }
