@@ -73,11 +73,9 @@ export class Observation extends Model {
 
 	static of(match: Match, side: number): Observation {
 		const { board, rules, tick } = match;
-		const { size, kinds, owners, budgets } = board;
+		const { size, kinds, budgets } = board;
 		const area = size * size;
 		const rival = 1 - side;
-		const owner = side + 1;
-		const owner2 = rival + 1;
 		const seen = new Array<number>(area);
 		const mine = new Array<number>(area);
 		const theirs = new Array<number>(area);
@@ -85,10 +83,10 @@ export class Observation extends Model {
 		const reach = new Array<number>(area).fill(0);
 		for (let cell = 0; cell < area; cell++) {
 			const view = Observation.#view(cell, area, side);
-			const holder = owners[cell];
+			const holder = match.holder(cell);
 			seen[view] = kinds[cell];
-			mine[view] = Number(holder === owner);
-			theirs[view] = Number(holder === owner2);
+			mine[view] = Number(holder === side);
+			theirs[view] = Number(holder === rival);
 			levels[view] = budgets[cell] / 255;
 		}
 		for (const cell of match.cells(side, 0)) {

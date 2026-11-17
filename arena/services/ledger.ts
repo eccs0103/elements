@@ -71,6 +71,7 @@ export class D1Ledger implements Ledger {
 		const { key, capacity, period } = bucket;
 		// SQLite evaluates every SET expression against the old row, so tokens and updated both see the stored values.
 		// D1 binds every JavaScript number as REAL, so the refill division needs the casts to stay an integer division.
+		// Not simplified: the refill expression repeats, but naming it once in SQLite takes nested subqueries longer than the repeats.
 		const [, taken] = await database.batch([
 			database.prepare("INSERT OR IGNORE INTO buckets (key, tokens, updated) VALUES (?1, ?2, ?3)").bind(key, capacity, now),
 			database.prepare(`UPDATE buckets SET
@@ -118,7 +119,7 @@ export class D1Ledger implements Ledger {
 	}
 
 	async standing(): Promise<Standing> {
-		const row = await this.#database.prepare("SELECT humanity, agent, (SELECT count(*) FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND reported IS NOT NULL AND claimed = 1) AS review_humanity, (SELECT count(*) FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND reported IS NOT NULL AND claimed = 0) AS review_agent FROM standing WHERE id = 1").first();
+		const row = await this.#database.prepare("SELECT standing.humanity, standing.agent, coalesce(sum(tickets.claimed = 1), 0) AS review_humanity, coalesce(sum(tickets.claimed = 0), 0) AS review_agent FROM standing LEFT JOIN tickets ON tickets.started IS NOT NULL AND tickets.judged IS NULL AND tickets.reported IS NOT NULL WHERE standing.id = 1 GROUP BY standing.id").first();
 		if (row === null) return new Standing();
 		return Standing.import(row, "standing");
 	}

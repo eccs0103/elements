@@ -41,6 +41,7 @@ export function Tutorial({ open, onClose }: TutorialProps): ReactElement {
 		dialog.showModal();
 	}, [open]);
 
+	// Not simplified: lessons as data mapped with index === step would need a props interface and save only the six comparisons.
 	const lessons = [
 		<Lesson key="humanity" icon="users" title="Humanity vs the AI" text="Every visitor plays the same AI. Each Arena win counts for all of Humanity." shown={step === 0} />,
 		<Lesson key="goal" icon="trophy" title="Most cells wins" text={`A match lasts ${seconds} s. Whoever owns more cells at the end wins; a tie goes to you.`} shown={step === 1} />,

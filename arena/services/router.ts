@@ -41,6 +41,7 @@ export class ArenaRouter {
 		const { method } = request;
 		const target = new URI(request.url);
 		const { pathname } = target;
+		// Not simplified: a route table would hold the same six entries plus a lookup loop.
 		if (method === "POST" && Ticket.locate(target).pathname === pathname) return Response.json(Ticket.export(await arena.open(Entry.import(await request.json(), "entry"), visitor, await ArenaRouter.#model(target), now)));
 		if (method === "POST" && Start.locate(target).pathname === pathname) return Response.json(Ticket.export(await arena.start(Start.import(await request.json(), "start"), visitor, now)));
 		if (method === "POST" && Report.locate(target).pathname === pathname) return Response.json(Standing.export(await arena.report(Report.import(await request.json(), "report"), visitor, now)));

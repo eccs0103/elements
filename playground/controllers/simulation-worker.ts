@@ -50,6 +50,7 @@ class Session implements Stage {
 	zone(): Uint8Array {
 		const zone = this.#zone;
 		zone.fill(0);
+		// Not simplified: Observation.of builds the same mask from match.cells, but mirrored for the side, so one owner saves nothing.
 		for (const cell of this.#match.cells(this.#ticket.human, 0)) {
 			zone[cell] = 1;
 		}

@@ -253,6 +253,7 @@ export class Verdict extends Model {
 		return new Verdict(Iterator.range(0, Match.count).map(side => match.score(side)).toArray());
 	}
 
+	// Not simplified: three callers compare winner(human) with human, but a won(human) method saves no instruction at any of them.
 	winner(human: number): number {
 		const { scores } = this;
 		const mine = scores[human];

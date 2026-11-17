@@ -170,6 +170,7 @@ export class Board {
 		const area = this.#kinds.length;
 		const fresh = this.#fresh;
 		const reverse = this.#reverse;
+		// Not simplified: a per-cell tick stamp would skip this clear, but it needs one more field and write than it saves.
 		fresh.fill(0);
 		for (let index = 0; index < area; index++) {
 			const cell = reverse ? area - 1 - index : index;

@@ -89,6 +89,7 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 	const [, refresh] = useReducer((version: number) => version + 1, 0);
 	const [target, setTarget] = useState<number | null>(null);
 	const [leaving, setLeaving] = useState<boolean>(false);
+	const [refused, setRefused] = useState<Element | null>(null);
 	const refDeck: RefObject<HTMLDivElement | null> = useRef(null);
 	const refGhost: RefObject<HTMLSpanElement | null> = useRef(null);
 	const refSlots: RefObject<(HTMLButtonElement | null)[]> = useRef([]);
@@ -132,6 +133,7 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 	}, []);
 
 	const commit = async (): Promise<void> => {
+		setRefused(null);
 		refresh();
 		await deck.save();
 	};
@@ -249,7 +251,7 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 
 	const pick = async (element: Element): Promise<void> => {
 		if (consume()) return;
-		if (!content.holds(element) && content.full) throw new RangeError(`The deck is full. Drag ${element.name} onto a slot to swap it in.`);
+		if (!content.holds(element) && content.full) return setRefused(element);
 		content.toggle(element);
 		await commit();
 	};
@@ -288,14 +290,17 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 				<h3 className="flex">
 					Deck
 					<span className="flex alt-center with-gap">
-						<button id="fill" type="button" className="depth rounded flex alt-center with-padding small-padding font-smaller-2" title="Fill the free places with random elements" hidden={content.full} onClick={event => void guard(fill())}>
+						<button id="fill" type="button" className="depth rounded flex alt-center with-gap with-padding font-smaller-2" title="Fill the free places with random elements" hidden={content.full} onClick={event => void guard(fill())}>
 							<span className="icon in-line"></span>
-							<span className="with-inline-padding">Autofill</span>
+							<span>Autofill</span>
 						</button>
 						<span className="description">{`${elements.length} / ${capacity}`}</span>
 					</span>
 				</h3>
-				<span className="description">{`Tap to add or remove, drag to place, hold for details. In a match your hand holds ${hand} of these ${capacity} at random.`}</span>
+				<p id="guide" aria-live="polite">
+					<span className="description" aria-hidden={refused !== null}>{`Tap to add or remove, drag to place, hold for details. In a match your hand holds ${hand} of these ${capacity} at random.`}</span>
+					<span className="alert" aria-hidden={refused === null}>{refused === null ? String.empty : `The deck is full. Drag ${refused.name} onto a slot to swap it in.`}</span>
+				</p>
 				<ol id="slots" className="with-gap">{slots}</ol>
 			</header>
 			<div className="flex column with-gap large-gap">

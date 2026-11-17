@@ -27,6 +27,7 @@ export function Scoreboard({ simulation, ticket }: ScoreboardProps): ReactElemen
 			const { tick, tally } = simulation.status;
 			setLeft(ceil((rules.length - tick) / rules.rate));
 			if (divRail === null) return;
+			// Not simplified: Verdict.percent and rival round the same shares, but the rail needs them unrounded.
 			const area = rules.size ** 2;
 			const owned = tally.scores[human] / area;
 			const rival = tally.against(human) / area;

@@ -94,6 +94,7 @@ export class Arena {
 	async allowance(visitor: Visitor, now: number): Promise<Allowance> {
 		const ledger = this.#ledger;
 		const [first, ...rest] = await Promise.all(visitor.buckets().map(bucket => ledger.allowance(bucket, now)));
+		// Not simplified: a reduce gives the same minimum, but with as many instructions as this loop.
 		let tightest = first;
 		for (const allowance of rest) {
 			if (allowance.left < tightest.left) tightest = allowance;

@@ -51,6 +51,7 @@ export class Crosshair {
 
 	aim(event: PointerEvent): Cell | null {
 		const size = this.size;
+		// Not simplified: size is checked twice, but splitting the two misses into guards takes more instructions.
 		const cell = size === null ? null : this.#locate(event, size);
 		if (size === null || cell === null) {
 			this.hide();
