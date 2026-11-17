@@ -31,26 +31,26 @@ describe("Game", () => {
 	const area = 41 ** 2;
 
 	it("shows the browser result until the verifier judges it", () => {
-		const game = new Game("id", "Capella s1", 0, area, 0, true, null, null);
+		const game = new Game("id", "Falcon s1", 0, area, 0, true, null, null);
 		expect([game.reviewed, game.outcome]).toEqual([false, true]);
 	});
 
 	it("is confirmed only when the verdict equals the browser result", () => {
-		const confirmed = new Game("id", "Capella s1", 0, area, 0, true, true, new Verdict([800, 300]));
-		const rejected = new Game("id", "Capella s1", 0, area, 0, true, false, null);
+		const confirmed = new Game("id", "Falcon s1", 0, area, 0, true, true, new Verdict([800, 300]));
+		const rejected = new Game("id", "Falcon s1", 0, area, 0, true, false, null);
 		expect([confirmed.confirmed, confirmed.outcome]).toEqual([true, true]);
 		expect([rejected.confirmed, rejected.outcome]).toEqual([false, false]);
 	});
 
 	it("counts a match left before the end as a loss", () => {
-		const waiting = new Game("id", "Capella s1", 0, area, 0, null, null, null);
-		const judged = new Game("id", "Capella s1", 0, area, 0, null, false, null);
+		const waiting = new Game("id", "Falcon s1", 0, area, 0, null, null, null);
+		const judged = new Game("id", "Falcon s1", 0, area, 0, null, false, null);
 		expect([waiting.left, waiting.confirmed, waiting.outcome]).toEqual([true, false, false]);
 		expect([judged.left, judged.confirmed, judged.outcome]).toEqual([true, false, false]);
 	});
 
 	it("crosses the wire unchanged", () => {
-		const games = [new Game("id", "Capella s1", 0, area, 5, true, null, null), new Game("id2", "Capella s1", 0, area, 6, false, false, new Verdict([300, 800]))];
+		const games = [new Game("id", "Falcon s1", 0, area, 5, true, null, null), new Game("id2", "Falcon s1", 0, area, 6, false, false, new Verdict([300, 800]))];
 		const history = new History(games, new Schedule([1, 2]), new Summary(1, 2, 1));
 		const copy = History.import(JSON.parse(JSON.stringify(History.export(history))), "history");
 		expect(History.export(copy)).toEqual(History.export(history));

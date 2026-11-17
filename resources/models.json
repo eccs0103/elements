@@ -2,7 +2,7 @@
 	"models": [
 		{
 			"folder": "data/agent-self-play",
-			"name": "Capella s1",
+			"name": "Falcon s1",
 			"description": "Learned only by playing against itself: 163,840 matches.",
 			"reaction": 0.6,
 			"digest": "d90a98ae969e2ba44fd8c273c04d5c74c2d58ac00b62014b6793134606716a7b"
