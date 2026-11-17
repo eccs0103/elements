@@ -542,8 +542,12 @@ export class History extends Model {
 	static locate(origin: Readonly<URI>): URI { return new URI(History.#route, origin); }
 }
 //#endregion
+//#region Refusal
+export class Refusal extends Error {
+}
+//#endregion
 //#region Shortage
-export class Shortage extends Error {
+export class Shortage extends Refusal {
 	static #minute: number = 60000;
 	static #status: number = 429;
 

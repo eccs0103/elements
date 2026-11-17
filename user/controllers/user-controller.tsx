@@ -6,7 +6,7 @@ import { StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { SettingsService } from "../../settings/services/settings-service.js";
 import { ArenaClient } from "../../arena/services/client.js";
-import { type History } from "../../arena/models/protocol.js";
+import { Refusal, type History } from "../../arena/models/protocol.js";
 import { UserApp } from "../view/user-app.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
 
@@ -42,9 +42,14 @@ class UserController extends Controller {
 			this.#history = await this.#client.history();
 			this.#trouble = null;
 		} catch (reason) {
-			this.#trouble = `The server could not be reached: ${Error.from(reason).message}`;
+			this.#trouble = UserController.#describe(Error.from(reason));
 		}
 		this.#render(root);
+	}
+
+	static #describe(error: Error): string {
+		if (error instanceof Refusal) return `The server refused: ${error.message}`;
+		return `The server could not be reached: ${error.message}`;
 	}
 
 	#render(root: Root): void {

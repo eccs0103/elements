@@ -2,7 +2,7 @@
 
 import "adaptive-extender/worker";
 import { URI } from "adaptive-extender/worker";
-import { Entry, Ticket, Start, Report, Standing, Allowance, History, Failure, Shortage } from "../models/protocol.js";
+import { Entry, Ticket, Start, Report, Standing, Allowance, History, Failure, Refusal, Shortage } from "../models/protocol.js";
 
 //#region Arena client
 export class ArenaClient {
@@ -45,7 +45,7 @@ export class ArenaClient {
 		if (response.ok) return payload;
 		const { error } = Failure.import(payload, "failure");
 		if (response.status === Shortage.status) throw new Shortage(error);
-		throw new Error(error);
+		throw new Refusal(error);
 	}
 }
 //#endregion

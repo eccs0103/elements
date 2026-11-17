@@ -127,7 +127,7 @@ export function UserApp({ history, trouble, now }: UserAppProps): ReactElement {
 				<section id="matches" className="layer rounded flex column with-gap with-padding large-padding">
 					<h3>Matches</h3>
 					<p id="trouble" className="alert" hidden={trouble === null}>{trouble}</p>
-					<p id="loading" className="description" hidden={history !== null}>Loading your matches…</p>
+					<p id="loading" className="description" hidden={history !== null || trouble !== null}>Loading your matches…</p>
 					<div id="empty" className="flex column alt-center with-gap" hidden={history === null || games.length > 0}>
 						<span className="icon"></span>
 						<p>No Arena matches yet.</p>
