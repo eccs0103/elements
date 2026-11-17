@@ -34,6 +34,7 @@ class Duel {
 	#playing: boolean = false;
 	#opening: boolean = false;
 	#switchable: boolean = true;
+	#tutorial: boolean = !settings.content.tutored;
 	#lobby: Ticket | null = null;
 	#drill: Ticket | null = null;
 	#refill: number | null = null;
@@ -56,9 +57,21 @@ class Duel {
 	#show(): void {
 		this.#root.render(
 			<StrictMode>
-				<PlaygroundApp catalog={Duel.#catalog}ticket={this.#drill} mode={this.#mode} online={this.#online} allowance={this.#allowance} arena={this.#arena} practice={this.#practice} playing={this.#playing} switchable={this.#switchable} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} onFailure={this.#fail.bind(this)} />
+				<PlaygroundApp catalog={Duel.#catalog}ticket={this.#drill} mode={this.#mode} online={this.#online} allowance={this.#allowance} arena={this.#arena} practice={this.#practice} playing={this.#playing} switchable={this.#switchable} tutorial={this.#tutorial} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onLearn={this.#learn.bind(this)} onTeach={this.#teach.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} onFailure={this.#fail.bind(this)} />
 			</StrictMode>
 		);
+	}
+
+	#teach(): void {
+		this.#tutorial = true;
+		this.#show();
+	}
+
+	async #learn(): Promise<void> {
+		this.#tutorial = false;
+		this.#show();
+		settings.content.tutored = true;
+		await settings.save();
 	}
 
 	// Not simplified: ArenaRouter.#model fetches the same catalog, but AgentCatalog is core and fetch is not.

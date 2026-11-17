@@ -11,6 +11,7 @@ import { type Notice } from "./notice.js";
 import { Peek } from "./peek.js";
 import { Scoreboard } from "./scoreboard.js";
 import { Tray } from "./tray.js";
+import { Tutorial } from "./tutorial.js";
 
 const { ceil, max } = Math;
 
@@ -122,11 +123,15 @@ interface BoardNoticeProps {
 	switchable: boolean;
 	onSwitch(mode: Mode): void;
 	onAgain(): void;
+	onTeach(): void;
 }
 
-function BoardNotice({ mode, online, allowance, arena, practice, playing, switchable, onSwitch, onAgain }: BoardNoticeProps): ReactElement {
+function BoardNotice({ mode, online, allowance, arena, practice, playing, switchable, onSwitch, onAgain, onTeach }: BoardNoticeProps): ReactElement {
 	return (
 		<section id="notice" className="layer rounded flex column with-gap with-padding large-padding" hidden={playing} aria-live="polite">
+			<button id="help" type="button" className="rounded flex center" title="How to play" aria-label="How to play" onClick={event => onTeach()}>
+				<span className="icon"></span>
+			</button>
 			<ModeSwitch mode={mode} online={online} allowance={allowance} hidden={!switchable} onSwitch={onSwitch} />
 			<div id="sides">
 				<NoticeSide notice={arena} shown={mode === Mode.arena} onAgain={onAgain} />
@@ -147,14 +152,17 @@ export interface PlaygroundAppProps {
 	practice: Notice;
 	playing: boolean;
 	switchable: boolean;
+	tutorial: boolean;
 	onSwitch(mode: Mode): void;
 	onAgain(): void;
+	onLearn(): void;
+	onTeach(): void;
 	onLaunch(simulation: Simulation): void;
 	onFinish(simulation: Simulation): void;
 	onFailure(message: string): void;
 }
 
-export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena, practice, playing, switchable, onSwitch, onAgain, onLaunch, onFinish, onFailure }: PlaygroundAppProps): ReactElement {
+export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena, practice, playing, switchable, tutorial, onSwitch, onAgain, onLearn, onTeach, onLaunch, onFinish, onFailure }: PlaygroundAppProps): ReactElement {
 	const [simulation, setSimulation] = useState<Simulation | null>(null);
 	const [crosshair, setCrosshair] = useState<Crosshair | null>(null);
 	const refBoard: RefObject<HTMLCanvasElement | null> = useRef(null);
@@ -191,12 +199,13 @@ export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena,
 					<span className="column"></span>
 					<span className="cell"></span>
 				</div>
-				<BoardNotice mode={mode} online={online} allowance={allowance} arena={arena} practice={practice} playing={playing} switchable={switchable} onSwitch={onSwitch} onAgain={onAgain} />
+				<BoardNotice mode={mode} online={online} allowance={allowance} arena={arena} practice={practice} playing={playing} switchable={switchable} onSwitch={onSwitch} onAgain={onAgain} onTeach={onTeach} />
 				{simulation === null || crosshair === null || ticket === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} ticket={ticket} />}
 				<div id="toolkit" className="flex">
 					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} ready={notice.playable || playing} />}
 				</div>
 			</div>
+			<Tutorial open={tutorial} onClose={onLearn} />
 		</main>
 	);
 }

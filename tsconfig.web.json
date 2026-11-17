@@ -18,6 +18,7 @@
 		"playground/view/peek.tsx",
 		"playground/view/scoreboard.tsx",
 		"playground/view/swatch.tsx",
+		"playground/view/tutorial.tsx",
 		"deck/controllers/deck-controller.tsx",
 		"deck/view/deck-app.tsx",
 		"deck/view/deck-builder.tsx",

@@ -514,3 +514,111 @@ dialog#gate {
 		backdrop-filter: blur(var(--size-gap));
 	}
 }
+
+button#help {
+	position: absolute;
+	inset: auto var(--size-small-gap) var(--size-small-gap) auto;
+	inline-size: var(--size-standart);
+	block-size: var(--size-standart);
+	color: var(--color-light-negative);
+
+	& span.icon {
+		inline-size: calc(var(--size-standart) - 2 * var(--size-small-gap));
+		block-size: calc(var(--size-standart) - 2 * var(--size-small-gap));
+		--url: url(../../assets/icons/circle-question.svg);
+	}
+}
+
+dialog#tutorial {
+	inline-size: calc(100vmin - 2 * var(--size-large-gap));
+	max-inline-size: calc(12 * var(--size-standart));
+	text-align: center;
+
+	& div.lessons {
+		display: grid;
+
+		& > article {
+			grid-area: 1 / 1;
+			justify-content: center;
+			transition: opacity var(--time-reveal-duration) ease-out;
+		}
+
+		& > article[inert] {
+			opacity: 0;
+		}
+
+		& span.icon {
+			inline-size: var(--size-large-standart);
+			block-size: var(--size-large-standart);
+			color: var(--color-highlight);
+		}
+
+		& span.icon.users {
+			--url: url(../../assets/icons/users.svg);
+		}
+
+		& span.icon.trophy {
+			--url: url(../../assets/icons/trophy.svg);
+		}
+
+		& span.icon.hand-pointer {
+			--url: url(../../assets/icons/hand-pointer.svg);
+		}
+
+		& span.icon.clock {
+			--url: url(../../assets/icons/clock.svg);
+		}
+
+		& span.icon.fire {
+			--url: url(../../assets/icons/fire.svg);
+		}
+
+		& span.icon.layer-group {
+			--url: url(../../assets/icons/layer-group.svg);
+		}
+	}
+
+	& ol.dots {
+		padding: 0;
+		list-style: none;
+
+		& li {
+			inline-size: var(--size-gap);
+			block-size: var(--size-gap);
+			background-color: var(--color-heavy-main);
+			transition: background-color var(--time-reveal-duration) ease-out;
+		}
+
+		& li[aria-current="true"] {
+			background-color: var(--color-highlight);
+		}
+	}
+
+	& form {
+		& button.skip {
+			margin-inline-end: auto;
+			color: var(--color-light-negative);
+		}
+
+		& button.forward {
+			display: grid;
+
+			& > span {
+				grid-area: 1 / 1;
+			}
+
+			& > span[aria-hidden="true"] {
+				visibility: hidden;
+			}
+		}
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	dialog#tutorial {
+		& div.lessons > article,
+		& ol.dots li {
+			transition: none;
+		}
+	}
+}
