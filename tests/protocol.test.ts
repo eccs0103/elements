@@ -51,7 +51,7 @@ describe("Game", () => {
 
 	it("crosses the wire unchanged", () => {
 		const games = [new Game("id", "Capella s1", 0, area, 5, true, null, null), new Game("id2", "Capella s1", 0, area, 6, false, false, new Verdict([300, 800]))];
-		const history = new History(games, new Schedule([1, 2]), Summary.import({ wins: 1, losses: 2, reviewing: 1 }, "summary"));
+		const history = new History(games, new Schedule([1, 2]), new Summary(1, 2, 1));
 		const copy = History.import(JSON.parse(JSON.stringify(History.export(history))), "history");
 		expect(History.export(copy)).toEqual(History.export(history));
 	});
@@ -70,6 +70,6 @@ describe("Summary", () => {
 	});
 
 	it("rounds the win rate", () => {
-		expect(Summary.import({ wins: 2, losses: 1, reviewing: 0 }, "summary").rate).toBe(67);
+		expect(new Summary(2, 1, 0).rate).toBe(67);
 	});
 });

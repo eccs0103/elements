@@ -484,6 +484,20 @@ export class Summary extends Model {
 	@Field(Number, { name: "reviewing" })
 	reviewing: number = 0;
 
+	constructor();
+	constructor(wins: number, losses: number, reviewing: number);
+	constructor(wins?: number, losses?: number, reviewing?: number) {
+		if (wins === undefined || losses === undefined || reviewing === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.wins = wins;
+		this.losses = losses;
+		this.reviewing = reviewing;
+	}
+
 	get played(): number { return this.wins + this.losses; }
 	get rate(): number | null {
 		const { played } = this;

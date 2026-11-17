@@ -9,6 +9,7 @@ import { Ticket, Report, Standing } from "../models/protocol.js";
 import { Ruling, type Minds } from "./ruling.js";
 import { type AgentModel } from "../../playground/models/agent-catalog.js";
 import { Weights } from "../../playground/models/weights.js";
+import { Move, type MoveScheme } from "../../playground/models/move.js";
 import { Network } from "../../playground/services/network.js";
 
 //#region Remote database
@@ -98,7 +99,7 @@ class TicketRow extends Model {
 	report(): Report | null {
 		const { moves, claimed } = this;
 		if (moves === null || claimed === null) return null;
-		return Report.import({ ticket: this.id, moves: JSON.parse(moves), won: Boolean(claimed) }, "report");
+		return new Report(this.id, Array.Of<Move, MoveScheme>(Move).import(JSON.parse(moves), "moves"), Boolean(claimed));
 	}
 }
 
