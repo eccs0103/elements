@@ -9,72 +9,11 @@ import { Rules } from "../../playground/models/rules.js";
 import { type DeckService } from "../../playground/services/deck-service.js";
 import { PeriodicTable } from "../../playground/services/periodic-table.js";
 import { Swatch } from "../../playground/view/swatch.js";
+import { Press, Slots } from "./press.js";
 
 const { body } = document;
-const { hypot } = Math;
 const random = Random.global;
 
-//#region Press
-class Press {
-	static #threshold: number = 6;
-	static #delay: number = 200;
-	static #buzz: number = 10;
-	#button: HTMLButtonElement;
-	#slot: number | null;
-	#element: Element;
-	#pointer: number;
-	#mouse: boolean;
-	#x: number;
-	#y: number;
-	#held: boolean = false;
-	#dragging: boolean = false;
-
-	constructor(button: HTMLButtonElement, event: PointerEvent<HTMLButtonElement>, slot: number | null, element: Element) {
-		this.#button = button;
-		this.#slot = slot;
-		this.#element = element;
-		this.#pointer = event.pointerId;
-		this.#mouse = event.pointerType === "mouse";
-		this.#x = event.clientX;
-		this.#y = event.clientY;
-	}
-
-	static get delay(): number { return Press.#delay; }
-
-	get slot(): number | null { return this.#slot; }
-	get element(): Element { return this.#element; }
-	get mouse(): boolean { return this.#mouse; }
-	get held(): boolean { return this.#held; }
-	get dragging(): boolean { return this.#dragging; }
-	get captured(): boolean { return this.#held || this.#dragging; }
-
-	get classes(): string {
-		let classes = " pressing";
-		if (this.#held) classes += " held";
-		if (this.#dragging) classes += " lifted";
-		return classes;
-	}
-
-	is(slot: number | null, element: Element): boolean {
-		return this.#slot === slot && this.#element.is(element);
-	}
-
-	strays(event: PointerEvent<HTMLButtonElement>): boolean {
-		return hypot(event.clientX - this.#x, event.clientY - this.#y) > Press.#threshold;
-	}
-
-	hold(): void {
-		this.#held = true;
-		this.#button.setPointerCapture(this.#pointer);
-		if ("vibrate" in navigator) navigator.vibrate(Press.#buzz);
-	}
-
-	drag(): void {
-		this.#dragging = true;
-		this.#button.setPointerCapture(this.#pointer);
-	}
-}
-//#endregion
 //#region Deck builder
 interface GhostStyle extends CSSProperties {
 	"--color": string;
@@ -92,24 +31,17 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 	const [refused, setRefused] = useState<Element | null>(null);
 	const refDeck: RefObject<HTMLDivElement | null> = useRef(null);
 	const refGhost: RefObject<HTMLSpanElement | null> = useRef(null);
-	const refSlots: RefObject<(HTMLButtonElement | null)[]> = useRef([]);
 	const refPress: RefObject<Press | null> = useRef(null);
-	const refTimer: RefObject<number | null> = useRef(null);
 	const refSwallow: RefObject<boolean> = useRef(false);
 	const { content } = deck;
 	const { elements, capacity } = content;
 	const { hand } = useMemo(() => new Rules(), []);
+	const slots = useMemo(() => new Slots(), []);
 	const groups = useMemo(() => Object.values(Phase).map(phase => PeriodicTable.placeable.filter(element => element.phase === phase)).filter(group => group.length > 0), []);
 	const press = refPress.current;
 
-	const disarm = (): void => {
-		const timer = refTimer.current;
-		if (timer !== null) clearTimeout(timer);
-		refTimer.current = null;
-	};
-
 	const cancel = (): void => {
-		disarm();
+		refPress.current?.disarm();
 		refPress.current = null;
 		setTarget(null);
 		refresh();
@@ -153,18 +85,11 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 		return swallow;
 	};
 
-	const find = (x: number, y: number): number | null => {
-		const buttonSlot = document.elementFromPoint(x, y)?.closest("button.slot");
-		if (!(buttonSlot instanceof HTMLButtonElement)) return null;
-		const slot = refSlots.current.indexOf(buttonSlot);
-		return slot < 0 ? null : slot;
-	};
-
 	const aim = (press: Press, x: number, y: number): void => {
 		const spanGhost = refGhost.current;
 		if (spanGhost === null) return;
 		const { style } = spanGhost;
-		const spot = find(x, y);
+		const spot = slots.find(x, y);
 		style.setProperty("--x", `${x}px`);
 		style.setProperty("--y", `${y}px`);
 		const card = press.slot === null;
@@ -178,23 +103,17 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 		return slot < content.elements.length;
 	};
 
-	const reach = (press: Press): void => {
-		refTimer.current = null;
-		press.hold();
-		refresh();
-	};
-
 	const begin = (event: PointerEvent<HTMLButtonElement>, slot: number | null, element: Element | null): void => {
 		refSwallow.current = false;
 		cancel();
 		if (!event.isPrimary || event.button !== 0 || element === null) return;
-		const press = refPress.current = new Press(event.currentTarget, event, slot, element);
-		refTimer.current = window.setTimeout(reach.bind(null, press), Press.delay);
+		const press = new Press(event.currentTarget, event.nativeEvent, slot, element);
+		refPress.current = press;
+		press.arm(refresh);
 		refresh();
 	};
 
 	const lift = (press: Press): void => {
-		disarm();
 		press.drag();
 		refresh();
 	};
@@ -203,7 +122,7 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 		const press = refPress.current;
 		if (press === null) return;
 		if (press.dragging) return aim(press, event.clientX, event.clientY);
-		if (!press.strays(event)) return;
+		if (!press.strays(event.nativeEvent)) return;
 		if (!press.held && !press.mouse) return cancel();
 		if (!movable(press)) {
 			refSwallow.current = press.held;
@@ -228,7 +147,7 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 		if (press === null) return;
 		if (press.dragging) {
 			refSwallow.current = true;
-			drop(press, find(event.clientX, event.clientY));
+			drop(press, slots.find(event.clientX, event.clientY));
 			return await commit();
 		}
 		if (!press.held) return;
@@ -266,16 +185,16 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 		return press.classes;
 	};
 
-	const slots: ReactElement[] = [];
+	const items: ReactElement[] = [];
 	for (let slot = 0; slot < capacity; slot++) {
 		const element = elements.at(slot) ?? null;
 		const empty = element === null ? " empty" : String.empty;
 		const marked = target === slot ? " target" : String.empty;
 		const pressed = element === null ? String.empty : gesture(slot, element);
 		const title = element === null ? "Empty slot: drop an element here" : `${element.name}: tap or drag out to remove, hold for details`;
-		slots.push(
+		items.push(
 			<li key={slot}>
-				<button type="button" ref={(buttonSlot) => { refSlots.current[slot] = buttonSlot; }} className={`card slot depth rounded flex column center with-padding${empty}${marked}${pressed}`} title={title} style={element === null ? undefined : Swatch.style(element)} onClick={event => void guard(tap(slot))} onPointerDown={event => begin(event, slot, element)} onPointerMove={follow} onPointerUp={event => void guard(release(event))} onPointerCancel={event => cancel()} onContextMenu={event => menu(event, element)}>
+				<button type="button" ref={(buttonSlot) => slots.set(slot, buttonSlot)} className={`card slot depth rounded flex column center with-padding${empty}${marked}${pressed}`} title={title} style={element === null ? undefined : Swatch.style(element)} onClick={event => void guard(tap(slot))} onPointerDown={event => begin(event, slot, element)} onPointerMove={follow} onPointerUp={event => void guard(release(event))} onPointerCancel={event => cancel()} onContextMenu={event => menu(event, element)}>
 					<span className="tile rounded"></span>
 					<span className="name font-smaller-2">{element === null ? "Empty" : element.name}</span>
 				</button>
@@ -301,7 +220,7 @@ export function DeckBuilder({ deck, onInspect }: DeckBuilderProps): ReactElement
 					<span className="description" aria-hidden={refused !== null}>{`Tap to add or remove, drag to place, hold for details. In a match your hand holds ${hand} of these ${capacity} at random.`}</span>
 					<span className="alert" aria-hidden={refused === null}>{refused === null ? String.empty : `The deck is full. Drag ${refused.name} onto a slot to swap it in.`}</span>
 				</p>
-				<ol id="slots" className="with-gap">{slots}</ol>
+				<ol id="slots" className="with-gap">{items}</ol>
 			</header>
 			<div className="flex column with-gap large-gap">
 				{groups.map(group => (

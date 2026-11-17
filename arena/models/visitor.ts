@@ -5,6 +5,7 @@ import { Bucket } from "./bucket.js";
 
 //#region Visitor
 export class Visitor {
+	static #mapped: RegExp = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i;
 	#user: string;
 	#address: string;
 
@@ -22,10 +23,13 @@ export class Visitor {
 
 	static #network(address: string): string {
 		if (!address.includes(":")) return address;
+		const mapped = Visitor.#mapped.exec(address);
+		if (mapped !== null) return mapped[1];
 		const halves = address.split("::");
 		const front = Visitor.#groups(halves[0]);
 		const back = halves.length > 1 ? Visitor.#groups(halves[1]) : [];
-		const groups = [...front, ...new Array<string>(8 - front.length - back.length).fill("0"), ...back];
+		const missing = 8 - front.length - back.length;
+		const groups = [...front, ...new Array<string>(missing).fill("0"), ...back];
 		return `${groups.slice(0, 4).map(group => Number.parseInt(group, 16).toString(16)).join(":")}::/64`;
 	}
 

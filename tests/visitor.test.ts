@@ -27,4 +27,11 @@ describe("Visitor", () => {
 		const [address] = new Visitor("visitor", "192.0.2.1").buckets();
 		expect(address.key).toBe("address:192.0.2.1");
 	});
+
+	it("limits an IPv4-mapped address as its IPv4", () => {
+		const [address] = new Visitor("visitor", "::ffff:192.0.2.1").buckets();
+		const [address2] = new Visitor("visitor", "::FFFF:203.0.113.9").buckets();
+		expect(address.key).toBe("address:192.0.2.1");
+		expect(address2.key).toBe("address:203.0.113.9");
+	});
 });

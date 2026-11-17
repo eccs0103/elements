@@ -58,8 +58,8 @@ function RecordCard({ summary }: RecordCardProps): ReactElement {
 
 	useLayoutEffect(() => {
 		const spanBar = refBar.current;
-		if (spanBar === null) return;
-		spanBar.style.setProperty("--wins", `${(rate ?? 0) / 100}`);
+		if (spanBar === null || rate === null) return;
+		spanBar.style.setProperty("--wins", `${rate / 100}`);
 	}, [rate]);
 
 	return (
@@ -92,13 +92,13 @@ interface ReviewStripProps {
 }
 
 function ReviewStrip({ summary, schedule, now }: ReviewStripProps): ReactElement {
-	const reviewing = summary?.reviewing ?? 0;
+	const reviewing = summary?.reviewing ?? null;
 	const eta = schedule?.eta(now) ?? null;
 	let when = "any moment now";
 	if (eta !== null) when = `about ${Calendar.clock(eta)}, ${Calendar.until(eta, now)}`;
 
 	return (
-		<section id="review" className="layer rounded flex alt-center with-gap with-padding large-padding" hidden={reviewing === 0}>
+		<section id="review" className="layer rounded flex alt-center with-gap with-padding large-padding" hidden={reviewing === null || reviewing === 0}>
 			<span className="icon"></span>
 			<div className="flex column">
 				<p>{`${reviewing} ${reviewing === 1 ? "match" : "matches"} in review. Next server check ${when}.`}</p>

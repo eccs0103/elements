@@ -70,7 +70,7 @@ class Library implements Minds {
 		if (known !== undefined) return known;
 		const bytes = FileSystem.readFileSync(model.weights(this.#catalog).toPath());
 		const found = Crypto.createHash("sha256").update(bytes).digest("hex");
-		if (found !== digest) throw new Error(`The weights of ${model.name} changed after its matches were played: ${found}, the ticket expects ${digest}`);
+		if (found !== digest) throw new TypeError(`The weights of ${model.name} changed after its matches were played: ${found}, the ticket expects ${digest}`);
 		const network = new Network(Weights.import(JSON.parse(bytes.toString("utf8")), "weights"));
 		networks.set(digest, network);
 		return network;

@@ -1,13 +1,13 @@
 "use strict";
 
 import "adaptive-extender/web";
-import { Nullable } from "adaptive-extender/web";
-import { Fragment, type ReactElement, type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactElement, type RefObject, useEffect, useMemo, useState } from "react";
 import { type Element } from "../models/elements.js";
 import { type Simulation } from "../services/simulation.js";
 import { type Ticket } from "../../arena/models/protocol.js";
 import { Sentence } from "../models/sentence.js";
-import { type Cell, type Crosshair } from "./crosshair.js";
+import { type Crosshair } from "./crosshair.js";
+import { Probe } from "./probe.js";
 import { Swatch, Traits } from "./swatch.js";
 
 //#region Chip
@@ -94,8 +94,6 @@ export function Peek({ board, crosshair, simulation, ticket }: PeekProps): React
 	const [present, setPresent] = useState<boolean>(false);
 	const [shown, setShown] = useState<Element | null>(null);
 	const [holder, setHolder] = useState<number | null>(null);
-	const refPointer: RefObject<number | null> = useRef(null);
-	const refTarget: RefObject<Cell | null> = useRef(null);
 
 	useEffect(() => {
 		const update = (event: Event): void => {
@@ -113,42 +111,14 @@ export function Peek({ board, crosshair, simulation, ticket }: PeekProps): React
 		const canvasBoard = board.current;
 		if (canvasBoard === null) return;
 
-		const track = (event: PointerEvent): void => {
-			if (event.pointerId !== refPointer.current) return;
-			const { size } = crosshair;
-			if (size === null) return;
-			const cell = crosshair.aim(event);
-			if (cell === refTarget.current) return;
-			refTarget.current = cell;
-			setBottom(cell !== null && cell.y < size / 2);
-			simulation.inspect(Nullable.map(cell, cell => cell.index(size)));
-		};
-
-		const press = (event: PointerEvent): void => {
-			if (refPointer.current !== null) return;
-			if (event.pointerType === "mouse" && event.button !== 0) return;
-			const { pointerId } = event;
-			canvasBoard.setPointerCapture(pointerId);
-			refPointer.current = pointerId;
-			setPressed(true);
-			track(event);
-		};
-
-		const release = (event: PointerEvent): void => {
-			if (event.pointerId !== refPointer.current) return;
-			refPointer.current = null;
-			refTarget.current = null;
-			crosshair.hide();
-			setPressed(false);
-			simulation.inspect(null);
-		};
-
+		const probe = new Probe(canvasBoard, crosshair, simulation);
 		const controller = new AbortController();
 		const { signal } = controller;
-		canvasBoard.addEventListener("pointerdown", press, { signal });
-		canvasBoard.addEventListener("pointermove", track, { signal });
-		canvasBoard.addEventListener("pointerup", release, { signal });
-		canvasBoard.addEventListener("pointercancel", release, { signal });
+		probe.addEventListener("change", (event) => {
+			setPressed(probe.pressed);
+			setBottom(probe.bottom);
+		}, { signal });
+		probe.listen(signal);
 		return () => controller.abort();
 	}, [board, crosshair, simulation]);
 
