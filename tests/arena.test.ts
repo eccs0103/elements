@@ -136,7 +136,7 @@ class OpenGate implements Gate {
 
 describe("Arena", () => {
 	const visitor = new Visitor("visitor", "192.0.2.1");
-	const model = new AgentModel("data/test", "Test", "A test model.", 0.6);
+	const model = new AgentModel("data/test", "Test", "A test model.", 0.6, "0".repeat(64));
 	const entry = new Entry(Ticket.draft(new Rules(), 1, Ticket.human).elements, "token");
 
 	it("spends a ticket only when a match starts, with the page's luck", async () => {

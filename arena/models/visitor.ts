@@ -17,7 +17,21 @@ export class Visitor {
 	get address(): string { return this.#address; }
 
 	buckets(): Bucket[] {
-		return [Bucket.address(this.#address), Bucket.visitor(this.#user)];
+		return [Bucket.address(Visitor.#network(this.#address)), Bucket.visitor(this.#user)];
+	}
+
+	static #network(address: string): string {
+		if (!address.includes(":")) return address;
+		const halves = address.split("::");
+		const front = Visitor.#groups(halves[0]);
+		const back = halves.length > 1 ? Visitor.#groups(halves[1]) : [];
+		const groups = [...front, ...new Array<string>(8 - front.length - back.length).fill("0"), ...back];
+		return `${groups.slice(0, 4).map(group => Number.parseInt(group, 16).toString(16)).join(":")}::/64`;
+	}
+
+	static #groups(part: string): string[] {
+		if (String.isEmpty(part)) return [];
+		return part.split(":");
 	}
 }
 //#endregion

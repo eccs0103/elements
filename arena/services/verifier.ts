@@ -2,9 +2,10 @@
 
 import "adaptive-extender/node";
 import FileSystem from "node:fs";
+import Crypto from "node:crypto";
 import { Any, Field, Model, Nullable, URI } from "adaptive-extender/node";
 import { type VerifierEnvironment } from "../models/verifier-environment.js";
-import { Ticket, Standing } from "../models/protocol.js";
+import { Ticket, Report, Standing } from "../models/protocol.js";
 import { Ruling, type Minds } from "./ruling.js";
 import { type AgentModel } from "../../playground/models/agent-catalog.js";
 import { Weights } from "../../playground/models/weights.js";
@@ -62,14 +63,16 @@ class Library implements Minds {
 	}
 
 	of(model: AgentModel): Network {
-		const { folder } = model;
+		const { digest } = model;
 		const networks = this.#networks;
 		// Not simplified: Map.getOrInsertComputed would replace this cache, but package.json allows Node 22, which lacks it.
-		const known = networks.get(folder);
+		const known = networks.get(digest);
 		if (known !== undefined) return known;
-		const text = FileSystem.readFileSync(model.weights(this.#catalog).toPath(), "utf8");
-		const network = new Network(Weights.import(JSON.parse(text), "weights"));
-		networks.set(folder, network);
+		const bytes = FileSystem.readFileSync(model.weights(this.#catalog).toPath());
+		const found = Crypto.createHash("sha256").update(bytes).digest("hex");
+		if (found !== digest) throw new Error(`The weights of ${model.name} changed after its matches were played: ${found}, the ticket expects ${digest}`);
+		const network = new Network(Weights.import(JSON.parse(bytes.toString("utf8")), "weights"));
+		networks.set(digest, network);
 		return network;
 	}
 }
@@ -84,6 +87,19 @@ class TicketRow extends Model {
 
 	@Field(Nullable.Of(String), { name: "moves" })
 	moves: string | null;
+
+	@Field(Nullable.Of(Number), { name: "claimed" })
+	claimed: number | null;
+
+	match(): Ticket {
+		return Ticket.import(JSON.parse(this.ticket), "ticket");
+	}
+
+	report(): Report | null {
+		const { moves, claimed } = this;
+		if (moves === null || claimed === null) return null;
+		return Report.import({ ticket: this.id, moves: JSON.parse(moves), won: Boolean(claimed) }, "report");
+	}
 }
 
 export class Verifier {
@@ -103,12 +119,12 @@ export class Verifier {
 		const library = this.#library;
 		const standing = new Standing();
 		while (true) {
-			const rows = await database.query("SELECT id, ticket, moves FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND (reported IS NOT NULL OR started < ?1) LIMIT ?2", [now - Ticket.deadline, Verifier.#page]);
+			const rows = await database.query("SELECT id, ticket, moves, claimed FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND (reported IS NOT NULL OR started < ?1) LIMIT ?2", [now - Ticket.deadline, Verifier.#page]);
 			if (rows.length === 0) break;
 			for (const row of rows) {
-				const { id, ticket, moves } = TicketRow.import(row, "row");
-				const ruling = Ruling.of(ticket, moves, library);
-				await database.query("UPDATE tickets SET judged = ?2, won = ?3, scores = ?4 WHERE id = ?1 AND judged IS NULL", [id, now, Number(ruling.won), ruling.record]);
+				const record = TicketRow.import(row, "row");
+				const ruling = Ruling.of(record.match(), record.report(), library);
+				await database.query("UPDATE tickets SET judged = ?2, won = ?3, scores = ?4 WHERE id = ?1 AND judged IS NULL", [record.id, now, Number(ruling.won), ruling.record]);
 				ruling.count(standing);
 			}
 		}

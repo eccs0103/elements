@@ -9,6 +9,7 @@ export interface AgentModelScheme {
 	name: string;
 	description: string;
 	reaction: number;
+	digest: string;
 }
 
 export class AgentModel extends Model {
@@ -27,10 +28,14 @@ export class AgentModel extends Model {
 	@Field(Number, { name: "reaction" })
 	reaction: number;
 
+	// Must equal the SHA-256 of weights.json: new weights in the same folder without a new digest stop the verifier.
+	@Field(String, { name: "digest" })
+	digest: string;
+
 	constructor();
-	constructor(folder: string, name: string, description: string, reaction: number);
-	constructor(folder?: string, name?: string, description?: string, reaction?: number) {
-		if (folder === undefined || name === undefined || description === undefined || reaction === undefined) {
+	constructor(folder: string, name: string, description: string, reaction: number, digest: string);
+	constructor(folder?: string, name?: string, description?: string, reaction?: number, digest?: string) {
+		if (folder === undefined || name === undefined || description === undefined || reaction === undefined || digest === undefined) {
 			super();
 			return;
 		}
@@ -40,6 +45,7 @@ export class AgentModel extends Model {
 		this.name = name;
 		this.description = description;
 		this.reaction = reaction;
+		this.digest = digest;
 	}
 
 	weights(source: Readonly<URI>): URI {
