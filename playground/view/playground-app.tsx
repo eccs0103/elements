@@ -100,7 +100,7 @@ function NoticeSide({ notice, shown, onAgain }: NoticeSideProps): ReactElement {
 	}, [deadline]);
 
 	return (
-		<article className="flex column with-gap" inert={!shown} aria-hidden={!shown} aria-busy={notice.busy}>
+		<article className="flex column with-gap" inert={!shown} aria-busy={notice.busy}>
 			<h2>{notice.title}</h2>
 			<p className="description">{notice.description}</p>
 			<footer>
@@ -129,7 +129,7 @@ interface BoardNoticeProps {
 function BoardNotice({ mode, online, allowance, arena, practice, playing, switchable, onSwitch, onAgain, onTeach }: BoardNoticeProps): ReactElement {
 	return (
 		<section id="notice" className="layer rounded flex column with-gap with-padding large-padding" hidden={playing} aria-live="polite">
-			<button id="help" type="button" className="rounded flex center" title="How to play" aria-label="How to play" onClick={event => onTeach()}>
+			<button id="help" type="button" className="rounded flex center" title="How to play" onClick={event => onTeach()}>
 				<span className="icon"></span>
 			</button>
 			<ModeSwitch mode={mode} online={online} allowance={allowance} hidden={!switchable} onSwitch={onSwitch} />

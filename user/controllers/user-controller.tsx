@@ -25,6 +25,7 @@ class UserController extends Controller {
 		void AnalyticsController.launch();
 		settings.apply();
 
+		// Not simplified: a #root field would run before run(), so a missing div#root would skip the controller's catch (owner).
 		const root = createRoot(body.getElement(HTMLDivElement, "div#root"));
 		this.#render(root);
 		await this.#refresh(root);

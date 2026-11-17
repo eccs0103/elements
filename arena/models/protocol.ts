@@ -269,6 +269,7 @@ export class Verdict extends Model {
 		return round(this.scores[side] / area * 100);
 	}
 
+	// Not simplified: percent(1 - side) gives the same with two sides, but rival stays right for any count (owner).
 	rival(side: number, area: number): number {
 		return round(this.against(side) / area * 100);
 	}

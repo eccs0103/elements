@@ -14,7 +14,7 @@ interface LessonProps {
 
 function Lesson({ icon, title, text, shown }: LessonProps): ReactElement {
 	return (
-		<article className="flex column alt-center with-gap" inert={!shown} aria-hidden={!shown}>
+		<article className="flex column alt-center with-gap" inert={!shown}>
 			<span className={`icon ${icon}`}></span>
 			<h3>{title}</h3>
 			<p className="description">{text}</p>

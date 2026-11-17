@@ -67,6 +67,7 @@ class Duel {
 		this.#show();
 	}
 
+	// Not simplified: the dialog is already closed, but without this render the prop stays true and the next #teach could not reopen it.
 	async #learn(): Promise<void> {
 		this.#tutorial = false;
 		this.#show();

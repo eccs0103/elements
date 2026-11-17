@@ -254,7 +254,7 @@ export function ElementDialog({ deck, element, onClose, onChange }: ElementDialo
 		<dialog id="details" ref={refDialog} className="layer rounded" aria-labelledby="details-name" onClick={dismiss} onClose={close}>
 			<div className="flex column with-gap large-gap with-padding large-padding">
 				<header className="flex alt-center with-gap">
-					<button type="button" className="back icon-button rounded flex center" title="Back" aria-label="Back" hidden={history.length < 2} onClick={event => back()}>
+					<button type="button" className="back icon-button rounded flex center" title="Back" hidden={history.length < 2} onClick={event => back()}>
 						<span className="icon"></span>
 					</button>
 					<span className="tile rounded" style={current === null ? undefined : Swatch.style(current)}></span>
@@ -262,7 +262,7 @@ export function ElementDialog({ deck, element, onClose, onChange }: ElementDialo
 						<h2 id="details-name" className="name">{name}</h2>
 						<span className="phase description">{current?.phase}</span>
 					</div>
-					<button type="button" className="close icon-button rounded flex center" title="Close" aria-label="Close" onClick={event => refDialog.current?.close()}>
+					<button type="button" className="close icon-button rounded flex center" title="Close" onClick={event => refDialog.current?.close()}>
 						<span className="icon"></span>
 					</button>
 				</header>

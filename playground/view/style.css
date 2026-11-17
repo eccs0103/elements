@@ -376,6 +376,7 @@ div#score {
 	}
 }
 
+/* Not simplified: each component keeps its own reduced-motion rules (owner). */
 @media (prefers-reduced-motion: reduce) {
 	div#score {
 		& div.rail {
@@ -534,6 +535,7 @@ dialog#tutorial {
 	max-inline-size: calc(12 * var(--size-standart));
 	text-align: center;
 
+	/* Not simplified: the same stack as div#sides, kept separate so the tutorial and the notice change independently (owner). */
 	& div.lessons {
 		display: grid;
 
@@ -567,14 +569,6 @@ dialog#tutorial {
 
 		& span.icon.clock {
 			--url: url(../../assets/icons/clock.svg);
-		}
-
-		& span.icon.fire {
-			--url: url(../../assets/icons/fire.svg);
-		}
-
-		& span.icon.layer-group {
-			--url: url(../../assets/icons/layer-group.svg);
 		}
 	}
 
@@ -614,6 +608,7 @@ dialog#tutorial {
 	}
 }
 
+/* Not simplified: each component keeps its own reduced-motion rules (owner). */
 @media (prefers-reduced-motion: reduce) {
 	dialog#tutorial {
 		& div.lessons > article,

@@ -1,3 +1,4 @@
+/* Not simplified: the playground's div#score declares the same colours; each page owns its own (owner). */
 main {
 	--ours: var(--color-highlight);
 	--agent: var(--color-negative);
@@ -52,12 +53,14 @@ section#record {
 }
 
 section#review {
+	/* Not simplified: the user page keeps its own icon URLs (owner). */
 	& > span.icon {
 		flex-shrink: 0;
 		color: var(--color-warn);
 		--url: url(../../assets/icons/clock.svg);
 	}
 
+	/* Not simplified: each block keeps its own paragraph spacing (owner). */
 	& p {
 		margin: 0;
 	}

@@ -14,10 +14,6 @@ nav {
 		color: var(--color-highlight);
 	}
 
-	& a.icon-deck span.icon {
-		--url: url(../assets/icons/layer-group.svg);
-	}
-
 	& a.icon-playground span.icon {
 		--url: url(../assets/icons/cubes.svg);
 	}
@@ -29,6 +25,11 @@ nav {
 	& a.icon-settings span.icon {
 		--url: url(../assets/icons/gear.svg);
 	}
+}
+
+nav a.icon-deck span.icon,
+span.icon.layer-group {
+	--url: url(../assets/icons/layer-group.svg);
 }
 
 main {
@@ -62,7 +63,8 @@ li.trait.heat span.icon {
 }
 
 li.trait.flammable span.icon,
-span.icon.flammable {
+span.icon.flammable,
+span.icon.fire {
 	--url: url(../assets/icons/fire.svg);
 }
 

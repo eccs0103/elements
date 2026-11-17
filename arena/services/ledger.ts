@@ -32,6 +32,7 @@ class GameRow extends Model {
 	@Field(Nullable.Of(String), { name: "scores" })
 	scores: string | null;
 
+	// Not simplified: D1Ledger.#ticket parses the same way, but sharing it needs a public static that saves nothing.
 	game(): Game {
 		const { model, human, rules } = Ticket.import(JSON.parse(this.ticket), "ticket");
 		const verdict = Nullable.map(this.scores, GameRow.#verdict);
