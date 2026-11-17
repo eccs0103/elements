@@ -89,6 +89,7 @@ class TicketRow extends Model {
 export class Verifier {
 	static #page: number = 100;
 	static #hour: number = 3600000;
+	static #runs: number = 20;
 	#database: RemoteDatabase;
 	#library: Library;
 
@@ -113,6 +114,8 @@ export class Verifier {
 		}
 		await database.query("DELETE FROM tickets WHERE started IS NULL AND issued < ?1", [now - Ticket.idle]);
 		await database.query("DELETE FROM buckets WHERE updated < ?1", [now - Verifier.#hour]);
+		await database.query("INSERT OR IGNORE INTO runs (started) VALUES (?1)", [now]);
+		await database.query("DELETE FROM runs WHERE started NOT IN (SELECT started FROM runs ORDER BY started DESC LIMIT ?1)", [Verifier.#runs]);
 		const { humanity, agent } = standing;
 		console.log(`Judged ${humanity + agent} matches: humanity ${humanity}, agent ${agent}`);
 	}

@@ -2,7 +2,7 @@
 
 import "adaptive-extender/core";
 import { URI } from "adaptive-extender/core";
-import { Entry, Ticket, Start, Report, Standing, Allowance, Failure, Shortage } from "../models/protocol.js";
+import { Entry, Ticket, Start, Report, Standing, Allowance, History, Failure, Shortage } from "../models/protocol.js";
 import { Visitor } from "../models/visitor.js";
 import { VisitorCookies } from "../../environment/workers/visitor-cookies.js";
 import { type Arena } from "./arena.js";
@@ -46,6 +46,7 @@ export class ArenaRouter {
 		if (method === "POST" && Report.locate(target).pathname === pathname) return Response.json(Standing.export(await arena.report(Report.import(await request.json(), "report"), visitor, now)));
 		if (method === "GET" && Standing.locate(target).pathname === pathname) return Response.json(Standing.export(await arena.standing()));
 		if (method === "GET" && Allowance.locate(target).pathname === pathname) return Response.json(Allowance.export(await arena.allowance(visitor, now)));
+		if (method === "GET" && History.locate(target).pathname === pathname) return Response.json(History.export(await arena.history(visitor, now)));
 		return Response.json(Failure.export(new Failure(`No route for ${method} ${pathname}`)), { status: 404 });
 	}
 

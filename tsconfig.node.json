@@ -13,6 +13,7 @@
 		"tests/determinism.test.ts",
 		"tests/agent.test.ts",
 		"tests/arena.test.ts",
+		"tests/protocol.test.ts",
 		"arena/controllers/verify.ts",
 		"arena/services/verifier.ts",
 		"arena/vite.config.ts"

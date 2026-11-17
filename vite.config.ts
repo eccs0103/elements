@@ -15,6 +15,7 @@ export default defineConfig(async (env) => {
 	const inputs: URI[] = [
 		new URI("./deck/index.html", root),
 		new URI("./playground/index.html", root),
+		new URI("./user/index.html", root),
 		new URI("./settings/index.html", root),
 	];
 	const rootEntries: URI[] = [

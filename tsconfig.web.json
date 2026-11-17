@@ -23,6 +23,9 @@
 		"deck/view/deck-app.tsx",
 		"deck/view/deck-builder.tsx",
 		"deck/view/element-dialog.tsx",
+		"user/controllers/user-controller.tsx",
+		"user/view/user-app.tsx",
+		"user/view/calendar.ts",
 		"settings/controllers/settings-controller.tsx",
 		"settings/services/settings-service.ts",
 		"settings/view/settings-app.tsx"

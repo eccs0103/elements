@@ -1,0 +1,172 @@
+main {
+	--ours: var(--color-highlight);
+	--agent: var(--color-negative);
+}
+
+section#record {
+	& div.tally {
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
+		align-items: end;
+		gap: var(--size-gap);
+		font-variant-numeric: tabular-nums;
+	}
+
+	& div.stat {
+		display: grid;
+		line-height: 1.1;
+
+		&.win {
+			justify-items: start;
+			color: var(--ours);
+		}
+
+		&.rate {
+			justify-items: center;
+		}
+
+		&.loss {
+			justify-items: end;
+		}
+	}
+
+	& span.number {
+		font-weight: 800;
+	}
+
+	& div.win span.number,
+	& div.loss span.number {
+		font-size: var(--size-standart);
+	}
+
+	& span.caption {
+		color: var(--color-light-negative);
+	}
+
+	& span.bar {
+		display: block;
+		block-size: var(--size-large-separator);
+		border-radius: var(--size-standart);
+		background-image: linear-gradient(to right, var(--ours) calc(var(--wins, 0) * 100%), var(--agent) 0);
+	}
+}
+
+section#review {
+	& > span.icon {
+		flex-shrink: 0;
+		color: var(--color-warn);
+		--url: url(../../assets/icons/clock.svg);
+	}
+
+	& p {
+		margin: 0;
+	}
+}
+
+section#matches {
+	& p#trouble,
+	& p#loading {
+		margin: 0;
+	}
+
+	& div#empty {
+		padding: var(--size-large-gap) 0;
+		text-align: center;
+
+		& > span.icon {
+			color: var(--color-light-negative);
+			--url: url(../../assets/icons/trophy.svg);
+		}
+
+		& p {
+			margin: 0;
+		}
+
+		& a {
+			text-decoration: none;
+			font-weight: 600;
+		}
+	}
+
+	& section.day > h4 {
+		margin: 0;
+		padding-block: var(--size-gap) var(--size-small-gap);
+		color: var(--color-light-negative);
+
+		&::first-letter {
+			text-transform: uppercase;
+		}
+	}
+
+	& ol.games {
+		display: grid;
+		padding: 0;
+		margin: 0;
+		list-style: none;
+	}
+}
+
+li.game {
+	padding-block: var(--size-gap);
+	padding-inline-start: var(--size-gap);
+	border-block-start: var(--size-small-separator) solid var(--color-heavy-main);
+	border-inline-start: calc(1.5 * var(--size-separator)) solid;
+
+	&.loss {
+		border-inline-start-color: var(--agent);
+	}
+
+	&.win {
+		border-inline-start-color: var(--ours);
+
+		& b.word {
+			color: var(--ours);
+		}
+	}
+
+	& b.word {
+		font-weight: 800;
+	}
+
+	& div.about {
+		flex: 1;
+		min-inline-size: 0;
+	}
+
+	& span.rival {
+		font-weight: 600;
+	}
+
+	& span.time,
+	& span.note {
+		color: var(--color-light-negative);
+	}
+
+	& span.status {
+		flex-shrink: 0;
+		gap: var(--size-small-gap);
+		font-variant-numeric: tabular-nums;
+
+		&.reviewing {
+			color: var(--color-warn);
+
+			& span.icon {
+				--url: url(../../assets/icons/clock.svg);
+			}
+		}
+
+		&.verified span.icon {
+			color: var(--ours);
+			--url: url(../../assets/icons/circle-check.svg);
+		}
+
+		&.rejected,
+		&.left {
+			color: var(--color-error);
+
+			& span.icon {
+				--url: url(../../assets/icons/xmark.svg);
+			}
+		}
+	}
+}

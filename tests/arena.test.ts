@@ -4,7 +4,7 @@ import "adaptive-extender/node";
 import { describe, it, expect } from "vitest";
 import { Rules } from "../playground/models/rules.js";
 import { AgentModel } from "../playground/models/agent-catalog.js";
-import { Ticket, Entry, Start, Standing, Shortage, type Report, type Allowance } from "../arena/models/protocol.js";
+import { Ticket, Entry, Start, Standing, Shortage, Schedule, Summary, type Report, type Allowance, type Game } from "../arena/models/protocol.js";
 import { type Bucket } from "../arena/models/bucket.js";
 import { Visitor } from "../arena/models/visitor.js";
 import { Arena, type Gate, type Ledger } from "../arena/services/arena.js";
@@ -109,6 +109,20 @@ class MemoryLedger implements Ledger {
 
 	async standing(): Promise<Standing> {
 		return new Standing();
+	}
+
+	async games(user: string, since: number, limit: number): Promise<Game[]> {
+		void user, since, limit;
+		return [];
+	}
+
+	async summary(user: string, since: number): Promise<Summary> {
+		void user, since;
+		return new Summary();
+	}
+
+	async schedule(): Promise<Schedule> {
+		return new Schedule([]);
 	}
 }
 //#endregion

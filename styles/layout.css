@@ -22,6 +22,10 @@ nav {
 		--url: url(../assets/icons/cubes.svg);
 	}
 
+	& a.icon-user span.icon {
+		--url: url(../assets/icons/user.svg);
+	}
+
 	& a.icon-settings span.icon {
 		--url: url(../assets/icons/gear.svg);
 	}

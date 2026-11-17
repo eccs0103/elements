@@ -11,7 +11,7 @@ import { type Player } from "../../playground/services/players.js";
 import { Agent, type Mind } from "../../playground/services/agent.js";
 import { AgentModel, type AgentModelScheme } from "../../playground/models/agent-catalog.js";
 
-const { max, ceil } = Math;
+const { max, ceil, trunc, round } = Math;
 
 //#region Entry
 export interface EntryScheme {
@@ -264,6 +264,14 @@ export class Verdict extends Model {
 		const { scores } = this;
 		return scores.reduce((sum, score) => sum + score, 0) - scores[side];
 	}
+
+	percent(side: number, area: number): number {
+		return round(this.scores[side] / area * 100);
+	}
+
+	rival(side: number, area: number): number {
+		return round(this.against(side) / area * 100);
+	}
 }
 //#endregion
 //#region Standing
@@ -348,6 +356,174 @@ export class Allowance extends Model {
 	}
 
 	static locate(origin: Readonly<URI>): URI { return new URI(Allowance.#route, origin); }
+}
+//#endregion
+//#region Schedule
+export interface ScheduleScheme {
+	runs: number[];
+}
+
+export class Schedule extends Model {
+	// Must match the cron of .github/workflows/verify.yml.
+	static #period: number = 900000;
+
+	@Field(Array.Of(Number), { name: "runs" })
+	runs: number[];
+
+	constructor();
+	constructor(runs: number[]);
+	constructor(runs?: number[]) {
+		if (runs === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.runs = runs;
+	}
+
+	get next(): number | null {
+		const { runs } = this;
+		const last = runs.at(-1);
+		if (last === undefined) return null;
+		if (runs.length < 2) return last + Schedule.#period;
+		return last + trunc((last - runs[0]) / (runs.length - 1));
+	}
+
+	eta(now: number): number | null {
+		const next = this.next ?? Schedule.#slot(now);
+		if (now >= next) return null;
+		return next;
+	}
+
+	static #slot(now: number): number {
+		const period = Schedule.#period;
+		return (trunc(now / period) + 1) * period;
+	}
+}
+//#endregion
+//#region Game
+export interface GameScheme {
+	id: string;
+	model: string;
+	human: number;
+	area: number;
+	started: number;
+	claimed: boolean | null;
+	won: boolean | null;
+	verdict: VerdictScheme | null;
+}
+
+export class Game extends Model {
+	@Field(String, { name: "id" })
+	id: string;
+
+	@Field(String, { name: "model" })
+	model: string;
+
+	@Field(Number, { name: "human" })
+	human: number;
+
+	@Field(Number, { name: "area" })
+	area: number;
+
+	@Field(Number, { name: "started" })
+	started: number;
+
+	@Field(Nullable.Of(Boolean), { name: "claimed" })
+	claimed: boolean | null;
+
+	@Field(Nullable.Of(Boolean), { name: "won" })
+	won: boolean | null;
+
+	@Field(Nullable.Of(Verdict), { name: "verdict" })
+	verdict: Verdict | null;
+
+	constructor();
+	constructor(id: string, model: string, human: number, area: number, started: number, claimed: boolean | null, won: boolean | null, verdict: Verdict | null);
+	constructor(id?: string, model?: string, human?: number, area?: number, started?: number, claimed?: boolean | null, won?: boolean | null, verdict?: Verdict | null) {
+		if (id === undefined || model === undefined || human === undefined || area === undefined || started === undefined || claimed === undefined || won === undefined || verdict === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.id = id;
+		this.model = model;
+		this.human = human;
+		this.area = area;
+		this.started = started;
+		this.claimed = claimed;
+		this.won = won;
+		this.verdict = verdict;
+	}
+
+	get reviewed(): boolean { return this.won !== null; }
+	get left(): boolean { return this.claimed === null; }
+	get confirmed(): boolean { return this.claimed !== null && this.won === this.claimed; }
+	// A match left before the end counts as a loss, so false is the rule here, not a placeholder.
+	get outcome(): boolean { return this.won ?? this.claimed ?? false; }
+}
+//#endregion
+//#region Summary
+export interface SummaryScheme {
+	wins: number;
+	losses: number;
+	reviewing: number;
+}
+
+export class Summary extends Model {
+	@Field(Number, { name: "wins" })
+	wins: number = 0;
+
+	@Field(Number, { name: "losses" })
+	losses: number = 0;
+
+	@Field(Number, { name: "reviewing" })
+	reviewing: number = 0;
+
+	get played(): number { return this.wins + this.losses; }
+	get rate(): number | null {
+		const { played } = this;
+		if (played === 0) return null;
+		return round(this.wins / played * 100);
+	}
+}
+//#endregion
+//#region History
+export interface HistoryScheme {
+	games: GameScheme[];
+	schedule: ScheduleScheme;
+	summary: SummaryScheme;
+}
+
+export class History extends Model {
+	static #route: string = "/api/history";
+
+	@Field(Array.Of(Game), { name: "games" })
+	games: Game[];
+
+	@Field(Schedule, { name: "schedule" })
+	schedule: Schedule;
+
+	@Field(Summary, { name: "summary" })
+	summary: Summary;
+
+	constructor();
+	constructor(games: Game[], schedule: Schedule, summary: Summary);
+	constructor(games?: Game[], schedule?: Schedule, summary?: Summary) {
+		if (games === undefined || schedule === undefined || summary === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.games = games;
+		this.schedule = schedule;
+		this.summary = summary;
+	}
+
+	static locate(origin: Readonly<URI>): URI { return new URI(History.#route, origin); }
 }
 //#endregion
 //#region Shortage

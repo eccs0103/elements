@@ -3,7 +3,7 @@
 import "adaptive-extender/core";
 import { type Element } from "../../playground/models/elements.js";
 import { Rules } from "../../playground/models/rules.js";
-import { Ticket, Shortage, type Entry, type Start, type Report, type Standing, type Allowance } from "../models/protocol.js";
+import { Ticket, Shortage, History, type Entry, type Start, type Report, type Standing, type Allowance, type Game, type Schedule, type Summary } from "../models/protocol.js";
 import { type Bucket } from "../models/bucket.js";
 import { type Visitor } from "../models/visitor.js";
 import { type AgentModel } from "../../playground/models/agent-catalog.js";
@@ -25,10 +25,14 @@ export interface Ledger {
 	start(ticket: Ticket, user: string, since: number, now: number): Promise<boolean>;
 	report(report: Report, user: string, since: number, now: number): Promise<boolean>;
 	standing(): Promise<Standing>;
+	games(user: string, since: number, limit: number): Promise<Game[]>;
+	summary(user: string, since: number): Promise<Summary>;
+	schedule(): Promise<Schedule>;
 }
 
 export class Arena {
 	static #unknown: string = "The ticket is unknown, expired or already started";
+	static #shown: number = 50;
 	#ledger: Ledger;
 	#gate: Gate;
 
@@ -77,6 +81,14 @@ export class Arena {
 
 	async standing(): Promise<Standing> {
 		return await this.#ledger.standing();
+	}
+
+	async history(visitor: Visitor, now: number): Promise<History> {
+		const ledger = this.#ledger;
+		const { user } = visitor;
+		const since = now - Ticket.deadline;
+		const [games, schedule, summary] = await Promise.all([ledger.games(user, since, Arena.#shown), ledger.schedule(), ledger.summary(user, since)]);
+		return new History(games, schedule, summary);
 	}
 
 	async allowance(visitor: Visitor, now: number): Promise<Allowance> {

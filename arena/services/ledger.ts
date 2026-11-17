@@ -1,9 +1,9 @@
 "use strict";
 
 import "adaptive-extender/core";
-import { Nullable } from "adaptive-extender/core";
+import { Field, Model, Nullable } from "adaptive-extender/core";
 import { Move } from "../../playground/models/move.js";
-import { Ticket, Report, Standing, type Allowance } from "../models/protocol.js";
+import { Ticket, Report, Standing, Game, Schedule, Summary, Verdict, type Allowance } from "../models/protocol.js";
 import { type Bucket } from "../models/bucket.js";
 import { type Ledger } from "./arena.js";
 
@@ -13,7 +13,43 @@ interface BucketRow {
 	updated: number;
 }
 
+class GameRow extends Model {
+	@Field(String, { name: "id" })
+	id: string;
+
+	@Field(String, { name: "ticket" })
+	ticket: string;
+
+	@Field(Number, { name: "started" })
+	started: number;
+
+	@Field(Nullable.Of(Number), { name: "claimed" })
+	claimed: number | null;
+
+	@Field(Nullable.Of(Number), { name: "won" })
+	won: number | null;
+
+	@Field(Nullable.Of(String), { name: "scores" })
+	scores: string | null;
+
+	game(): Game {
+		const { model, human, rules } = Ticket.import(JSON.parse(this.ticket), "ticket");
+		const verdict = Nullable.map(this.scores, GameRow.#verdict);
+		return new Game(this.id, model.name, human, rules.size ** 2, this.started, Nullable.map(this.claimed, Boolean), Nullable.map(this.won, Boolean), verdict);
+	}
+
+	static #verdict(text: string): Verdict {
+		return new Verdict(Array.Of(Number).import(JSON.parse(text), "scores"));
+	}
+}
+
+class RunRow extends Model {
+	@Field(Number, { name: "started" })
+	started: number;
+}
+
 export class D1Ledger implements Ledger {
+	static #finished: string = "visitor = ?1 AND started IS NOT NULL AND (reported IS NOT NULL OR judged IS NOT NULL OR started < ?2)";
 	#database: D1Database;
 
 	constructor(database: D1Database) {
@@ -84,6 +120,22 @@ export class D1Ledger implements Ledger {
 		const row = await this.#database.prepare("SELECT humanity, agent, (SELECT count(*) FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND reported IS NOT NULL AND claimed = 1) AS review_humanity, (SELECT count(*) FROM tickets WHERE started IS NOT NULL AND judged IS NULL AND reported IS NOT NULL AND claimed = 0) AS review_agent FROM standing WHERE id = 1").first();
 		if (row === null) return new Standing();
 		return Standing.import(row, "standing");
+	}
+
+	async games(user: string, since: number, limit: number): Promise<Game[]> {
+		const { results } = await this.#database.prepare(`SELECT id, ticket, started, claimed, won, scores FROM tickets WHERE ${D1Ledger.#finished} ORDER BY started DESC LIMIT ?3`).bind(user, since, limit).all();
+		return results.map(row => GameRow.import(row, "row").game());
+	}
+
+	async summary(user: string, since: number): Promise<Summary> {
+		const row = await this.#database.prepare(`SELECT coalesce(sum(coalesce(won, claimed, 0) = 1), 0) AS wins, coalesce(sum(coalesce(won, claimed, 0) = 0), 0) AS losses, coalesce(sum(judged IS NULL), 0) AS reviewing FROM tickets WHERE ${D1Ledger.#finished}`).bind(user, since).first();
+		if (row === null) return new Summary();
+		return Summary.import(row, "summary");
+	}
+
+	async schedule(): Promise<Schedule> {
+		const { results } = await this.#database.prepare("SELECT started FROM runs ORDER BY started").all();
+		return new Schedule(results.map(row => RunRow.import(row, "row").started));
 	}
 
 	static #ticket(text: string): Ticket {

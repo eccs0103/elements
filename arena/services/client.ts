@@ -2,7 +2,7 @@
 
 import "adaptive-extender/worker";
 import { URI } from "adaptive-extender/worker";
-import { Entry, Ticket, Start, Report, Standing, Allowance, Failure, Shortage } from "../models/protocol.js";
+import { Entry, Ticket, Start, Report, Standing, Allowance, History, Failure, Shortage } from "../models/protocol.js";
 
 //#region Arena client
 export class ArenaClient {
@@ -31,6 +31,10 @@ export class ArenaClient {
 
 	async allowance(): Promise<Allowance> {
 		return Allowance.import(await this.#send("GET", Allowance.locate(this.#origin), null), "allowance");
+	}
+
+	async history(): Promise<History> {
+		return History.import(await this.#send("GET", History.locate(this.#origin), null), "history");
 	}
 
 	async #send(method: string, target: Readonly<URI>, body: unknown): Promise<unknown> {
