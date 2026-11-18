@@ -11,7 +11,7 @@
 		"TURNSTILE_HOSTNAMES": ["elements.eccs.dev"]
 	},
 	"d1_databases": [
-		{ "binding": "LEDGER", "database_name": "elements-ledger", "migrations_dir": "migrations" }
+		{ "binding": "LEDGER", "database_name": "elements-ledger", "database_id": "e265bac9-fef3-4841-9639-84a503d622e0", "migrations_dir": "migrations" }
 	],
 	"observability": {
 		"enabled": true
