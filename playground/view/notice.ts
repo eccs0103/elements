@@ -16,6 +16,7 @@ export class Notice {
 	static #start: string = "Drag a card to start";
 	static #again: string = "Drag a card to play again";
 	static #loading: string = "Loading the match…";
+	static #checking: string = "Checking you are human… Practice is open meanwhile";
 	static #next: string = "Next match in";
 	#title: string;
 	#description: string;
@@ -35,8 +36,8 @@ export class Notice {
 		return new Notice("Arena", Notice.#counted).#loads("Connecting…");
 	}
 
-	static loading(): Notice {
-		return new Notice("Arena", Notice.#counted).#loads(Notice.#loading);
+	static checking(): Notice {
+		return new Notice("Arena", Notice.#counted).#loads(Notice.#checking);
 	}
 
 	static preparing(): Notice {

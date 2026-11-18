@@ -24,6 +24,7 @@ const deck = DeckService.instance;
 class Duel {
 	static #catalog: URI = new URI("../models.json", baseURI);
 	#client: ArenaClient = new ArenaClient(new URI("/", baseURI));
+	#challenge: Challenge = new Challenge(body.getElement(HTMLDialogElement, "dialog#gate"), head.getElement(HTMLScriptElement, "script#challenge"));
 	#root: Root = createRoot(body.getElement(HTMLDivElement, "div#root"));
 	#mode: Mode = settings.content.mode;
 	#model: AgentModel | null = null;
@@ -48,7 +49,9 @@ class Duel {
 			return this.#show();
 		}
 		this.#show();
-		this.#model = await this.#load();
+		if (this.#mode === Mode.arena) this.#challenge.warm();
+		const model = this.#model = await this.#load();
+		void this.#prefetch(model);
 		this.#deal();
 		this.#show();
 		await this.#connect();
@@ -80,6 +83,16 @@ class Duel {
 		const response = await fetch(Duel.#catalog.href);
 		if (!response.ok) throw new ReferenceError(`The agent catalog could not load (${response.status})`);
 		return AgentCatalog.import(await response.json(), "catalog").first;
+	}
+
+	// Not simplified: the simulation worker fetches the same file at the first match; reading it whole now lets that request be answered from the HTTP cache.
+	async #prefetch(model: AgentModel): Promise<void> {
+		try {
+			const response = await fetch(model.weights(Duel.#catalog).href);
+			await response.arrayBuffer();
+		} catch (reason) {
+			console.error(`The agent weights did not warm up:\n${Error.from(reason)}`);
+		}
 	}
 
 	#deal(): void {
@@ -120,7 +133,7 @@ class Duel {
 		if (this.#lobby !== null || this.#opening) return this.#show();
 		this.#opening = true;
 		const last = this.#last;
-		this.#arena = last === null ? Notice.loading() : last.next();
+		this.#arena = last === null ? Notice.checking() : last.next();
 		this.#show();
 		try {
 			this.#arena = await this.#admit(last);
@@ -132,7 +145,7 @@ class Duel {
 	}
 
 	async #admit(last: Notice | null): Promise<Notice> {
-		const allowance = this.#allowance = await this.#tickets();
+		const allowance = this.#allowance ??= await this.#tickets();
 		if (allowance !== null && allowance.left < 1) return this.#waiting(allowance);
 		const [ticket, standing] = await Promise.all([this.#open(), this.#client.standing()]);
 		this.#lobby = ticket;
@@ -140,8 +153,7 @@ class Duel {
 	}
 
 	async #open(): Promise<Ticket> {
-		const challenge = new Challenge(body.getElement(HTMLDialogElement, "dialog#gate"), head.getElement(HTMLScriptElement, "script#challenge"));
-		return await this.#client.open(new Entry(deck.content.elements, await challenge.token()));
+		return await this.#client.open(new Entry(deck.content.elements, await this.#challenge.token()));
 	}
 
 	async #refusal(error: Error): Promise<Notice> {
@@ -182,6 +194,7 @@ class Duel {
 			const luck = ReferenceError.suppress(drill.luck, "The match has no luck to play with");
 			this.#lobby = null;
 			simulation.start(await this.#client.start(new Start(lobby.id, luck)));
+			this.#challenge.warm();
 			this.#allowance = await this.#tickets();
 			this.#show();
 		} catch (reason) {
