@@ -16,12 +16,15 @@ export class Notice {
 	static #start: string = "Drag a card to start";
 	static #again: string = "Drag a card to play again";
 	static #loading: string = "Loading the match…";
-	static #checking: string = "Checking you are human… Practice is open meanwhile";
+	static #checking: string = "Preparing the arena for your match…";
+	static #expected: number = 10;
+	static #meanwhile: string = "Practice is open meanwhile";
 	static #next: string = "Next match in";
 	#title: string;
 	#description: string;
 	#hint: string | null = null;
 	#deadline: number | null = null;
+	#since: number | null = null;
 	#busy: boolean = false;
 	#playable: boolean = false;
 	#action: string | null = null;
@@ -37,7 +40,9 @@ export class Notice {
 	}
 
 	static checking(): Notice {
-		return new Notice("Arena", Notice.#counted).#loads(Notice.#checking);
+		const notice = new Notice("Arena", Notice.#counted).#loads(Notice.#checking);
+		notice.#since = Date.now();
+		return notice;
 	}
 
 	static preparing(): Notice {
@@ -87,6 +92,7 @@ export class Notice {
 	get title(): string { return this.#title; }
 	get description(): string { return this.#description; }
 	get deadline(): number | null { return this.#deadline; }
+	get since(): number | null { return this.#since; }
 	get busy(): boolean { return this.#busy; }
 	get playable(): boolean { return this.#playable; }
 	get action(): string | null { return this.#action; }
@@ -114,6 +120,13 @@ export class Notice {
 	prompt(now: number): string | null {
 		const hint = this.#hint;
 		const deadline = this.#deadline;
+		const since = this.#since;
+		if (hint !== null && since !== null) {
+			const seconds = trunc(max(0, now - since) / Notice.#second);
+			const expected = Notice.#expected;
+			const progress = seconds < expected ? `${seconds} s of about ${expected} s` : `${seconds} s`;
+			return `${hint} ${progress}. ${Notice.#meanwhile}`;
+		}
 		if (hint === null || deadline === null) return hint;
 		const left = ceil(max(0, deadline - now) / Notice.#second);
 		// Not simplified: Scoreboard writes minutes and seconds the same way, but no class owns both; a shared one is a new abstraction for one line.

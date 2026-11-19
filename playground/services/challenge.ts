@@ -9,6 +9,7 @@ interface TurnstileOptions {
 	action: string;
 	appearance: string;
 	retry: string;
+	["retry-interval"]: number;
 	callback(token: string): void;
 	["error-callback"](code: string): boolean;
 	["timeout-callback"](): void;
@@ -31,6 +32,8 @@ declare global {
 export class Challenge {
 	static #sitekey: string = "0x4AAAAAAGBet7ZYe7rBg5A8";
 	static #patience: number = 15000;
+	static #retries: number = 2;
+	static #interval: number = 2000;
 	// A Turnstile token expires after 300 s and works once; a younger one than this is safe to use.
 	static #fresh: number = 240000;
 	#dialog: HTMLDialogElement;
@@ -73,16 +76,19 @@ export class Challenge {
 		const turnstile = await this.#load();
 		const dialog = this.#dialog;
 		return await new Promise<string>((resolve, reject) => {
+			let failures = 0;
 			const widget = turnstile.render(dialog, {
 				sitekey: Challenge.#sitekey,
 				action: Entry.action,
 				appearance: "interaction-only",
-				retry: "never",
+				retry: "auto",
+				["retry-interval"]: Challenge.#interval,
 				callback(token: string): void {
 					settle();
 					resolve(token);
 				},
 				["error-callback"](code: string): boolean {
+					if (++failures <= Challenge.#retries) return false;
 					settle();
 					reject(new Error(`The bot check failed (${code})`));
 					return true;

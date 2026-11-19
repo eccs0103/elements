@@ -86,18 +86,18 @@ interface NoticeSideProps {
 
 function NoticeSide({ notice, shown, onAgain }: NoticeSideProps): ReactElement {
 	const [now, setNow] = useState<number>(Date.now);
-	const { deadline, target, action } = notice;
+	const { deadline, since, target, action } = notice;
 
 	useEffect(() => {
 		setNow(Date.now());
-		if (deadline === null) return;
+		if (deadline === null && since === null) return;
 		const interval = setInterval(() => {
 			const current = Date.now();
 			setNow(current);
-			if (current >= deadline) clearInterval(interval);
+			if (deadline !== null && current >= deadline) clearInterval(interval);
 		}, 1000);
 		return () => clearInterval(interval);
-	}, [deadline]);
+	}, [deadline, since]);
 
 	return (
 		<article className="flex column with-gap" inert={!shown} aria-busy={notice.busy}>
