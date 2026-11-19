@@ -24,7 +24,7 @@ interface Turnstile {
 }
 
 declare global {
-	interface Window {
+	export interface Window {
 		turnstile: Turnstile | undefined;
 	}
 }
