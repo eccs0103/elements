@@ -81,7 +81,7 @@ export class Challenge {
 	async #solve(quiet: boolean): Promise<string> {
 		const turnstile = await this.#load();
 		const dialog = this.#dialog;
-		const container = quiet ? this.#host : dialog;
+		const container = dialog;
 		return await new Promise<string>((resolve, reject) => {
 			let failures = 0;
 			const widget = turnstile.render(container, {
