@@ -269,7 +269,7 @@ export function ElementDialog({ deck, element, onClose, onChange }: ElementDialo
 				<ul className="traits flex wrap with-gap">
 					{current === null ? null : <Traits element={current}><span className="scale flex alt-center">{steps}</span></Traits>}
 				</ul>
-				<figure className="demo flex column with-gap">
+				<figure className="demo layer flex column with-gap">
 					<canvas ref={refBoard} className="board depth rounded"></canvas>
 					<figcaption className="flex alt-center with-gap">
 						<span>{versus}</span>
@@ -284,7 +284,7 @@ export function ElementDialog({ deck, element, onClose, onChange }: ElementDialo
 					<h3>What stops it</h3>
 					<Rows sentences={current === null ? [] : Sentence.threats(current, rate)} empty="Nothing acts on it: only a drop can replace it." onWatch={watch} />
 				</section>
-				<footer className="flex column with-gap">
+				<footer className="layer flex column with-gap">
 					<button type="button" className={`toggle rounded with-padding ${chosen ? "depth" : "highlight-background"}`} disabled={!chosen && content.full} onClick={event => void toggle()}>{offer}</button>
 				</footer>
 			</div>

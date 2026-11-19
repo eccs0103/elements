@@ -38,6 +38,16 @@ button#fill span.icon {
 	}
 }
 
+@keyframes stuck-end {
+	from {
+		box-shadow: 0 calc(-1 * var(--size-gap)) var(--size-large-gap) calc(-1 * var(--size-small-gap)) var(--color-shadow);
+	}
+
+	to {
+		box-shadow: none;
+	}
+}
+
 ol#slots,
 ul.cards {
 	display: grid;
@@ -213,12 +223,31 @@ dialog#details {
 	}
 
 	& figure.demo {
+		position: sticky;
+		inset-block-start: 0;
+		z-index: 1;
 		align-items: center;
+		margin-inline: calc(-1 * var(--size-large-gap));
+		padding: var(--size-gap) var(--size-large-gap);
+		animation: stuck linear both;
+		animation-timeline: scroll(nearest);
+		animation-range: 0 var(--size-large-gap);
+	}
+
+	& > div > footer {
+		position: sticky;
+		inset-block-end: 0;
+		z-index: 1;
+		margin: 0 calc(-1 * var(--size-large-gap)) calc(-1 * var(--size-large-gap));
+		padding: var(--size-gap) var(--size-large-gap) var(--size-large-gap);
+		animation: stuck-end linear both;
+		animation-timeline: scroll(nearest);
+		animation-range: calc(100% - var(--size-large-gap)) 100%;
 	}
 
 	& canvas.board {
 		inline-size: 100%;
-		max-inline-size: calc(10 * var(--size-standart));
+		max-inline-size: min(calc(10 * var(--size-standart)), 40dvh);
 		aspect-ratio: 1;
 		image-rendering: pixelated;
 	}
