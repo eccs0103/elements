@@ -32,16 +32,18 @@ declare global {
 export class Challenge {
 	static #sitekey: string = "0x4AAAAAAGBet7ZYe7rBg5A8";
 	static #patience: number = 15000;
-	static #retries: number = 2;
+	static #retries: number = 1;
 	static #interval: number = 2000;
 	// A Turnstile token expires after 300 s and works once; a younger one than this is safe to use.
 	static #fresh: number = 240000;
+	#host: HTMLElement;
 	#dialog: HTMLDialogElement;
 	#script: HTMLScriptElement;
 	#early: Promise<string | null> | null = null;
 	#born: number = 0;
 
-	constructor(dialog: HTMLDialogElement, script: HTMLScriptElement) {
+	constructor(host: HTMLElement, dialog: HTMLDialogElement, script: HTMLScriptElement) {
+		this.#host = host;
 		this.#dialog = dialog;
 		this.#script = script;
 	}
@@ -49,6 +51,10 @@ export class Challenge {
 	warm(): void {
 		if (this.#early !== null) return;
 		this.#early = this.#attempt();
+	}
+
+	async settled(): Promise<void> {
+		await this.#early;
 	}
 
 	async token(): Promise<string> {
@@ -75,9 +81,10 @@ export class Challenge {
 	async #solve(quiet: boolean): Promise<string> {
 		const turnstile = await this.#load();
 		const dialog = this.#dialog;
+		const container = quiet ? this.#host : dialog;
 		return await new Promise<string>((resolve, reject) => {
 			let failures = 0;
-			const widget = turnstile.render(dialog, {
+			const widget = turnstile.render(container, {
 				sitekey: Challenge.#sitekey,
 				action: Entry.action,
 				appearance: "interaction-only",

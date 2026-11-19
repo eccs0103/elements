@@ -24,7 +24,7 @@ const deck = DeckService.instance;
 class Duel {
 	static #catalog: URI = new URI("../models.json", baseURI);
 	#client: ArenaClient = new ArenaClient(new URI("/", baseURI));
-	#challenge: Challenge = new Challenge(body.getElement(HTMLDialogElement, "dialog#gate"), head.getElement(HTMLScriptElement, "script#challenge"));
+	#challenge: Challenge = new Challenge(body.getElement(HTMLDivElement, "div#screening"), body.getElement(HTMLDialogElement, "dialog#gate"),head.getElement(HTMLScriptElement, "script#challenge"));
 	#root: Root = createRoot(body.getElement(HTMLDivElement, "div#root"));
 	#mode: Mode = settings.content.mode;
 	#model: AgentModel | null = null;
@@ -87,6 +87,7 @@ class Duel {
 
 	// Not simplified: the simulation worker fetches the same file at the first match; reading it whole now lets that request be answered from the HTTP cache.
 	async #prefetch(model: AgentModel): Promise<void> {
+		await this.#challenge.settled();
 		try {
 			const response = await fetch(model.weights(Duel.#catalog).href);
 			await response.arrayBuffer();
