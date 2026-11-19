@@ -87,7 +87,6 @@ class Duel {
 
 	// Not simplified: the simulation worker fetches the same file at the first match; reading it whole now lets that request be answered from the HTTP cache.
 	async #prefetch(model: AgentModel): Promise<void> {
-		await this.#challenge.settled();
 		try {
 			const response = await fetch(model.weights(Duel.#catalog).href);
 			await response.arrayBuffer();

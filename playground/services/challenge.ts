@@ -53,10 +53,6 @@ export class Challenge {
 		this.#early = this.#attempt();
 	}
 
-	async settled(): Promise<void> {
-		await this.#early;
-	}
-
 	async token(): Promise<string> {
 		const early = this.#early;
 		this.#early = null;
@@ -81,7 +77,7 @@ export class Challenge {
 	async #solve(quiet: boolean): Promise<string> {
 		const turnstile = await this.#load();
 		const dialog = this.#dialog;
-		const container = dialog;
+		const container = quiet ? this.#host : dialog;
 		return await new Promise<string>((resolve, reject) => {
 			let failures = 0;
 			const widget = turnstile.render(container, {
