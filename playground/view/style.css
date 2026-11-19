@@ -505,6 +505,7 @@ span.ghost {
 	}
 }
 
+/* Never display:none and never off-screen: Chromium throttles such cross-origin iframes, which made the bot check take 34 s on Mobile Edge (learn.microsoft.com/deployedge/edge-learnmore-iframe-throttling-display). */
 div#screening {
 	position: fixed;
 }
