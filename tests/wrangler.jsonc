@@ -1,6 +1,6 @@
 {
 	"$schema": "../node_modules/wrangler/config-schema.json",
 	"name": "elements-tests",
-	"compatibility_date": "2026-07-16",
+	"compatibility_date": "2026-11-16",
 	"main": "hash-worker.ts"
 }

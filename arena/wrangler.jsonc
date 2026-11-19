@@ -1,7 +1,7 @@
 {
 	"$schema": "../node_modules/wrangler/config-schema.json",
 	"name": "elements-arena",
-	"compatibility_date": "2026-07-16",
+	"compatibility_date": "2026-11-16",
 	"main": "controllers/arena-worker.ts",
 	"workers_dev": false,
 	"routes": [
