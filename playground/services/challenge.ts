@@ -3,13 +3,12 @@
 import "adaptive-extender/web";
 import { Entry } from "../../arena/models/protocol.js";
 
-//#region Challenge
+//#region Turnstile
 interface TurnstileOptions {
 	sitekey: string;
 	action: string;
 	appearance: string;
 	retry: string;
-	["retry-interval"]: number;
 	callback(token: string): void;
 	["error-callback"](code: string): boolean;
 	["timeout-callback"](): void;
@@ -20,6 +19,7 @@ interface TurnstileOptions {
 
 interface Turnstile {
 	render(container: HTMLElement, options: TurnstileOptions): string;
+	reset(widget: string): void;
 	remove(widget: string): void;
 }
 
@@ -28,12 +28,87 @@ declare global {
 		turnstile: Turnstile | undefined;
 	}
 }
-
-export class Challenge {
+//#endregion
+//#region Attempt
+class Attempt {
 	static #sitekey: string = "0x4AAAAAAGBet7ZYe7rBg5A8";
-	static #patience: number = 15000;
 	static #retries: number = 1;
 	static #interval: number = 2000;
+	#turnstile: Turnstile;
+	#dialog: HTMLDialogElement;
+	#outcome: PromiseWithResolvers<string> = Promise.withResolvers();
+	#widget: string | null = null;
+	#failures: number = 0;
+	#settled: boolean = false;
+
+	constructor(turnstile: Turnstile, dialog: HTMLDialogElement) {
+		this.#turnstile = turnstile;
+		this.#dialog = dialog;
+	}
+
+	async run(container: HTMLElement, quiet: boolean): Promise<string> {
+		this.#widget = this.#turnstile.render(container, {
+			sitekey: Attempt.#sitekey,
+			action: Entry.action,
+			appearance: "interaction-only",
+			// Retries are ours, not Turnstile's: its own retry timer outlives remove() and throws "Nothing to reset found".
+			retry: "never",
+			callback: this.#pass.bind(this),
+			["error-callback"]: this.#error.bind(this),
+			["timeout-callback"]: () => this.#fail(new Error("The bot check timed out")),
+			["unsupported-callback"]: () => this.#fail(new Error("This browser is not supported by the bot check")),
+			["before-interactive-callback"]: () => this.#interact(quiet),
+			["after-interactive-callback"]: () => this.#dialog.close(),
+		});
+		return await this.#outcome.promise;
+	}
+
+	#pass(token: string): void {
+		this.#settle();
+		this.#outcome.resolve(token);
+	}
+
+	#fail(reason: Error): void {
+		this.#settle();
+		this.#outcome.reject(reason);
+	}
+
+	#error(code: string): boolean {
+		const failures = ++this.#failures;
+		if (failures <= Attempt.#retries) {
+			setTimeout(this.#retry.bind(this), Attempt.#interval);
+			return true;
+		}
+		this.#fail(new Error(`The bot check failed (${code})`));
+		return true;
+	}
+
+	#retry(): void {
+		if (this.#settled) return;
+		this.#turnstile.reset(this.#target());
+	}
+
+	#interact(quiet: boolean): void {
+		const dialog = this.#dialog;
+		if (quiet) return this.#fail(new Error("The early bot check needs interaction"));
+		if (dialog.open) return;
+		dialog.showModal();
+	}
+
+	#settle(): void {
+		this.#settled = true;
+		this.#turnstile.remove(this.#target());
+		this.#dialog.close();
+	}
+
+	#target(): string {
+		return ReferenceError.suppress(this.#widget, "The bot check has no widget yet");
+	}
+}
+//#endregion
+//#region Challenge
+export class Challenge {
+	static #patience: number = 15000;
 	// A Turnstile token expires after 300 s and works once; a younger one than this is safe to use.
 	static #fresh: number = 240000;
 	#host: HTMLElement;
@@ -78,49 +153,7 @@ export class Challenge {
 		const turnstile = await this.#load();
 		const dialog = this.#dialog;
 		const container = quiet ? this.#host : dialog;
-		return await new Promise<string>((resolve, reject) => {
-			let failures = 0;
-			const widget = turnstile.render(container, {
-				sitekey: Challenge.#sitekey,
-				action: Entry.action,
-				appearance: "interaction-only",
-				retry: "auto",
-				["retry-interval"]: Challenge.#interval,
-				callback(token: string): void {
-					settle();
-					resolve(token);
-				},
-				["error-callback"](code: string): boolean {
-					if (++failures <= Challenge.#retries) return false;
-					settle();
-					reject(new Error(`The bot check failed (${code})`));
-					return true;
-				},
-				["timeout-callback"](): void {
-					settle();
-					reject(new Error("The bot check timed out"));
-				},
-				["unsupported-callback"](): void {
-					settle();
-					reject(new Error("This browser is not supported by the bot check"));
-				},
-				["before-interactive-callback"](): void {
-					if (quiet) {
-						settle();
-						reject(new Error("The early bot check needs interaction"));
-						return;
-					}
-					if (!dialog.open) dialog.showModal();
-				},
-				["after-interactive-callback"](): void {
-					dialog.close();
-				},
-			});
-			function settle(): void {
-				turnstile.remove(widget);
-				dialog.close();
-			}
-		});
+		return await new Attempt(turnstile, dialog).run(container, quiet);
 	}
 
 	async #load(): Promise<Turnstile> {

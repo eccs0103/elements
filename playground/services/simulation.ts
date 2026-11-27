@@ -1,10 +1,12 @@
 "use strict";
 
 import "adaptive-extender/web";
-import { StaticEngine, URI } from "adaptive-extender/web";
-import { Command, InitializeCommand, StartCommand, BeginCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
+import { Nullable, StaticEngine, URI } from "adaptive-extender/web";
+import { Command, InitializeCommand, StartCommand, BeginCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand, TrainCommand, LessonCommand } from "../models/commands.js";
 import { Verdict, type Ticket } from "../../arena/models/protocol.js";
 import { Match } from "./match.js";
+import { Course, Progress, type Lesson } from "./course.js";
+import { type Rules } from "../models/rules.js";
 
 const { baseURI } = document;
 const { round } = Math;
@@ -14,6 +16,7 @@ export interface SimulationEventMap {
 	"update": Event;
 	"launch": Event;
 	"finish": Event;
+	"lesson": Event;
 	"failure": ErrorEvent;
 }
 
@@ -25,6 +28,8 @@ export class Simulation extends EventTarget {
 	#worker: Worker = new Worker(new URI("./controllers/simulation-worker.js", baseURI).href, { type: "module" });
 	#engine: StaticEngine = new StaticEngine({ launch: false });
 	#ticket: Ticket | null = null;
+	#lesson: Lesson | null = null;
+	#progress: Progress = Progress.running;
 	#status: StatusCommand = new StatusCommand([], 0, null, null, 0, new Verdict(new Array<number>(Match.count).fill(0)));
 	#finish: FinishCommand | null = null;
 	#drops: DropCommand[] = [];
@@ -46,6 +51,9 @@ export class Simulation extends EventTarget {
 	get ticket(): Ticket | null { return this.#ticket; }
 	get status(): StatusCommand { return this.#status; }
 	get finish(): FinishCommand | null { return this.#finish; }
+	get lesson(): Lesson | null { return this.#lesson; }
+	get progress(): Progress { return this.#progress; }
+	get rules(): Rules | null { return this.#lesson?.rules ?? Nullable.map(this.#ticket, ticket => ticket.rules); }
 
 	show(ticket: Ticket): void {
 		const engine = this.#engine;
@@ -55,6 +63,20 @@ export class Simulation extends EventTarget {
 		this.#launching = false;
 		this.#drops.splice(0);
 		this.#post(ticket);
+	}
+
+	train(lesson: Lesson): void {
+		const engine = this.#engine;
+		this.#ticket = null;
+		this.#finish = null;
+		this.#lesson = lesson;
+		this.#progress = Progress.running;
+		this.#launching = false;
+		this.#drops.splice(0);
+		this.#worker.postMessage(Command.export(new TrainCommand(Course.index(lesson))));
+		engine.limit = lesson.rules.rate;
+		engine.launched = true;
+		this.dispatchEvent(new Event("lesson"));
 	}
 
 	launch(): void {
@@ -95,6 +117,7 @@ export class Simulation extends EventTarget {
 
 	#post(ticket: Ticket): void {
 		this.#ticket = ticket;
+		this.#lesson = null;
 		this.#finish = null;
 		this.#worker.postMessage(Command.export(new StartCommand(ticket)));
 	}
@@ -114,6 +137,12 @@ export class Simulation extends EventTarget {
 		if (command instanceof StatusCommand) {
 			this.#status = command;
 			this.dispatchEvent(new Event("update"));
+			return;
+		}
+
+		if (command instanceof LessonCommand) {
+			this.#progress = command.progress;
+			this.dispatchEvent(new Event("lesson"));
 			return;
 		}
 

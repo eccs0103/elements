@@ -18,7 +18,7 @@ export enum Mode {
 export interface SettingsScheme {
 	scheme: Scheme;
 	mode: Mode;
-	tutored: boolean;
+	trained: boolean;
 }
 
 export class Settings extends Model {
@@ -28,7 +28,7 @@ export class Settings extends Model {
 	@Field(Enum.Of(Mode), { name: "mode" })
 	mode: Mode = Mode.arena;
 
-	@Field(Boolean, { name: "tutored" })
-	tutored: boolean = false;
+	@Field(Boolean, { name: "trained" })
+	trained: boolean = false;
 }
 //#endregion

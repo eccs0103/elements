@@ -2,7 +2,7 @@
 
 import "adaptive-extender/worker";
 import { Controller, Nullable, URI } from "adaptive-extender/worker";
-import { Command, InitializeCommand, StartCommand, BeginCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand } from "../models/commands.js";
+import { Command, InitializeCommand, StartCommand, BeginCommand, TickCommand, DropCommand, PreviewCommand, InspectCommand, ResizeCommand, StatusCommand, FinishCommand, TrainCommand, LessonCommand } from "../models/commands.js";
 import { PeriodicTable } from "../services/periodic-table.js";
 import { Move } from "../models/move.js";
 import { Match } from "../services/match.js";
@@ -12,7 +12,8 @@ import { type Agent, type Mind } from "../services/agent.js";
 import { AgentCommand, LoadCommand, DecideCommand, DecisionCommand } from "../models/agent-commands.js";
 import { type Observation } from "../models/observation.js";
 import { Rules } from "../models/rules.js";
-import { Report, Verdict, type Ticket } from "../../arena/models/protocol.js";
+import { Course, Progress, type Lesson } from "../services/course.js";
+import { Report, Verdict, Ticket } from "../../arena/models/protocol.js";
 
 //#region Stage
 interface Stage {
@@ -20,8 +21,10 @@ interface Stage {
 	zone(): Uint8Array | null;
 	status(cell: number | null): StatusCommand;
 	play(slot: number, x: number, y: number): boolean;
+	inspect(cell: number | null): void;
 	advance(): boolean;
 	finish(): FinishCommand | null;
+	lesson(): LessonCommand | null;
 	keep(next: Stage): Stage;
 	begin(): Stage;
 }
@@ -71,6 +74,10 @@ class Session implements Stage {
 		return match.play(new Move(match.tick, this.#ticket.human, slot, x, y));
 	}
 
+	inspect(cell: number | null): void {
+		void cell;
+	}
+
 	advance(): boolean {
 		const match = this.#match;
 		if (match.finished || this.#rival.waits(match)) return false;
@@ -86,9 +93,98 @@ class Session implements Stage {
 		return new FinishCommand(new Report(id, match.moves.filter(move => move.side === human), verdict.winner(human) === human), verdict);
 	}
 
+	lesson(): LessonCommand | null {
+		return null;
+	}
+
 	keep(next: Stage): Stage {
 		if (!this.#match.finished) return next;
 		return new Aftermath(this, next);
+	}
+
+	begin(): Stage {
+		return this;
+	}
+}
+//#endregion
+//#region Drill
+class Drill implements Stage {
+	#lesson: Lesson;
+	#match: Match;
+	#players: readonly Player[];
+	#zone: Uint8Array;
+	#looked: boolean = false;
+	#started: boolean = false;
+	#progress: Progress = Progress.running;
+	#told: Progress = Progress.running;
+
+	constructor(lesson: Lesson) {
+		const match = this.#match = lesson.start();
+		const { size } = match.rules;
+		this.#lesson = lesson;
+		this.#players = lesson.lineup(new Human());
+		this.#zone = new Uint8Array(size * size);
+	}
+
+	paint(painter: Painter, zone: Uint8Array | null): void {
+		const lit = this.#lesson.lit ? this.zone() : null;
+		painter.paint(this.#match.board, zone ?? lit);
+	}
+
+	zone(): Uint8Array {
+		const zone = this.#zone;
+		zone.fill(0);
+		// Not simplified: Session.zone builds the same mask, but each stage owns its own match.
+		for (const cell of this.#match.cells(Ticket.human, 0)) {
+			zone[cell] = 1;
+		}
+		return zone;
+	}
+
+	status(cell: number | null): StatusCommand {
+		const match = this.#match;
+		const { human } = Ticket;
+		const { kinds } = match.board;
+		const inspected = Nullable.map(cell, cell => PeriodicTable.at(kinds[cell]));
+		const holder = Nullable.map(cell, match.holder.bind(match));
+		return new StatusCommand(Array.from(match.cards(human)), match.charge(human), inspected, holder, match.tick, Verdict.of(match));
+	}
+
+	play(slot: number, x: number, y: number): boolean {
+		const match = this.#match;
+		if (!match.play(new Move(match.tick, Ticket.human, slot, x, y))) return false;
+		this.#started = true;
+		return true;
+	}
+
+	inspect(cell: number | null): void {
+		if (cell === null) return;
+		this.#looked = true;
+	}
+
+	advance(): boolean {
+		const match = this.#match;
+		const started = this.#started;
+		const progress = this.#progress;
+		if (match.finished) return false;
+		if (started) match.advance(this.#players);
+		if (progress === Progress.running) this.#progress = this.#lesson.judge(match, this.#looked);
+		return started || this.#progress !== progress;
+	}
+
+	finish(): FinishCommand | null {
+		return null;
+	}
+
+	lesson(): LessonCommand | null {
+		const progress = this.#progress;
+		if (progress === this.#told) return null;
+		this.#told = progress;
+		return new LessonCommand(progress);
+	}
+
+	keep(next: Stage): Stage {
+		return next;
 	}
 
 	begin(): Stage {
@@ -118,11 +214,19 @@ class Waiting implements Stage {
 		return false;
 	}
 
+	inspect(cell: number | null): void {
+		void cell;
+	}
+
 	advance(): boolean {
 		return false;
 	}
 
 	finish(): FinishCommand | null {
+		return null;
+	}
+
+	lesson(): LessonCommand | null {
 		return null;
 	}
 
@@ -220,6 +324,8 @@ class SimulationWorker extends Controller {
 		this.#refresh();
 		const finish = stage.finish();
 		if (finish !== null) self.postMessage(Command.export(finish));
+		const lesson = stage.lesson();
+		if (lesson !== null) self.postMessage(Command.export(lesson));
 	}
 
 	// Not simplified: the last branch keeps its return, so every branch has one shape (owner ruling).
@@ -241,6 +347,12 @@ class SimulationWorker extends Controller {
 			return;
 		}
 
+		if (command instanceof TrainCommand) {
+			this.#stage = new Drill(Course.lesson(command.lesson));
+			this.#refresh();
+			return;
+		}
+
 		if (command instanceof PreviewCommand) {
 			this.#preview = command.active;
 			this.#refresh();
@@ -254,7 +366,9 @@ class SimulationWorker extends Controller {
 		}
 
 		if (command instanceof InspectCommand) {
-			this.#inspected = command.cell;
+			const { cell } = command;
+			this.#inspected = cell;
+			this.#stage.inspect(cell);
 			this.#describe();
 			return;
 		}

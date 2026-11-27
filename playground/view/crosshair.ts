@@ -42,7 +42,7 @@ export class Crosshair {
 	}
 
 	get size(): number | null {
-		return Nullable.map(this.#simulation.ticket, ticket => ticket.rules.size);
+		return Nullable.map(this.#simulation.rules, rules => rules.size);
 	}
 
 	cell(event: PointerEvent): Cell | null {

@@ -1,12 +1,13 @@
 "use strict";
 
 import "adaptive-extender/worker";
-import { Any, Deferred, Descendant, Field, Model, Nullable, URI } from "adaptive-extender/worker";
+import { Any, Deferred, Descendant, Enum, Field, Model, Nullable, URI } from "adaptive-extender/worker";
 import { Element, type ElementScheme } from "./elements.js";
+import { Progress } from "../services/course.js";
 import { Ticket, Report, Verdict, type TicketScheme, type ReportScheme, type VerdictScheme } from "../../arena/models/protocol.js";
 
 //#region Command
-export interface CommandDiscriminator extends InitializeCommandDiscriminator, StartCommandDiscriminator, BeginCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator, PreviewCommandDiscriminator, InspectCommandDiscriminator, ResizeCommandDiscriminator, StatusCommandDiscriminator, FinishCommandDiscriminator {
+export interface CommandDiscriminator extends InitializeCommandDiscriminator, StartCommandDiscriminator, BeginCommandDiscriminator, TickCommandDiscriminator, DropCommandDiscriminator, PreviewCommandDiscriminator, InspectCommandDiscriminator, ResizeCommandDiscriminator, StatusCommandDiscriminator, FinishCommandDiscriminator, TrainCommandDiscriminator, LessonCommandDiscriminator {
 }
 
 export interface CommandScheme {
@@ -23,6 +24,8 @@ export interface CommandScheme {
 @Descendant(Deferred(_ => ResizeCommand))
 @Descendant(Deferred(_ => StatusCommand))
 @Descendant(Deferred(_ => FinishCommand))
+@Descendant(Deferred(_ => TrainCommand))
+@Descendant(Deferred(_ => LessonCommand))
 export abstract class Command extends Model {
 	constructor() {
 		super();
@@ -317,6 +320,60 @@ export class FinishCommand extends Command {
 		super();
 		this.report = report;
 		this.verdict = verdict;
+	}
+}
+//#endregion
+//#region Train command
+export interface TrainCommandDiscriminator {
+	"TrainCommand": TrainCommand;
+}
+
+export interface TrainCommandScheme extends CommandScheme {
+	$type: keyof TrainCommandDiscriminator;
+	lesson: number;
+}
+
+export class TrainCommand extends Command {
+	@Field(Number)
+	lesson: number;
+
+	constructor();
+	constructor(lesson: number);
+	constructor(lesson?: number) {
+		if (lesson === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.lesson = lesson;
+	}
+}
+//#endregion
+//#region Lesson command
+export interface LessonCommandDiscriminator {
+	"LessonCommand": LessonCommand;
+}
+
+export interface LessonCommandScheme extends CommandScheme {
+	$type: keyof LessonCommandDiscriminator;
+	progress: Progress;
+}
+
+export class LessonCommand extends Command {
+	@Field(Enum.Of(Progress))
+	progress: Progress;
+
+	constructor();
+	constructor(progress: Progress);
+	constructor(progress?: Progress) {
+		if (progress === undefined) {
+			super();
+			return;
+		}
+
+		super();
+		this.progress = progress;
 	}
 }
 //#endregion

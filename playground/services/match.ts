@@ -173,6 +173,11 @@ export class Match {
 		return true;
 	}
 
+	// Lesson setup only: it skips the hand, the cooldown and the reach, so no played or verified match may call it.
+	place(side: number, element: Element, x: number, y: number): void {
+		this.#board.drop(element, x, y, this.#side(side).owner);
+	}
+
 	advance(players: readonly Player[]): void {
 		const drops = players.map((player, side) => player.act(this, side));
 		const sides = this.#sides;

@@ -3,19 +3,20 @@
 import "adaptive-extender/web";
 import { type ReactElement, type RefObject, useEffect, useRef, useState } from "react";
 import { type Simulation } from "../services/simulation.js";
-import { type Ticket } from "../../arena/models/protocol.js";
+import { type Rules } from "../models/rules.js";
 
 const { ceil, round, trunc } = Math;
 
 //#region Scoreboard
 export interface ScoreboardProps {
 	simulation: Simulation;
-	ticket: Ticket;
+	rules: Rules;
+	human: number;
+	rival: string;
+	timed: boolean;
 }
 
-export function Scoreboard({ simulation, ticket }: ScoreboardProps): ReactElement {
-	const { rules, human, model } = ticket;
-	const { name } = model;
+export function Scoreboard({ simulation, rules, human, rival, timed }: ScoreboardProps): ReactElement {
 	const [left, setLeft] = useState<number>(rules.seconds);
 	const [mine, setMine] = useState<number>(0);
 	const [theirs, setTheirs] = useState<number>(0);
@@ -49,11 +50,11 @@ export function Scoreboard({ simulation, ticket }: ScoreboardProps): ReactElemen
 				</div>
 				<div className="stack">
 					<span className="line"></span>
-					<span className={`timer layer rounded with-padding small-padding${left > 0 && left <= 10 ? " alert" : String.empty}`}>{`${trunc(left / 60)}:${String(left % 60).padStart(2, "0")}`}</span>
+					<span className={`timer layer rounded with-padding small-padding${left > 0 && left <= 10 ? " alert" : String.empty}`} hidden={!timed}>{`${trunc(left / 60)}:${String(left % 60).padStart(2, "0")}`}</span>
 				</div>
-				<div className={`side${theirs > mine ? " lead" : String.empty}`} title={`${name} ${theirs}%`}>
+				<div className={`side${theirs > mine ? " lead" : String.empty}`} title={`${rival} ${theirs}%`}>
 					<span className="number">{`${theirs}%`}</span>
-					<span className="name">{name}</span>
+					<span className="name">{rival}</span>
 				</div>
 			</div>
 		</div>

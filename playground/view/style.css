@@ -523,6 +523,7 @@ dialog#gate {
 
 button#help {
 	position: absolute;
+	z-index: 1;
 	inset: auto var(--size-small-gap) var(--size-small-gap) auto;
 	inline-size: var(--size-standart);
 	block-size: var(--size-standart);
@@ -535,50 +536,30 @@ button#help {
 	}
 }
 
-dialog#tutorial {
-	inline-size: calc(100vmin - 2 * var(--size-large-gap));
-	max-inline-size: calc(12 * var(--size-standart));
-	text-align: center;
+section#coach {
+	grid-area: board;
+	place-self: start center;
+	z-index: 1;
+	inline-size: min(calc(100% - 2 * var(--size-large-gap)), calc(14 * var(--size-standart)));
+	box-sizing: border-box;
+	margin-block-start: var(--size-large-gap);
+	pointer-events: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
 
-	/* Not simplified: the same stack as div#sides, kept separate so the tutorial and the notice change independently (owner). */
-	& div.lessons {
-		display: grid;
+	& h2,
+	& p {
+		margin: 0;
+	}
 
-		& > article {
-			grid-area: 1 / 1;
-			justify-content: center;
-			transition: opacity var(--time-reveal-duration) ease-out;
-		}
-
-		& > article[inert] {
-			opacity: 0;
-		}
-
-		& span.icon {
-			inline-size: var(--size-large-standart);
-			block-size: var(--size-large-standart);
-			color: var(--color-highlight);
-		}
-
-		& span.icon.users {
-			--url: url(../../assets/icons/users.svg);
-		}
-
-		& span.icon.trophy {
-			--url: url(../../assets/icons/trophy.svg);
-		}
-
-		& span.icon.hand-pointer {
-			--url: url(../../assets/icons/hand-pointer.svg);
-		}
-
-		& span.icon.clock {
-			--url: url(../../assets/icons/clock.svg);
-		}
+	& header {
+		justify-content: space-between;
 	}
 
 	& ol.dots {
 		padding: 0;
+		margin: 0;
 		list-style: none;
 
 		& li {
@@ -593,32 +574,124 @@ dialog#tutorial {
 		}
 	}
 
-	& form {
-		& button.skip {
-			margin-inline-end: auto;
-			color: var(--color-light-negative);
-		}
-
-		& button.forward {
-			display: grid;
-
-			& > span {
-				grid-area: 1 / 1;
-			}
-
-			& > span[aria-hidden="true"] {
-				visibility: hidden;
-			}
-		}
+	& button {
+		pointer-events: auto;
+		font-weight: 600;
 	}
+
+	& button.skip {
+		color: var(--color-light-negative);
+	}
+
+	& span.icon.check {
+		--url: url(../../assets/icons/circle-check.svg);
+		inline-size: 1em;
+		block-size: 1em;
+		color: var(--color-highlight);
+	}
+
+	&:not(.passed) span.icon.check {
+		display: none;
+	}
+
+	& ul.chips {
+		padding: 0;
+		margin: 0;
+		list-style: none;
+	}
+
+	& li.chip span.tile {
+		block-size: var(--size-small-standart);
+	}
+
+	&.passed,
+	&.failed {
+		animation: settle var(--time-reveal-duration) ease-out;
+	}
+}
+
+@keyframes settle {
+	from {
+		scale: 1.04;
+	}
+}
+
+span#pointer {
+	--url: url(../../assets/icons/hand-pointer.svg);
+	position: fixed;
+	inset: 0 auto auto 0;
+	z-index: 2;
+	color: var(--color-highlight);
+	pointer-events: none;
+	animation: drag 2.4s ease-in-out infinite;
+}
+
+@keyframes drag {
+	from,
+	15% {
+		opacity: 0;
+		translate: calc(var(--from-x) - 30%) calc(var(--from-y) - 10%);
+	}
+
+	25% {
+		opacity: 1;
+		translate: calc(var(--from-x) - 30%) calc(var(--from-y) - 10%);
+	}
+
+	75% {
+		opacity: 1;
+		translate: calc(var(--to-x) - 30%) calc(var(--to-y) - 10%);
+	}
+
+	to {
+		opacity: 0;
+		translate: calc(var(--to-x) - 30%) calc(var(--to-y) - 10%);
+	}
+}
+
+dialog#leave {
+	inline-size: calc(100vmin - 2 * var(--size-large-gap));
+	max-inline-size: calc(12 * var(--size-standart));
+
+	& h3,
+	& p {
+		margin: 0;
+	}
+
+	& span.icon.help {
+		--url: url(../../assets/icons/circle-question.svg);
+	}
+
+	& footer {
+		flex-direction: row-reverse;
+	}
+
+	& button {
+		font-weight: 600;
+	}
+}
+
+span.ghost span.name {
+	position: absolute;
+	inset: auto auto calc(100% + var(--size-small-gap)) 50%;
+	translate: -50% 0;
+	white-space: nowrap;
 }
 
 /* Not simplified: each component keeps its own reduced-motion rules (owner). */
 @media (prefers-reduced-motion: reduce) {
-	dialog#tutorial {
-		& div.lessons > article,
+	section#coach {
 		& ol.dots li {
 			transition: none;
 		}
+
+		&.passed,
+		&.failed {
+			animation: none;
+		}
+	}
+
+	span#pointer {
+		animation-duration: 4.8s;
 	}
 }

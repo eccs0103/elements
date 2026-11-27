@@ -15,6 +15,9 @@ import { ArenaClient } from "../../arena/services/client.js";
 import { Entry, Start, Shortage, Ticket, type Allowance, type Report, type Verdict } from "../../arena/models/protocol.js";
 import { AgentCatalog, type AgentModel } from "../models/agent-catalog.js";
 import { AnalyticsController } from "../../environment/controllers/analytics-controller.js";
+import { AnalyticsService } from "../../environment/services/analytics-service.js";
+import { Course, Progress, type Lesson } from "../services/course.js";
+import { LessonEvent } from "../models/lesson-event.js";
 
 const { baseURI, body, head } = document;
 const settings = SettingsService.instance;
@@ -35,7 +38,7 @@ class Duel {
 	#playing: boolean = false;
 	#opening: boolean = false;
 	#switchable: boolean = true;
-	#tutorial: boolean = !settings.content.tutored;
+	#lesson: Lesson | null = settings.content.trained ? null : Course.lesson(0);
 	#lobby: Ticket | null = null;
 	#drill: Ticket | null = null;
 	#refill: number | null = null;
@@ -43,6 +46,7 @@ class Duel {
 
 	async open(): Promise<void> {
 		const { content } = deck;
+		this.#report("lesson_start");
 		if (!content.full) {
 			this.#switchable = false;
 			this.#arena = this.#practice = Notice.unfinished(content.elements.length, content.capacity);
@@ -60,22 +64,56 @@ class Duel {
 	#show(): void {
 		this.#root.render(
 			<StrictMode>
-				<PlaygroundApp catalog={Duel.#catalog}ticket={this.#drill} mode={this.#mode} online={this.#online} allowance={this.#allowance} arena={this.#arena} practice={this.#practice} playing={this.#playing} switchable={this.#switchable} tutorial={this.#tutorial} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onLearn={this.#learn.bind(this)} onTeach={this.#teach.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} onFailure={this.#fail.bind(this)} />
+				<PlaygroundApp catalog={Duel.#catalog}ticket={this.#drill} mode={this.#mode} online={this.#online} allowance={this.#allowance} arena={this.#arena} practice={this.#practice} playing={this.#playing} switchable={this.#switchable} lesson={this.#lesson} model={this.#model} trained={settings.content.trained} onSwitch={this.#switch.bind(this)} onAgain={this.#again.bind(this)} onTeach={this.#teach.bind(this)} onProgress={this.#progress.bind(this)} onNext={this.#next.bind(this)} onRetry={this.#retry.bind(this)} onLeave={this.#leave.bind(this)} onGraduate={this.#graduate.bind(this)} onLaunch={this.#launch.bind(this)} onFinish={this.#finish.bind(this)} onFailure={this.#fail.bind(this)} />
 			</StrictMode>
 		);
 	}
 
 	#teach(): void {
-		this.#tutorial = true;
-		this.#show();
+		this.#study(0);
 	}
 
-	// Not simplified: the dialog is already closed, but without this render the prop stays true and the next #teach could not reopen it.
-	async #learn(): Promise<void> {
-		this.#tutorial = false;
+	#study(index: number): void {
+		this.#lesson = Course.lesson(index);
 		this.#show();
-		settings.content.tutored = true;
+		this.#report("lesson_start");
+	}
+
+	#progress(progress: Progress): void {
+		this.#report(progress === Progress.passed ? "lesson_pass" : "lesson_fail");
+	}
+
+	#next(): void {
+		const lesson = ReferenceError.suppress(this.#lesson, "There is no lesson to finish");
+		this.#study(Course.index(lesson) + 1);
+	}
+
+	#retry(): void {
+		const lesson = ReferenceError.suppress(this.#lesson, "There is no lesson to repeat");
+		this.#study(Course.index(lesson));
+	}
+
+	async #leave(): Promise<void> {
+		this.#report("training_leave");
+		await this.#close();
+	}
+
+	async #graduate(): Promise<void> {
+		this.#report("training_finish");
+		await this.#close();
+	}
+
+	async #close(): Promise<void> {
+		this.#lesson = null;
+		this.#show();
+		settings.content.trained = true;
 		await settings.save();
+	}
+
+	#report(name: string): void {
+		const lesson = this.#lesson;
+		if (lesson === null) return;
+		AnalyticsService.instance.dispatch(name, new LessonEvent(Course.index(lesson) + 1, lesson.title));
 	}
 
 	// Not simplified: ArenaRouter.#model fetches the same catalog, but AgentCatalog is core and fetch is not.

@@ -4,7 +4,7 @@ import "adaptive-extender/web";
 import { Fragment, type ReactElement, type RefObject, useEffect, useMemo, useState } from "react";
 import { type Element } from "../models/elements.js";
 import { type Simulation } from "../services/simulation.js";
-import { type Ticket } from "../../arena/models/protocol.js";
+import { type Rules } from "../models/rules.js";
 import { Sentence } from "../models/sentence.js";
 import { type Crosshair } from "./crosshair.js";
 import { Probe } from "./probe.js";
@@ -31,17 +31,19 @@ function Chip({ element, compact }: ChipProps): ReactElement {
 interface PeekCardProps {
 	element: Element;
 	holder: number | null;
-	ticket: Ticket;
+	rules: Rules;
+	human: number;
+	rival: string;
 }
 
-function PeekCard({ element, holder, ticket }: PeekCardProps): ReactElement {
+function PeekCard({ element, holder, rules, human, rival }: PeekCardProps): ReactElement {
 	const { name, phase } = element;
-	const { rate } = ticket.rules;
+	const { rate } = rules;
 	const acts = useMemo(() => Sentence.acts(element, rate), [element, rate]);
 	const stoppers = useMemo(() => Sentence.stoppers(element, rate), [element, rate]);
-	let owner = ticket.model.name;
+	let owner = rival;
 	if (holder === null) owner = "Neutral";
-	else if (holder === ticket.human) owner = "Yours";
+	else if (holder === human) owner = "Yours";
 	return (
 		<>
 			<header className="flex alt-center with-gap">
@@ -85,10 +87,12 @@ export interface PeekProps {
 	board: RefObject<HTMLCanvasElement | null>;
 	crosshair: Crosshair;
 	simulation: Simulation;
-	ticket: Ticket;
+	rules: Rules;
+	human: number;
+	rival: string;
 }
 
-export function Peek({ board, crosshair, simulation, ticket }: PeekProps): ReactElement {
+export function Peek({ board, crosshair, simulation, rules, human, rival }: PeekProps): ReactElement {
 	const [pressed, setPressed] = useState<boolean>(false);
 	const [bottom, setBottom] = useState<boolean>(false);
 	const [present, setPresent] = useState<boolean>(false);
@@ -124,7 +128,7 @@ export function Peek({ board, crosshair, simulation, ticket }: PeekProps): React
 
 	return (
 		<section id="peek" className={`layer rounded flex column with-gap with-padding large-padding${bottom ? " bottom" : String.empty}`} hidden={!pressed || !present || shown === null}>
-			{shown === null ? null : <PeekCard element={shown} holder={holder} ticket={ticket} />}
+			{shown === null ? null : <PeekCard element={shown} holder={holder} rules={rules} human={human} rival={rival} />}
 		</section>
 	);
 }

@@ -26,6 +26,7 @@ export interface TrayProps {
 export function Tray({ simulation, crosshair, ready }: TrayProps): ReactElement {
 	const [, refresh] = useReducer((version: number) => version + 1, 0);
 	const [color, setColor] = useState<string | null>(null);
+	const [name, setName] = useState<string>(String.empty);
 	const refGhost: RefObject<HTMLSpanElement | null> = useRef(null);
 	const refSlot: RefObject<number | null> = useRef(null);
 	const { cards, charge } = simulation.status;
@@ -50,7 +51,9 @@ export function Tray({ simulation, crosshair, ready }: TrayProps): ReactElement 
 		if (simulation.status.charge < 1) return;
 		event.currentTarget.setPointerCapture(event.pointerId);
 		refSlot.current = slot;
-		setColor(cards[slot].color.toString());
+		const card = cards[slot];
+		setColor(card.color.toString());
+		setName(card.name);
 		simulation.preview(ready);
 		follow(event);
 	};
@@ -83,7 +86,9 @@ export function Tray({ simulation, crosshair, ready }: TrayProps): ReactElement 
 					return <span key={slot} className="card rounded" title={card.name} style={style} onPointerDown={event => grab(event, slot)} onPointerMove={follow} onPointerUp={release} onPointerCancel={event => cancel()}></span>;
 				})}
 			</div>
-			{createPortal(<span ref={refGhost} className={`ghost rounded${ready ? String.empty : " disabled"}`} hidden={color === null} style={ghost}></span>, body)}
+			{createPortal(<span ref={refGhost} className={`ghost rounded${ready ? String.empty : " disabled"}`} hidden={color === null} style={ghost}>
+				<span className="name layer rounded with-padding small-padding font-smaller-2">{name}</span>
+			</span>, body)}
 		</>
 	);
 }

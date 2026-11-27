@@ -10,6 +10,7 @@
 		"environment/configs/**/*.ts",
 		"environment/plugins/**/*.ts",
 		"vitest.config.ts",
+		"tests/course.test.ts",
 		"tests/determinism.test.ts",
 		"tests/agent.test.ts",
 		"tests/arena.test.ts",

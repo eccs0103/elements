@@ -25,6 +25,8 @@
 		"playground/services/players.ts",
 		"playground/services/network.ts",
 		"playground/services/agent.ts",
+		"playground/services/course.ts",
+		"playground/models/lesson-event.ts",
 		"arena/models/protocol.ts",
 		"arena/models/bucket.ts",
 		"arena/models/visitor.ts",

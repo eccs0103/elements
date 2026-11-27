@@ -4,14 +4,16 @@ import "adaptive-extender/web";
 import { type URI } from "adaptive-extender/web";
 import { type ReactElement, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Simulation } from "../services/simulation.js";
-import { type Ticket, type Allowance } from "../../arena/models/protocol.js";
+import { Ticket, type Allowance } from "../../arena/models/protocol.js";
+import { Lesson, type Progress } from "../services/course.js";
+import { type AgentModel } from "../models/agent-catalog.js";
 import { Mode } from "../../settings/models/settings.js";
 import { Crosshair } from "./crosshair.js";
 import { type Notice } from "./notice.js";
 import { Peek } from "./peek.js";
 import { Scoreboard } from "./scoreboard.js";
 import { Tray } from "./tray.js";
-import { Tutorial } from "./tutorial.js";
+import { Coach } from "./coach.js";
 
 const { ceil, max } = Math;
 
@@ -119,16 +121,16 @@ interface BoardNoticeProps {
 	allowance: Allowance | null;
 	arena: Notice;
 	practice: Notice;
-	playing: boolean;
+	hidden: boolean;
 	switchable: boolean;
 	onSwitch(mode: Mode): void;
 	onAgain(): void;
 	onTeach(): void;
 }
 
-function BoardNotice({ mode, online, allowance, arena, practice, playing, switchable, onSwitch, onAgain, onTeach }: BoardNoticeProps): ReactElement {
+function BoardNotice({ mode, online, allowance, arena, practice, hidden, switchable, onSwitch, onAgain, onTeach }: BoardNoticeProps): ReactElement {
 	return (
-		<section id="notice" className="layer rounded flex column with-gap with-padding large-padding" hidden={playing} aria-live="polite">
+		<section id="notice" className="layer rounded flex column with-gap with-padding large-padding" hidden={hidden} aria-live="polite">
 			<button id="help" type="button" className="rounded flex center" title="How to play" onClick={event => onTeach()}>
 				<span className="icon"></span>
 			</button>
@@ -152,17 +154,23 @@ export interface PlaygroundAppProps {
 	practice: Notice;
 	playing: boolean;
 	switchable: boolean;
-	tutorial: boolean;
+	lesson: Lesson | null;
+	model: AgentModel | null;
+	trained: boolean;
 	onSwitch(mode: Mode): void;
 	onAgain(): void;
-	onLearn(): void;
 	onTeach(): void;
+	onProgress(progress: Progress): void;
+	onNext(): void;
+	onRetry(): void;
+	onLeave(): void;
+	onGraduate(): void;
 	onLaunch(simulation: Simulation): void;
 	onFinish(simulation: Simulation): void;
 	onFailure(message: string): void;
 }
 
-export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena, practice, playing, switchable, tutorial, onSwitch, onAgain, onLearn, onTeach, onLaunch, onFinish, onFailure }: PlaygroundAppProps): ReactElement {
+export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena, practice, playing, switchable, lesson, model, trained, onSwitch, onAgain, onTeach, onProgress, onNext, onRetry, onLeave, onGraduate, onLaunch, onFinish, onFailure }: PlaygroundAppProps): ReactElement {
 	const [simulation, setSimulation] = useState<Simulation | null>(null);
 	const [crosshair, setCrosshair] = useState<Crosshair | null>(null);
 	const refBoard: RefObject<HTMLCanvasElement | null> = useRef(null);
@@ -184,28 +192,41 @@ export function PlaygroundApp({ catalog, ticket, mode, online, allowance, arena,
 	}, [catalog, onLaunch, onFinish, onFailure]);
 
 	useEffect(() => {
-		if (simulation === null || ticket === null) return;
+		if (simulation === null) return;
+		if (lesson !== null && simulation.lesson === lesson) return;
+		if (lesson !== null) return simulation.train(lesson);
+		if (ticket === null) return;
 		simulation.show(ticket);
-	}, [simulation, ticket]);
+	}, [simulation, ticket, lesson]);
 
 	const notice = mode === Mode.arena ? arena : practice;
+	const training = lesson !== null;
+	let rules = ticket?.rules ?? null;
+	let rival = ticket?.model.name ?? String.empty;
+	let human = ticket?.human ?? Ticket.human;
+	if (lesson !== null) {
+		rules = lesson.rules;
+		rival = Lesson.rival;
+		human = Ticket.human;
+	}
+	const timed = lesson?.timed ?? true;
 	return (
 		<main>
 			<div id="stage">
-				{simulation === null || ticket === null ? null : <Scoreboard simulation={simulation} ticket={ticket} />}
+				{simulation === null || rules === null ? null : <Scoreboard simulation={simulation} rules={rules} human={human} rival={rival} timed={timed} />}
 				<canvas id="board" ref={refBoard} onContextMenu={event => event.preventDefault()}></canvas>
 				<div id="crosshair" ref={refCrosshair} hidden>
 					<span className="row"></span>
 					<span className="column"></span>
 					<span className="cell"></span>
 				</div>
-				<BoardNotice mode={mode} online={online} allowance={allowance} arena={arena} practice={practice} playing={playing} switchable={switchable} onSwitch={onSwitch} onAgain={onAgain} onTeach={onTeach} />
-				{simulation === null || crosshair === null || ticket === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} ticket={ticket} />}
+				<BoardNotice mode={mode} online={online} allowance={allowance} arena={arena} practice={practice} hidden={playing || training} switchable={switchable} onSwitch={onSwitch} onAgain={onAgain} onTeach={onTeach} />
+				{simulation === null || crosshair === null || rules === null ? null : <Peek board={refBoard} crosshair={crosshair} simulation={simulation} rules={rules} human={human} rival={rival} />}
+				{simulation === null || lesson === null ? null : <Coach simulation={simulation} lesson={lesson} model={model} trained={trained} onProgress={onProgress} onNext={onNext} onRetry={onRetry} onLeave={onLeave} onGraduate={onGraduate} />}
 				<div id="toolkit" className="flex">
-					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} ready={notice.playable || playing} />}
+					{simulation === null || crosshair === null ? null : <Tray simulation={simulation} crosshair={crosshair} ready={training || notice.playable || playing} />}
 				</div>
 			</div>
-			<Tutorial open={tutorial} onClose={onLearn} />
 		</main>
 	);
 }
