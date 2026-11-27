@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.0 (28.11.2026)
+- Added Training: five guided lessons on the real board (plant Grass, burn the rival with Fire, put the fire out with Water, read any cell, win a 30-second match against a scripted rival). Skip asks before it leaves, and the help button opens Training again.
+- The card you drag now shows its element name.
+- **Breaking:** Removed the six-step tutorial dialog. Training replaces it and opens once for every visitor, including those who already finished the tutorial.
+
 ## 3.0.0 (19.11.2026)
 - Added Elements Duel: a 60-second match against an AI on a 41×41 board. Drag cards from your hand onto your home, the third of the board nearest you. Whoever owns more cells at the end wins, and a tie goes to the human.
 - Added Arena: every visitor plays the same AI, and each win counts for Humanity. You hold 3 tickets and one returns every 10 minutes. A bot check opens each match, and a scheduled job replays it on the server before it counts.
